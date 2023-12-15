@@ -1,0 +1,75 @@
+[tool.poetry]
+name = "ubidots-cli"
+version = "0.1.0"
+description = "A powerful CLI tool for efficient management and automation of cloud-based resources."
+authors = ["crubio <cristian.rubio@ubidots.com>"]
+readme = "README.md"
+packages = [{include = "ubidots_cli"}]
+
+[tool.poetry.scripts]
+ubidots = "cli.main:app"
+
+[tool.poetry.dependencies]
+python = ">=3.10,<3.13"
+typer = "^0.9.0"
+pyyaml = "^6.0.1"
+pydantic = "^2.5.2"
+requests = "^2.31.0"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.poetry.extras]
+simplification = ["simplification"]
+
+[tool.poetry.group.dev.dependencies]
+ipdb = "^0.13.13"
+black = "^23.11.0"
+pep8 = "^1.7.1"
+pytest = "^7.4.3"
+isort = "^5.12.0"
+ruff = "^0.1.7"
+
+[tool.ruff]
+target-version = "py312"
+line-length = 123
+ignore = ["RUF001", "RUF012", "PLC1901", "COM812"]
+select = [
+  "E",
+  "F",
+  "W",
+  "C4",
+  "RUF",
+  "UP",
+  "B",
+  "EM",
+  "RET",
+  "FLY",
+  "SIM",
+  "PERF",
+  "ICN",
+  "YTT",
+  "ASYNC",
+  "TID",
+  "Q",
+  "PYI",
+  "FA",
+  "T10",
+  "PLC",
+  "PLE",
+  "ISC",
+  "G",
+  "INP",
+  "PIE",
+  "Q",
+  "RSE",
+  "TCH",
+  "INT",
+  "COM",
+  "ICN",
+  "SLOT",
+  "ASYNC",
+  "AIR",
+  "YTT",
+]
