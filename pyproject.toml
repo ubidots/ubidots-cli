@@ -4,7 +4,9 @@ version = "0.1.0"
 description = "A powerful CLI tool for efficient management and automation of cloud-based resources."
 authors = ["crubio <cristian.rubio@ubidots.com>"]
 readme = "README.md"
-packages = [{include = "ubidots_cli"}]
+packages = [
+    { include = "cli"}
+]
 
 [tool.poetry.scripts]
 ubidots = "cli.main:app"
@@ -15,6 +17,10 @@ typer = "^0.9.0"
 pyyaml = "^6.0.1"
 pydantic = "^2.5.2"
 requests = "^2.31.0"
+inquirerpy = "^0.3.4"
+pytest = "^7.4.3"
+pytest-mock = "^3.12.0"
+autoflake = "^2.2.1"
 
 [build-system]
 requires = ["poetry-core"]
