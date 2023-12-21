@@ -7,7 +7,8 @@ from typer.testing import CliRunner
 
 from cli import settings
 from cli.functions.enums import FunctionLanguageEnum
-from cli.functions.models import FunctionProjectInfo, FunctionProjectMetadata
+from cli.functions.models import (FunctionInfo, FunctionProjectInfo,
+                                  FunctionProjectMetadata)
 from cli.functions.utils import (compress_project_to_zip,
                                  read_manifest_project_file,
                                  save_manifest_project_file)
@@ -33,7 +34,8 @@ class TestFunctionUtils:
         project_path.mkdir()
         language = FunctionLanguageEnum.PYTHON
         expected_metadata = FunctionProjectMetadata(
-            project=FunctionProjectInfo(name=project_path.name, language=language)
+            project=FunctionProjectInfo(name=project_path.name, language=language),
+            function=FunctionInfo(id=None),
         )
         # Action
         save_manifest_project_file(project_path, language)
@@ -48,7 +50,7 @@ class TestFunctionUtils:
         assert written_metadata_dict == expected_metadata_dict
 
     def test_read_manifest_project_file(self):
-        # Configuración
+        # Setup
         project_path = self.tmp_path / "fake_project"
         project_path.mkdir()
         language = FunctionLanguageEnum.PYTHON

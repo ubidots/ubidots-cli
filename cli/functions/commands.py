@@ -23,22 +23,20 @@ def new(
         help="The name of the project folder.",
     )
 ):
+    project_path = Path.cwd() / name if not Path(name).is_absolute() else Path(name)
+    if project_path.exists():
+        typer.echo(f"A folder named '{name}' already exists.")
+        raise typer.Exit(1)
+
+    language = FunctionLanguageEnum.choose(message="Select a programming language:")
+    language_str = language.value
+
+    template_file = settings.UBIDOTS_FUNCTIONS_TEMPLATES_PATH / f"{language_str}.zip"
+    if not template_file.exists():
+        typer.echo(f"Template for '{language_str}' not found at '{template_file}'.")
+        raise typer.Exit(1)
+
     try:
-        project_path = Path.cwd() / name if not Path(name).is_absolute() else Path(name)
-        if project_path.exists():
-            typer.echo(f"A folder named '{name}' already exists.")
-            raise typer.Exit(1)
-
-        language = FunctionLanguageEnum.choose(message="Select a programming language:")
-        language_str = language.value
-
-        template_file = (
-            settings.UBIDOTS_FUNCTIONS_TEMPLATES_PATH / f"{language_str}.zip"
-        )
-        if not template_file.exists():
-            typer.echo(f"Template for '{language_str}' not found at '{template_file}'.")
-            raise typer.Exit(1)
-
         project_path.mkdir(parents=True, exist_ok=False)
         with zipfile.ZipFile(template_file, "r") as zip_ref:
             zip_ref.extractall(project_path)
