@@ -4,7 +4,7 @@ import pytest
 from typer.testing import CliRunner
 
 from cli import settings
-from cli.commons.utils_tests import mock_settings
+from cli.commons.utils_tests import override_settings
 from cli.functions.commands import app as function_app
 from cli.functions.enums import FunctionLanguageEnum
 from cli.functions.models import (FunctionInfo, FunctionProjectInfo,
@@ -104,7 +104,7 @@ class TestFunctionPushCommandValidators:
         with pytest.raises(ValueError):
             validator.validate_file_names()
 
-    @mock_settings(UBIDOTS_FUNCTIONS_MAX_FILES_ALLOWED=2)
+    @override_settings(UBIDOTS_FUNCTIONS_MAX_FILES_ALLOWED=2)
     def test_validate_file_count(self):
         # Setup
         validator = FunctionProjectValidator(self.project_path, self.project_metadata)
@@ -116,7 +116,7 @@ class TestFunctionPushCommandValidators:
         with pytest.raises(ValueError):
             validator.validate_file_count()
 
-    @mock_settings(UBIDOTS_FUNCTIONS_DEFAULT_MAX_FILE_SIZE=100)
+    @override_settings(UBIDOTS_FUNCTIONS_DEFAULT_MAX_FILE_SIZE=100)
     def test_validate_individual_file_size(self):
         # Setup
         validator = FunctionProjectValidator(self.project_path, self.project_metadata)

@@ -9,14 +9,18 @@ from pydantic import ValidationError
 
 from cli import settings
 from cli.functions.enums import FunctionLanguageEnum
-from cli.functions.models import FunctionProjectInfo, FunctionProjectMetadata
+from cli.functions.models import (FunctionInfo, FunctionProjectInfo,
+                                  FunctionProjectMetadata)
 
 
 def save_manifest_project_file(
-    project_path: Path, language: FunctionLanguageEnum
+    project_path: Path,
+    language: FunctionLanguageEnum,
+    function_id: str | None = None,
 ) -> None:
     metadata = FunctionProjectMetadata(
         project=FunctionProjectInfo(name=project_path.name, language=language),
+        function=FunctionInfo(id=function_id),
     )
     metadata_file = project_path / settings.UBIDOTS_FUNCTIONS_PROJECT_METADATA_FILE
     with open(metadata_file, "w") as file:

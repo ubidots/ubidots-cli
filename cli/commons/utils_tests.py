@@ -5,7 +5,7 @@ import pytest
 from cli import settings
 
 
-def mock_settings(**settings_overrides):
+def override_settings(**settings_overrides):
     def decorator(func):
         @wraps(func)
         def wrapper(*args, **kwargs):
