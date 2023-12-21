@@ -9,7 +9,7 @@ from cli.config.models import APIConfigModel, AuthHeaderType
 from cli.config.utils import read_cli_configuration, save_cli_configuration
 
 
-class TestCliConfiguration:
+class TestCliConfigurationUtils:
     @pytest.fixture(autouse=True)
     def setup(self, mocker):
         self.mocker = mocker
