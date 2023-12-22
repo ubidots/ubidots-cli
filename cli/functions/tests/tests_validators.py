@@ -7,8 +7,9 @@ from cli import settings
 from cli.commons.utils_tests import override_settings
 from cli.functions.commands import app as function_app
 from cli.functions.enums import FunctionLanguageEnum
-from cli.functions.models import (FunctionInfo, FunctionProjectInfo,
-                                  FunctionProjectMetadata)
+from cli.functions.models import FunctionInfo
+from cli.functions.models import FunctionProjectInfo
+from cli.functions.models import FunctionProjectMetadata
 from cli.functions.validators import FunctionProjectValidator
 
 
@@ -46,7 +47,7 @@ class TestFunctionNewCommandValidators:
         assert result.exit_code == 1
 
 
-class TestFunctionPushCommandValidators:
+class TestFunctionProjectValidators:
     @pytest.fixture(autouse=True)
     def setup(self, mocker):
         self.mocker = mocker
@@ -57,6 +58,7 @@ class TestFunctionPushCommandValidators:
             ),
             function=FunctionInfo(id="12345678"),
         )
+        self.project_files = [Path("main.py"), Path("manifest.yaml")]
 
     def mock_os_walk(self, project_path: str, file_names: list):
         return [(project_path, [], file_names)]
@@ -75,19 +77,21 @@ class TestFunctionPushCommandValidators:
             project=FunctionProjectInfo(
                 name="my_function", language=FunctionLanguageEnum.PYTHON
             ),
-            function=None,
+            function=FunctionInfo(id=None),
         )
-        validator = FunctionProjectValidator(self.project_path, project_metadata)
+        project_files = [Path("main.py")]
+        validator = FunctionProjectValidator(
+            project_metadata=project_metadata, project_files=project_files
+        )
         # Action & Assert
         with pytest.raises(ValueError):
             validator.validate_manifest_file()
 
     def test_main_file_presence_not_exist(self):
         # Setup
-        validator = FunctionProjectValidator(self.project_path, self.project_metadata)
-        file_names = ["main.py"]
-        self.mocker.patch(
-            "os.walk", lambda path: self.mock_os_walk(self.project_path, file_names)
+        project_files = [Path("hello.py")]
+        validator = FunctionProjectValidator(
+            project_metadata=self.project_metadata, project_files=project_files
         )
         # Action & Assert
         with pytest.raises(FileNotFoundError):
@@ -95,10 +99,9 @@ class TestFunctionPushCommandValidators:
 
     def test_validate_file_names(self):
         # Setup
-        validator = FunctionProjectValidator(self.project_path, self.project_metadata)
-        file_names = ["../archivo.txt", "subdir\\archivo.txt", "safe_file.txt"]
-        self.mocker.patch(
-            "os.walk", lambda path: self.mock_os_walk(self.project_path, file_names)
+        project_files = [Path("../archivo.txt"), Path("subdir\\archivo.txt")]
+        validator = FunctionProjectValidator(
+            project_metadata=self.project_metadata, project_files=project_files
         )
         # Action & Assert
         with pytest.raises(ValueError):
@@ -107,10 +110,9 @@ class TestFunctionPushCommandValidators:
     @override_settings(UBIDOTS_FUNCTIONS_MAX_FILES_ALLOWED=2)
     def test_validate_file_count(self):
         # Setup
-        validator = FunctionProjectValidator(self.project_path, self.project_metadata)
-        file_names = ["file_1.py", "file_2.py", "file_3.py"]
-        self.mocker.patch(
-            "os.walk", lambda path: self.mock_os_walk(self.project_path, file_names)
+        project_files = [Path("file_1.py"), Path("file_2.py"), Path("file_3.py")]
+        validator = FunctionProjectValidator(
+            project_metadata=self.project_metadata, project_files=project_files
         )
         # Action & Assert
         with pytest.raises(ValueError):
@@ -119,10 +121,12 @@ class TestFunctionPushCommandValidators:
     @override_settings(UBIDOTS_FUNCTIONS_DEFAULT_MAX_FILE_SIZE=100)
     def test_validate_individual_file_size(self):
         # Setup
-        validator = FunctionProjectValidator(self.project_path, self.project_metadata)
-        file_names = ["file_within_limit.py", "file_exceeds_limit.py"]
+        project_files = [Path("file_within_limit.py"), Path("file_exceeds_limit.py")]
+        validator = FunctionProjectValidator(
+            project_metadata=self.project_metadata, project_files=project_files
+        )
         self.mocker.patch(
-            "os.walk", lambda path: self.mock_os_walk(self.project_path, file_names)
+            "os.walk", lambda path: self.mock_os_walk(self.project_path, project_files)
         )
         oversized_size = settings.UBIDOTS_FUNCTIONS_DEFAULT_MAX_FILE_SIZE + 1
         getsize_mock = self.mock_getsize(["file_exceeds_limit.py"], oversized_size)

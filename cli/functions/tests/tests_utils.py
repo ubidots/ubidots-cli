@@ -7,11 +7,12 @@ from typer.testing import CliRunner
 
 from cli import settings
 from cli.functions.enums import FunctionLanguageEnum
-from cli.functions.models import (FunctionInfo, FunctionProjectInfo,
-                                  FunctionProjectMetadata)
-from cli.functions.utils import (compress_project_to_zip,
-                                 read_manifest_project_file,
-                                 save_manifest_project_file)
+from cli.functions.models import FunctionInfo
+from cli.functions.models import FunctionProjectInfo
+from cli.functions.models import FunctionProjectMetadata
+from cli.functions.utils import compress_project_to_zip
+from cli.functions.utils import read_manifest_project_file
+from cli.functions.utils import save_manifest_project_file
 
 
 class TestFunctionUtils:

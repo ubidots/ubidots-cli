@@ -5,8 +5,10 @@ import pytest
 import yaml
 
 from cli import settings
-from cli.config.models import APIConfigModel, AuthHeaderType
-from cli.config.utils import read_cli_configuration, save_cli_configuration
+from cli.config.models import APIConfigModel
+from cli.config.models import AuthHeaderType
+from cli.config.utils import read_cli_configuration
+from cli.config.utils import save_cli_configuration
 
 
 class TestCliConfigurationUtils:
