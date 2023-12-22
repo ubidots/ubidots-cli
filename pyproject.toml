@@ -37,6 +37,9 @@ pytest = "^7.4.3"
 isort = "^5.12.0"
 ruff = "^0.1.7"
 
+[tool.isort]
+force_single_line = true
+
 [tool.ruff]
 target-version = "py312"
 line-length = 123

@@ -8,10 +8,10 @@ import typer
 from cli import settings
 from cli.commons.utils import build_endpoint
 from cli.functions.enums import FunctionLanguageEnum
-from cli.functions.utils import (compress_project_to_zip,
-                                 read_manifest_project_file,
-                                 save_manifest_project_file)
+from cli.functions.utils import compress_project_to_zip
+from cli.functions.utils import save_manifest_project_file
 from cli.functions.validators import FunctionProjectValidator
+from cli.functions.validators import ProjectValidationDataManager
 
 app = typer.Typer(help="Tool for managing and deploying functions via API.")
 
@@ -54,9 +54,10 @@ def new(
 def push():
     actual_path = Path.cwd()
     try:
-        manifest_data = read_manifest_project_file(project_path=actual_path)
+        project_data_manager = ProjectValidationDataManager(project_path=actual_path)
+        project_metadata, project_files = project_data_manager.prepare_data()
         validator = FunctionProjectValidator(
-            project_path=actual_path, project_metadata=manifest_data
+            project_metadata=project_metadata, project_files=project_files
         )
         validator.run_all_validations()
         typer.echo(
@@ -71,11 +72,11 @@ def push():
 
     url, headers = build_endpoint(
         route="/api/-/functions/{function_key}/zip-file/",
-        function_key=manifest_data.function.id,
+        function_key=project_metadata.function.id,
     )
     files = {
         "zipFile": (
-            f"{manifest_data.project.name}.zip",
+            f"{project_metadata.project.name}.zip",
             zip_file_obj,
             "application/zip",
         )
@@ -99,9 +100,10 @@ def push():
 def pull():
     actual_path = Path.cwd()
     try:
-        manifest_data = read_manifest_project_file(project_path=actual_path)
+        project_data_manager = ProjectValidationDataManager(project_path=actual_path)
+        project_metadata, project_files = project_data_manager.prepare_data()
         validator = FunctionProjectValidator(
-            project_path=actual_path, project_metadata=manifest_data
+            project_metadata=project_metadata, project_files=project_files
         )
         validator.validate_manifest_file()
 
@@ -111,7 +113,7 @@ def pull():
 
     url, headers = build_endpoint(
         route="/api/-/functions/{function_key}/zip-file/",
-        function_key=manifest_data.function.id,
+        function_key=project_metadata.function.id,
     )
     try:
         response = requests.get(url, headers=headers)

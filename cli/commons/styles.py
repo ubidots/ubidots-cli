@@ -1,7 +1,9 @@
 from enum import Enum
 from typing import Any
 
-from typer import colors, prompt, style
+from typer import colors
+from typer import prompt
+from typer import style
 
 
 class StatusColors(Enum):

@@ -9,8 +9,9 @@ from pydantic import ValidationError
 
 from cli import settings
 from cli.functions.enums import FunctionLanguageEnum
-from cli.functions.models import (FunctionInfo, FunctionProjectInfo,
-                                  FunctionProjectMetadata)
+from cli.functions.models import FunctionInfo
+from cli.functions.models import FunctionProjectInfo
+from cli.functions.models import FunctionProjectMetadata
 
 
 def save_manifest_project_file(

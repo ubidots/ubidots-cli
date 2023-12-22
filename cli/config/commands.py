@@ -2,7 +2,8 @@ import typer
 
 from cli import settings
 from cli.commons.styles import custom_prompt
-from cli.config.models import APIConfigModel, AuthHeaderType
+from cli.config.models import APIConfigModel
+from cli.config.models import AuthHeaderType
 from cli.config.utils import save_cli_configuration
 
 
