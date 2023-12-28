@@ -2,7 +2,7 @@ from enum import Enum
 
 from pydantic import BaseModel
 
-from cli import settings
+from cli.settings import settings
 
 
 class AuthHeaderType(Enum):
@@ -10,7 +10,7 @@ class AuthHeaderType(Enum):
 
 
 class APIConfigModel(BaseModel):
-    api_domain: str = settings.UBIDOTS_API_DOMAIN
+    api_domain: str = settings.CONFIG.API_DOMAIN
     auth_method: AuthHeaderType = AuthHeaderType.TOKEN
     access_token: str
 

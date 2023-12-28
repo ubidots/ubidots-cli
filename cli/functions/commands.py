@@ -5,13 +5,13 @@ from pathlib import Path
 import requests
 import typer
 
-from cli import settings
 from cli.commons.utils import build_endpoint
 from cli.functions.enums import FunctionLanguageEnum
 from cli.functions.utils import compress_project_to_zip
 from cli.functions.utils import save_manifest_project_file
 from cli.functions.validators import FunctionProjectValidator
 from cli.functions.validators import ProjectValidationDataManager
+from cli.settings import settings
 
 app = typer.Typer(help="Tool for managing and deploying functions via API.")
 
@@ -19,7 +19,7 @@ app = typer.Typer(help="Tool for managing and deploying functions via API.")
 @app.command(help="Create a new local function.")
 def new(
     name: str = typer.Argument(
-        default=settings.UBIDOTS_FUNCTIONS_DEFAULT_PROJECT_NAME,
+        default=settings.FUNCTIONS.DEFAULT_PROJECT_NAME,
         help="The name of the project folder.",
     )
 ):
@@ -31,7 +31,7 @@ def new(
     language = FunctionLanguageEnum.choose(message="Select a programming language:")
     language_str = language.value
 
-    template_file = settings.UBIDOTS_FUNCTIONS_TEMPLATES_PATH / f"{language_str}.zip"
+    template_file = settings.FUNCTIONS.TEMPLATES_PATH / f"{language_str}.zip"
     if not template_file.exists():
         typer.echo(f"Template for '{language_str}' not found at '{template_file}'.")
         raise typer.Exit(1)

@@ -3,7 +3,6 @@ from pathlib import Path
 import pytest
 from typer.testing import CliRunner
 
-from cli import settings
 from cli.commons.utils_tests import override_settings
 from cli.functions.commands import app as function_app
 from cli.functions.enums import FunctionLanguageEnum
@@ -11,6 +10,7 @@ from cli.functions.models import FunctionInfo
 from cli.functions.models import FunctionProjectInfo
 from cli.functions.models import FunctionProjectMetadata
 from cli.functions.validators import FunctionProjectValidator
+from cli.settings import settings
 
 
 class TestFunctionNewCommandValidators:
@@ -107,7 +107,7 @@ class TestFunctionProjectValidators:
         with pytest.raises(ValueError):
             validator.validate_file_names()
 
-    @override_settings(UBIDOTS_FUNCTIONS_MAX_FILES_ALLOWED=2)
+    @override_settings(obj="FUNCTIONS", ZIP_FILE__MAX_FILES_ALLOWED=2)
     def test_validate_file_count(self):
         # Setup
         project_files = [Path("file_1.py"), Path("file_2.py"), Path("file_3.py")]
@@ -118,7 +118,7 @@ class TestFunctionProjectValidators:
         with pytest.raises(ValueError):
             validator.validate_file_count()
 
-    @override_settings(UBIDOTS_FUNCTIONS_DEFAULT_MAX_FILE_SIZE=100)
+    @override_settings(obj="FUNCTIONS", ZIP_FILE__DEFAULT_MAX_FILE_SIZE=100)
     def test_validate_individual_file_size(self):
         # Setup
         project_files = [Path("file_within_limit.py"), Path("file_exceeds_limit.py")]
@@ -128,7 +128,7 @@ class TestFunctionProjectValidators:
         self.mocker.patch(
             "os.walk", lambda path: self.mock_os_walk(self.project_path, project_files)
         )
-        oversized_size = settings.UBIDOTS_FUNCTIONS_DEFAULT_MAX_FILE_SIZE + 1
+        oversized_size = settings.FUNCTIONS.ZIP_FILE.DEFAULT_MAX_FILE_SIZE + 1
         getsize_mock = self.mock_getsize(["file_exceeds_limit.py"], oversized_size)
         self.mocker.patch("os.path.getsize", getsize_mock)
         # Action & Assert

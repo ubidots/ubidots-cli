@@ -4,11 +4,11 @@ from unittest.mock import mock_open
 import pytest
 import yaml
 
-from cli import settings
 from cli.config.models import APIConfigModel
 from cli.config.models import AuthHeaderType
 from cli.config.utils import read_cli_configuration
 from cli.config.utils import save_cli_configuration
+from cli.settings import settings
 
 
 class TestCliConfigurationUtils:
@@ -29,7 +29,7 @@ class TestCliConfigurationUtils:
         self.mocker.patch.object(Path, "mkdir")
         # Action
         save_cli_configuration(config_model)
-        mock_file_open.assert_called_once_with(settings.UBIDOTS_ACCESS_CONFIG_FILE, "w")
+        mock_file_open.assert_called_once_with(settings.config.FILE_PATH, "w")
         written_calls = mock_file_open().write.mock_calls
         written_content = "".join(call.args[0] for call in written_calls)
         # Assert

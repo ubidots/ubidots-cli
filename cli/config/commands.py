@@ -1,17 +1,17 @@
 import typer
 
-from cli import settings
 from cli.commons.styles import custom_prompt
 from cli.config.models import APIConfigModel
 from cli.config.models import AuthHeaderType
 from cli.config.utils import save_cli_configuration
+from cli.settings import settings
 
 
 def config():
     api_domain = custom_prompt(
         "API Domain",
         type=str,
-        default=settings.UBIDOTS_API_DOMAIN,
+        default=settings.CONFIG.API_DOMAIN,
     )
     auth_method = custom_prompt(
         "Authentication Method",

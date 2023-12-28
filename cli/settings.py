@@ -1,17 +1,38 @@
+from functools import lru_cache
 from pathlib import Path
 
-# Config: API configuration settings.
-UBIDOTS_API_DOMAIN = "https://industrial.api.ubidots.com"
-UBIDOTS_CONFIG_PATH = Path.home() / ".ubidots_cli"
-UBIDOTS_ACCESS_CONFIG_FILE = UBIDOTS_CONFIG_PATH / "config.yaml"
+from pydantic import BaseModel
+from pydantic_settings import BaseSettings
 
-# Functions: Default settings for functions projects.
-UBIDOTS_FUNCTIONS_DEFAULT_PROJECT_NAME = "my_function"
-UBIDOTS_FUNCTIONS_DEFAULT_MAIN_FILE_NAME = "main"
-UBIDOTS_FUNCTIONS_PROJECT_METADATA_FILE = "manifest.yaml"
-UBIDOTS_FUNCTIONS_TEMPLATES_PATH = (
-    Path(__file__).resolve().parent.parent / "cli" / "functions" / "templates"
-)
-## Server-dependent settings. Ensure to sync with Ubidots server constraints.
-UBIDOTS_FUNCTIONS_MAX_FILES_ALLOWED = 2000
-UBIDOTS_FUNCTIONS_DEFAULT_MAX_FILE_SIZE = 5 * 1024 * 1024  # 5MB
+
+class ConfigSettings(BaseModel):
+    API_DOMAIN: str = "https://industrial.api.ubidots.com"
+    DIRECTORY_PATH: Path = Path.home() / ".ubidots_cli"
+    FILE_PATH: Path = DIRECTORY_PATH / "config.yaml"
+
+
+class FunctionSettings(BaseModel):
+    class ZipFileSettings(BaseModel):
+        MAX_FILES_ALLOWED: int = 2000
+        DEFAULT_MAX_FILE_SIZE: int = 5 * 1024 * 1024  # 5MB
+
+    DEFAULT_PROJECT_NAME: str = "my_function"
+    DEFAULT_MAIN_FILE_NAME: str = "main"
+    PROJECT_METADATA_FILE: str = "manifest.yaml"
+    TEMPLATES_PATH: Path = (
+        Path(__file__).resolve().parent.parent / "cli" / "functions" / "templates"
+    )
+    ZIP_FILE: ZipFileSettings = ZipFileSettings()
+
+
+class Settings(BaseSettings):
+    CONFIG: ConfigSettings = ConfigSettings()
+    FUNCTIONS: FunctionSettings = FunctionSettings()
+
+
+@lru_cache
+def get_settings():
+    return Settings()
+
+
+settings = get_settings()

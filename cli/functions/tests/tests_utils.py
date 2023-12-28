@@ -5,7 +5,6 @@ import pytest
 import yaml
 from typer.testing import CliRunner
 
-from cli import settings
 from cli.functions.enums import FunctionLanguageEnum
 from cli.functions.models import FunctionInfo
 from cli.functions.models import FunctionProjectInfo
@@ -13,6 +12,7 @@ from cli.functions.models import FunctionProjectMetadata
 from cli.functions.utils import compress_project_to_zip
 from cli.functions.utils import read_manifest_project_file
 from cli.functions.utils import save_manifest_project_file
+from cli.settings import settings
 
 
 class TestFunctionUtils:
@@ -41,7 +41,7 @@ class TestFunctionUtils:
         # Action
         save_manifest_project_file(project_path, language)
         # Assert
-        metadata_file = project_path / settings.UBIDOTS_FUNCTIONS_PROJECT_METADATA_FILE
+        metadata_file = project_path / settings.FUNCTIONS.PROJECT_METADATA_FILE
         with open(metadata_file) as file:
             written_metadata = yaml.safe_load(file)
         expected_metadata_dict = expected_metadata.for_yaml_dump()
@@ -58,7 +58,7 @@ class TestFunctionUtils:
         metadata = FunctionProjectMetadata(
             project=FunctionProjectInfo(name=project_path.name, language=language)
         )
-        metadata_file = project_path / settings.UBIDOTS_FUNCTIONS_PROJECT_METADATA_FILE
+        metadata_file = project_path / settings.FUNCTIONS.PROJECT_METADATA_FILE
         with open(metadata_file, "w") as file:
             yaml.dump(metadata.for_yaml_dump(), file)
         # Action

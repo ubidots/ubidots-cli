@@ -1,12 +1,12 @@
 import yaml
 
-from cli import settings
 from cli.config.models import APIConfigModel
+from cli.settings import settings
 
 
 def save_cli_configuration(config_model: APIConfigModel) -> None:
-    config_path = settings.UBIDOTS_CONFIG_PATH
-    config_file = settings.UBIDOTS_ACCESS_CONFIG_FILE
+    config_path = settings.CONFIG.DIRECTORY_PATH
+    config_file = settings.CONFIG.FILE_PATH
 
     config_path.mkdir(parents=True, exist_ok=True)
     with open(config_file, "w") as file:
@@ -14,7 +14,7 @@ def save_cli_configuration(config_model: APIConfigModel) -> None:
 
 
 def read_cli_configuration() -> APIConfigModel:
-    config_file = settings.UBIDOTS_ACCESS_CONFIG_FILE
+    config_file = settings.CONFIG.FILE_PATH
 
     with open(config_file) as file:
         config_data = yaml.safe_load(file)

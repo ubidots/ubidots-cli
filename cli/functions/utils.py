@@ -7,11 +7,11 @@ from typing import IO
 import yaml
 from pydantic import ValidationError
 
-from cli import settings
 from cli.functions.enums import FunctionLanguageEnum
 from cli.functions.models import FunctionInfo
 from cli.functions.models import FunctionProjectInfo
 from cli.functions.models import FunctionProjectMetadata
+from cli.settings import settings
 
 
 def save_manifest_project_file(
@@ -23,13 +23,13 @@ def save_manifest_project_file(
         project=FunctionProjectInfo(name=project_path.name, language=language),
         function=FunctionInfo(id=function_id),
     )
-    metadata_file = project_path / settings.UBIDOTS_FUNCTIONS_PROJECT_METADATA_FILE
+    metadata_file = project_path / settings.FUNCTIONS.PROJECT_METADATA_FILE
     with open(metadata_file, "w") as file:
         yaml.dump(metadata.for_yaml_dump(), file)
 
 
 def read_manifest_project_file(project_path: Path) -> FunctionProjectMetadata:
-    manifest_file = settings.UBIDOTS_FUNCTIONS_PROJECT_METADATA_FILE
+    manifest_file = settings.FUNCTIONS.PROJECT_METADATA_FILE
     manifest_file_path = project_path / manifest_file
 
     if not manifest_file_path.exists():

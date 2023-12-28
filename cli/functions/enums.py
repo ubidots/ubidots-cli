@@ -2,7 +2,7 @@ from enum import Enum
 
 from InquirerPy import inquirer
 
-from cli import settings
+from cli.settings import settings
 
 
 class ChoosableEnum(Enum):
@@ -36,5 +36,5 @@ class FunctionLanguageEnum(ChoosableEnum):
 
     @property
     def main_file(self):
-        main_file_name = settings.UBIDOTS_FUNCTIONS_DEFAULT_MAIN_FILE_NAME
+        main_file_name = settings.FUNCTIONS.DEFAULT_MAIN_FILE_NAME
         return f"{main_file_name}.{self.extension}"

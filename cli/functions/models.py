@@ -5,12 +5,12 @@ from pydantic import BaseModel
 from pydantic import Field
 from pydantic import model_validator
 
-from cli import settings
 from cli.functions.enums import FunctionLanguageEnum
+from cli.settings import settings
 
 
 class FunctionProjectInfo(BaseModel):
-    name: str = settings.UBIDOTS_FUNCTIONS_DEFAULT_PROJECT_NAME
+    name: str = settings.FUNCTIONS.DEFAULT_PROJECT_NAME
     language: FunctionLanguageEnum
     main_file: str = ""
     created: datetime = Field(default_factory=datetime.now)
