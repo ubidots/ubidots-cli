@@ -2,8 +2,8 @@ import os
 import re
 from pathlib import Path
 
+from cli.functions.helpers import read_manifest_project_file
 from cli.functions.models import FunctionProjectMetadata
-from cli.functions.utils import read_manifest_project_file
 from cli.settings import settings
 
 

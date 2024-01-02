@@ -1,9 +1,6 @@
-import typer
-
 from cli.commons.styles import custom_prompt
-from cli.config.models import APIConfigModel
+from cli.config.handlers import handler_config
 from cli.config.models import AuthHeaderType
-from cli.config.utils import save_cli_configuration
 from cli.settings import settings
 
 
@@ -13,21 +10,18 @@ def config():
         type=str,
         default=settings.CONFIG.API_DOMAIN,
     )
-    auth_method = custom_prompt(
+    auth_method_key = custom_prompt(
         "Authentication Method",
         type=str,
-        default=AuthHeaderType.TOKEN.value,
+        default=AuthHeaderType.TOKEN.name,
     )
     access_token = custom_prompt(
         "Access Token",
         type=str,
         hide_input=True,
     )
-    save_cli_configuration(
-        APIConfigModel(
-            api_domain=api_domain,
-            auth_method=auth_method,
-            access_token=access_token,
-        )
+    handler_config(
+        api_domain=api_domain,
+        auth_method_key=auth_method_key,
+        access_token=access_token,
     )
-    typer.echo("Configuration saved successfully.")

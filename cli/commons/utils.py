@@ -1,4 +1,4 @@
-from cli.config.utils import read_cli_configuration
+from cli.config.helpers import read_cli_configuration
 
 
 def build_endpoint(route: str, **kwargs) -> str:

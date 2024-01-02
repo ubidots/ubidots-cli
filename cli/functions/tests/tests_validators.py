@@ -22,6 +22,9 @@ class TestFunctionNewCommandValidators:
     def test_folder_exists(self):
         # Setup
         self.mocker.patch("pathlib.Path.exists", return_value=True)
+        self.mocker.patch.object(
+            FunctionLanguageEnum, "choose", return_value=FunctionLanguageEnum.PYTHON
+        )
         # Action
         result = self.runner.invoke(function_app, ["new", "my_function"])
         # Assert
