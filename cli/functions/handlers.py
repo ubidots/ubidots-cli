@@ -14,7 +14,7 @@ from cli.functions.validators import ProjectValidationDataManager
 from cli.settings import settings
 
 
-def handler_function_new(name: str, language: FunctionLanguageEnum):
+def create_function(name: str, language: FunctionLanguageEnum):
     project_path = Path.cwd() / name if not Path(name).is_absolute() else Path(name)
     if project_path.exists():
         typer.echo(f"A folder named '{name}' already exists.")
@@ -38,7 +38,7 @@ def handler_function_new(name: str, language: FunctionLanguageEnum):
         raise typer.Exit(1) from error
 
 
-def handler_function_push():
+def push_function():
     actual_path = Path.cwd()
     try:
         project_data_manager = ProjectValidationDataManager(project_path=actual_path)
@@ -82,7 +82,7 @@ def handler_function_push():
     typer.echo("Function uploaded successfully.")
 
 
-def handler_function_pull():
+def pull_function():
     actual_path = Path.cwd()
     try:
         project_data_manager = ProjectValidationDataManager(project_path=actual_path)

@@ -1,5 +1,5 @@
 from cli.commons.styles import custom_prompt
-from cli.config.handlers import handler_config
+from cli.config import handlers
 from cli.config.models import AuthHeaderType
 from cli.settings import settings
 
@@ -20,7 +20,7 @@ def config():
         type=str,
         hide_input=True,
     )
-    handler_config(
+    handlers.set_configuration(
         api_domain=api_domain,
         auth_method_key=auth_method_key,
         access_token=access_token,

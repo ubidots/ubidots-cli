@@ -5,7 +5,9 @@ from cli.config.models import APIConfigModel
 from cli.config.models import AuthHeaderType
 
 
-def handler_config(api_domain: str, auth_method_key: AuthHeaderType, access_token: str):
+def set_configuration(
+    api_domain: str, auth_method_key: AuthHeaderType, access_token: str
+):
     try:
         auth_method_value = AuthHeaderType[auth_method_key].value
     except KeyError as error:

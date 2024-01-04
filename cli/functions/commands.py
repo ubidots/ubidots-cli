@@ -1,9 +1,7 @@
 import typer
 
+from cli.functions import handlers
 from cli.functions.enums import FunctionLanguageEnum
-from cli.functions.handlers import handler_function_new
-from cli.functions.handlers import handler_function_pull
-from cli.functions.handlers import handler_function_push
 from cli.settings import settings
 
 app = typer.Typer(help="Tool for managing and deploying functions via API.")
@@ -17,18 +15,18 @@ def new(
     )
 ):
     language = FunctionLanguageEnum.choose(message="Select a programming language:")
-    handler_function_new(name=name, language=language)
+    handlers.create_function(name=name, language=language)
 
 
 @app.command(
     help="Update and synchronize your local function code with the remote server."
 )
 def push():
-    handler_function_push()
+    handlers.push_function()
 
 
 @app.command(
     help="Retrieve and update your local function code with the latest changes from the remote server."
 )
 def pull():
-    handler_function_pull()
+    handlers.pull_function()
