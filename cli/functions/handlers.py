@@ -2,10 +2,11 @@ import zipfile
 from io import BytesIO
 from pathlib import Path
 
-import requests
 import typer
 
+from cli.commons.enums import HTTPMethodEnum
 from cli.commons.utils import build_endpoint
+from cli.commons.utils import perform_http_request
 from cli.functions.enums import FunctionLanguageEnum
 from cli.functions.helpers import compress_project_to_zip
 from cli.functions.helpers import save_manifest_project_file
@@ -68,18 +69,10 @@ def push_function():
             "application/zip",
         )
     }
-    try:
-        response = requests.post(url, headers=headers, files=files)
-        response.raise_for_status()
-    except requests.RequestException as error:
-        error_message = f"Error uploading function: {error}"
-        response_json = response.json()
-        if "detail" in response_json:
-            error_message += f"\nServer response: {response_json['detail']}"
-        typer.echo(error_message)
-        raise typer.Exit(1) from error
-
-    typer.echo("Function uploaded successfully.")
+    response = perform_http_request(
+        method=HTTPMethodEnum.POST, url=url, headers=headers, files=files
+    )
+    typer.echo(response.json()["message"])
 
 
 def pull_function():
@@ -100,19 +93,8 @@ def pull_function():
         route="/api/-/functions/{function_key}/zip-file/",
         function_key=project_metadata.function.id,
     )
-    try:
-        response = requests.get(url, headers=headers)
-        response.raise_for_status()
-        typer.echo("Function downloaded successfully.")
-    except requests.RequestException as error:
-        error_message = f"Error downloading function: {error}"
-        response_json = response.json()
-        if "detail" in response_json:
-            error_message += f"\nServer response: {response_json['detail']}"
-        typer.echo(error_message)
-        raise typer.Exit(1) from error
+    response = perform_http_request(method=HTTPMethodEnum.GET, url=url, headers=headers)
 
     with zipfile.ZipFile(BytesIO(response.content), "r") as zip_ref:
         zip_ref.extractall(actual_path)
-
-    typer.echo("Function downloaded and unpacked successfully.")
+    typer.echo("Function downloaded successfully.")
