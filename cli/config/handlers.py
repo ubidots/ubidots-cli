@@ -1,5 +1,7 @@
 import typer
 
+from cli.config.helpers import mask_token
+from cli.config.helpers import read_cli_configuration
 from cli.config.helpers import save_cli_configuration
 from cli.config.models import APIConfigModel
 from cli.config.models import AuthHeaderType
@@ -27,3 +29,13 @@ def set_configuration(
         )
     )
     typer.echo("Configuration saved successfully.")
+
+
+def get_access_token_configuration() -> tuple(str, str):
+    try:
+        access_config = read_cli_configuration()
+        original_token = access_config.access_token
+        masked_token = mask_token(token=original_token)
+        return original_token, masked_token
+    except FileNotFoundError:
+        return "", ""

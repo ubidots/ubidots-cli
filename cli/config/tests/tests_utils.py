@@ -4,6 +4,7 @@ from unittest.mock import mock_open
 import pytest
 import yaml
 
+from cli.config.helpers import mask_token
 from cli.config.helpers import read_cli_configuration
 from cli.config.helpers import save_cli_configuration
 from cli.config.models import APIConfigModel
@@ -48,3 +49,9 @@ class TestCliConfigurationUtils:
         read_config = read_cli_configuration()
         # Assert
         assert read_config == config_model
+
+    def test_mask_token(self):
+        # Action
+        masked_token = mask_token(token="123456")
+        # Assert
+        assert masked_token == "**3456"
