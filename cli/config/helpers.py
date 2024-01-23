@@ -22,9 +22,6 @@ def read_cli_configuration() -> APIConfigModel:
 
 
 def mask_token(token: str, visible_chars: int = 4) -> str:
-    if not token or not isinstance(token, str):
-        return None
-
     visible_chars = min(len(token), visible_chars)
     num_asterisks = len(token) - visible_chars
     return "*" * num_asterisks + token[-visible_chars:]

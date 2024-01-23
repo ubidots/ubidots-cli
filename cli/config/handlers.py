@@ -31,7 +31,7 @@ def set_configuration(
     typer.echo("Configuration saved successfully.")
 
 
-def get_access_token_configuration() -> tuple(str, str):
+def get_access_token_configuration() -> tuple[str, str]:
     try:
         access_config = read_cli_configuration()
         original_token = access_config.access_token

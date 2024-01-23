@@ -1,3 +1,6 @@
+from collections.abc import Callable
+from functools import wraps
+from typing import Annotated
 from typing import Any
 
 import requests
@@ -8,11 +11,38 @@ from cli.commons.enums import RequestErrorEnum
 from cli.config.helpers import read_cli_configuration
 
 
-def build_endpoint(route: str, **kwargs) -> str:
+def build_endpoint(route: str, query_params: dict | None = None, **kwargs) -> str:
     access_config = read_cli_configuration()
     url = f"{access_config.api_domain}{route.format(**kwargs)}"
+    if query_params:
+        query_string = "&".join(f"{key}={value}" for key, value in query_params.items())
+        url += f"?{query_string}"
+
     headers = {access_config.auth_method.value: access_config.access_token}
     return url, headers
+
+
+def get_instance_key(id: str | None = None, label: str | None = None) -> str | None:
+    if isinstance(id, str):
+        return id
+    if isinstance(label, str):
+        return f"~{label}"
+    error_message = "Providing an '--id' or '--label' is required."
+    raise typer.BadParameter(error_message)
+
+
+def simple_lookup_key(command_func: Callable[..., Any]):
+    @wraps(command_func)
+    def wrapper(*args, **kwargs):
+        return command_func(*args, **kwargs)
+
+    wrapper.__annotations__["id"] = Annotated[
+        str, typer.Option(help="...", show_default=False)
+    ]
+    wrapper.__annotations__["label"] = Annotated[
+        str, typer.Option(help="...", show_default=False)
+    ]
+    return wrapper
 
 
 def perform_http_request(
@@ -25,10 +55,6 @@ def perform_http_request(
         HTTPMethodEnum.PUT: requests.put,
         HTTPMethodEnum.DELETE: requests.delete,
     }
-    if method not in supported_methods:
-        typer.echo(f"Unsupported HTTP method: {method}")
-        raise typer.Exit(1)
-
     error_messages = {
         RequestErrorEnum.HTTP_ERROR: "HTTP error occurred.",
         RequestErrorEnum.CONNECTION_ERROR: "Connection error occurred.",
