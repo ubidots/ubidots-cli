@@ -7,7 +7,6 @@ import typer
 
 from cli.commons.enums import HTTPMethodEnum
 from cli.commons.enums import RequestErrorEnum
-from cli.commons.validators import is_valid_object_id
 from cli.config.helpers import read_cli_configuration
 
 
@@ -29,12 +28,6 @@ def get_instance_key(id: str | None = None, label: str | None = None) -> str | N
         return f"~{label}"
     error_message = "Providing an '--id' or '--label' is required."
     raise typer.BadParameter(error_message)
-
-
-def get_id_or_label(key: str) -> str:
-    if not is_valid_object_id(key=key):
-        key = f"~{key}"
-    return key
 
 
 def simple_lookup_key(entity_name: str):

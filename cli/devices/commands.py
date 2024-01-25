@@ -11,14 +11,14 @@ app = typer.Typer(help="Device management and operations.")
 
 @app.command(short_help="Lists all available devices.")
 def list():
-    handlers.get_devices()
+    handlers.list_devices()
 
 
 @app.command(short_help="Retrieves a specific device using its id or label.")
 @simple_lookup_key(entity_name="device")
 def get(id: str | None = None, label: str | None = None):
     device_key = get_instance_key(id=id, label=label)
-    handlers.get_device(device_key=device_key)
+    handlers.retrieve_device(device_key=device_key)
 
 
 @app.command(short_help="Adds a new device.")
@@ -29,7 +29,10 @@ def add(
         str, typer.Option(help="A brief description of the device.")
     ] = "",
     organization: Annotated[
-        str, typer.Option(help="The organization associated with the device.")
+        str,
+        typer.Option(
+            help="The organization associated with the device. Its id or '['~label'|\\~label]."
+        ),
     ] = "",
     tags: Annotated[
         str,

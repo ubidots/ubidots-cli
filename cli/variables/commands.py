@@ -2,7 +2,6 @@ from typing import Annotated
 
 import typer
 
-from cli.commons.utils import get_id_or_label
 from cli.commons.utils import get_instance_key
 from cli.commons.utils import simple_lookup_key
 from cli.variables import handlers
@@ -13,14 +12,14 @@ app = typer.Typer(help="Variable management and operations.")
 
 @app.command(short_help="Lists all available variables.")
 def list():
-    handlers.get_variables()
+    handlers.list_variable()
 
 
 @app.command(short_help="Retrieves a specific variable using its id.")
 @simple_lookup_key(entity_name="variable")
 def get(id: str):
     variable_key = get_instance_key(id=id)
-    handlers.get_variable(variable_key=variable_key)
+    handlers.retrieve_variable(variable_key=variable_key)
 
 
 @app.command(short_help="Adds a new variable.")
@@ -28,7 +27,7 @@ def add(
     device: Annotated[
         str,
         typer.Argument(
-            help="The device associated with the variable. Its id or label."
+            help="The device associated with the variable. Its id or ['~label'|\\~label]."
         ),
     ],
     label: Annotated[str, typer.Argument(help="The label for the variable.")] = "",
@@ -62,10 +61,9 @@ def add(
     ] = "",
 ):
     if not label and not name:
-        error_message = "Either '--label' or '--name' must be provided."
+        error_message = "Either 'label' or 'name' must be provided."
         raise typer.BadParameter(error_message)
 
-    device = get_id_or_label(key=device)
     handlers.add_variable(
         label=label,
         name=name,

@@ -6,7 +6,7 @@ from cli.commons.utils import build_endpoint
 from cli.commons.utils import perform_http_request
 
 
-def get_devices():
+def list_devices():
     url, headers = build_endpoint(
         route="/api/v2.0/devices/",
         query_params={"fields": "id,label,variablesCount"},
@@ -15,7 +15,7 @@ def get_devices():
     print_colored_table(results=response.json()["results"])
 
 
-def get_device(device_key: str):
+def retrieve_device(device_key: str):
     url, headers = build_endpoint(
         route="/api/v2.0/devices/{device_key}/",
         device_key=device_key,

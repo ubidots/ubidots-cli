@@ -6,7 +6,7 @@ from cli.commons.utils import build_endpoint
 from cli.commons.utils import perform_http_request
 
 
-def get_variables():
+def list_variable():
     url, headers = build_endpoint(
         route="/api/v2.0/variables/",
         query_params={"fields": "id,label,type,unit,syntheticExpression,device"},
@@ -18,7 +18,7 @@ def get_variables():
     )
 
 
-def get_variable(variable_key: str):
+def retrieve_variable(variable_key: str):
     url, headers = build_endpoint(
         route="/api/v2.0/variables/{variable_key}/",
         variable_key=variable_key,
