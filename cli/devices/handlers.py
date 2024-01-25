@@ -6,15 +6,16 @@ from cli.commons.utils import build_endpoint
 from cli.commons.utils import perform_http_request
 
 
-def get_all_devices():
+def get_devices():
     url, headers = build_endpoint(
-        route="/api/v2.0/devices/", query_params={"fields": "id,label,variablesCount"}
+        route="/api/v2.0/devices/",
+        query_params={"fields": "id,label,variablesCount"},
     )
     response = perform_http_request(method=HTTPMethodEnum.GET, url=url, headers=headers)
     print_colored_table(results=response.json()["results"])
 
 
-def get_specific_device(device_key: str):
+def get_device(device_key: str):
     url, headers = build_endpoint(
         route="/api/v2.0/devices/{device_key}/",
         device_key=device_key,
@@ -24,7 +25,7 @@ def get_specific_device(device_key: str):
     print_colored_table(results=[response.json()])
 
 
-def add_new_device(**kwargs):
+def add_device(**kwargs):
     data = {
         "label": kwargs.get("label"),
         "description": kwargs.get("description", ""),
@@ -44,7 +45,7 @@ def add_new_device(**kwargs):
     )
 
 
-def remove_specific_device(device_key: str):
+def delete_device(device_key: str):
     url, headers = build_endpoint(
         route="/api/v2.0/devices/{device_key}/",
         device_key=device_key,

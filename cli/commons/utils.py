@@ -1,4 +1,3 @@
-from collections.abc import Callable
 from functools import wraps
 from typing import Annotated
 from typing import Any
@@ -8,6 +7,7 @@ import typer
 
 from cli.commons.enums import HTTPMethodEnum
 from cli.commons.enums import RequestErrorEnum
+from cli.commons.validators import is_valid_object_id
 from cli.config.helpers import read_cli_configuration
 
 
@@ -31,18 +31,33 @@ def get_instance_key(id: str | None = None, label: str | None = None) -> str | N
     raise typer.BadParameter(error_message)
 
 
-def simple_lookup_key(command_func: Callable[..., Any]):
-    @wraps(command_func)
-    def wrapper(*args, **kwargs):
-        return command_func(*args, **kwargs)
+def get_id_or_label(key: str) -> str:
+    if not is_valid_object_id(key=key):
+        key = f"~{key}"
+    return key
 
-    wrapper.__annotations__["id"] = Annotated[
-        str, typer.Option(help="...", show_default=False)
-    ]
-    wrapper.__annotations__["label"] = Annotated[
-        str, typer.Option(help="...", show_default=False)
-    ]
-    return wrapper
+
+def simple_lookup_key(entity_name: str):
+    def decorator(command_func):
+        @wraps(command_func)
+        def wrapper(*args, **kwargs):
+            return command_func(*args, **kwargs)
+
+        wrapper.__annotations__["id"] = Annotated[
+            str,
+            typer.Option(
+                help=f"Unique identifier for the {entity_name}.", show_default=False
+            ),
+        ]
+        wrapper.__annotations__["label"] = Annotated[
+            str,
+            typer.Option(
+                help=f"Descriptive label for the {entity_name}.", show_default=False
+            ),
+        ]
+        return wrapper
+
+    return decorator
 
 
 def perform_http_request(
@@ -71,5 +86,5 @@ def perform_http_request(
         if not error_type:
             error_type = RequestErrorEnum.UNKNOWN_ERROR
         error_message = error_messages.get(RequestErrorEnum(error_type))
-        typer.echo(f"{error_message} {error}")
+        typer.echo(f"{error_message} {error.response.content}")
         raise typer.Exit(1) from error

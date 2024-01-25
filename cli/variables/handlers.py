@@ -1,0 +1,65 @@
+import typer
+
+from cli.commons.enums import HTTPMethodEnum
+from cli.commons.styles import print_colored_table
+from cli.commons.utils import build_endpoint
+from cli.commons.utils import perform_http_request
+
+
+def get_variables():
+    url, headers = build_endpoint(
+        route="/api/v2.0/variables/",
+        query_params={"fields": "id,label,type,unit,syntheticExpression,device"},
+    )
+    response = perform_http_request(method=HTTPMethodEnum.GET, url=url, headers=headers)
+    print_colored_table(
+        results=response.json()["results"],
+        sub_keys_to_show={"device": ["id", "label"]},
+    )
+
+
+def get_variable(variable_key: str):
+    url, headers = build_endpoint(
+        route="/api/v2.0/variables/{variable_key}/",
+        variable_key=variable_key,
+        query_params={"fields": "id,label,type,unit,syntheticExpression,device"},
+    )
+    response = perform_http_request(method=HTTPMethodEnum.GET, url=url, headers=headers)
+    print_colored_table(
+        results=[response.json()], sub_keys_to_show={"device": ["id", "label"]}
+    )
+
+
+def add_variable(**kwargs):
+    data = {
+        "description": kwargs.get("description", ""),
+        "device": kwargs.get("device") or None,
+        "type": kwargs.get("type"),
+        "unit": kwargs.get("unit") or None,
+        "syntheticExpression": kwargs.get("syntheticExpression", ""),
+        "tags": kwargs.get("tags", "").split(",") if kwargs.get("tags") else [],
+    }
+    if label := kwargs.get("label"):
+        data["label"] = label
+    if name := kwargs.get("name"):
+        data["name"] = name
+    url, headers = build_endpoint(
+        route="/api/v2.0/variables/",
+    )
+    response = perform_http_request(
+        method=HTTPMethodEnum.POST, url=url, headers=headers, data=data
+    )
+    typer.echo(
+        f"The variable with 'id={response.json()['id']}' and 'label={data['label']}' was created successfully "
+        f"on device with 'device.id={response.json()['device']['id']}' "
+        f"and 'device.label={response.json()['device']['label']}'."
+    )
+
+
+def delete_variable(variable_key: str):
+    url, headers = build_endpoint(
+        route="/api/v2.0/variables/{variable_key}/",
+        variable_key=variable_key,
+    )
+    perform_http_request(method=HTTPMethodEnum.DELETE, url=url, headers=headers)
+    typer.echo(f"The variable '{variable_key}' was removed successfully.")
