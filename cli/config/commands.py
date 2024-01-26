@@ -15,11 +15,15 @@ def config():
         type=str,
         default=AuthHeaderType.TOKEN.name,
     )
-    access_token = custom_prompt(
+    original_token, masked_token = handlers.get_access_token_configuration()
+    access_token_input = custom_prompt(
         "Access Token",
         type=str,
+        default=masked_token,
         hide_input=True,
     )
+    is_token_unchanged = not access_token_input or access_token_input == masked_token
+    access_token = original_token if is_token_unchanged else access_token_input
     handlers.set_configuration(
         api_domain=api_domain,
         auth_method_key=auth_method_key,

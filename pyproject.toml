@@ -19,6 +19,7 @@ pydantic = "^2.5.3"
 requests = "^2.31.0"
 inquirerpy = "^0.3.4"
 pydantic-settings = "^2.1.0"
+rich = "^13.7.0"
 
 [build-system]
 requires = ["poetry-core"]

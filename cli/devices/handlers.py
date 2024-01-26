@@ -1,0 +1,54 @@
+import typer
+
+from cli.commons.enums import HTTPMethodEnum
+from cli.commons.styles import print_colored_table
+from cli.commons.utils import build_endpoint
+from cli.commons.utils import perform_http_request
+
+
+def list_devices():
+    url, headers = build_endpoint(
+        route="/api/v2.0/devices/",
+        query_params={"fields": "id,label,variablesCount"},
+    )
+    response = perform_http_request(method=HTTPMethodEnum.GET, url=url, headers=headers)
+    print_colored_table(results=response.json()["results"])
+
+
+def retrieve_device(device_key: str):
+    url, headers = build_endpoint(
+        route="/api/v2.0/devices/{device_key}/",
+        device_key=device_key,
+        query_params={"fields": "id,label,variablesCount"},
+    )
+    response = perform_http_request(method=HTTPMethodEnum.GET, url=url, headers=headers)
+    print_colored_table(results=[response.json()])
+
+
+def add_device(**kwargs):
+    data = {
+        "label": kwargs.get("label"),
+        "description": kwargs.get("description", ""),
+        "organization": kwargs.get("organization") or None,
+        "tags": kwargs.get("tags", "").split(",") if kwargs.get("tags") else [],
+    }
+    if name := kwargs.get("name"):
+        data["name"] = name
+    url, headers = build_endpoint(
+        route="/api/v2.0/devices/",
+    )
+    response = perform_http_request(
+        method=HTTPMethodEnum.POST, url=url, headers=headers, data=data
+    )
+    typer.echo(
+        f"The device with 'id={response.json()['id']}' and 'label={data['label']}' was created successfully."
+    )
+
+
+def delete_device(device_key: str):
+    url, headers = build_endpoint(
+        route="/api/v2.0/devices/{device_key}/",
+        device_key=device_key,
+    )
+    perform_http_request(method=HTTPMethodEnum.DELETE, url=url, headers=headers)
+    typer.echo(f"The device '{device_key}' was removed successfully.")

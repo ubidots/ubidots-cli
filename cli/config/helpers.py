@@ -19,3 +19,9 @@ def read_cli_configuration() -> APIConfigModel:
     with open(config_file) as file:
         config_data = yaml.safe_load(file)
     return APIConfigModel(**config_data)
+
+
+def mask_token(token: str, visible_chars: int = 4) -> str:
+    visible_chars = min(len(token), visible_chars)
+    num_asterisks = len(token) - visible_chars
+    return "*" * num_asterisks + token[-visible_chars:]
