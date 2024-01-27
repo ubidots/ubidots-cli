@@ -17,10 +17,13 @@ from cli.settings import settings
 def save_manifest_project_file(
     project_path: Path,
     language: FunctionLanguageEnum,
+    runtime: str | None = None,
     function_id: str | None = None,
 ) -> None:
     metadata = FunctionProjectMetadata(
-        project=FunctionProjectInfo(name=project_path.name, language=language),
+        project=FunctionProjectInfo(
+            name=project_path.name, language=language, runtime=runtime
+        ),
         function=FunctionInfo(id=function_id),
     )
     metadata_file = project_path / settings.FUNCTIONS.PROJECT_METADATA_FILE

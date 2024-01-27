@@ -1,3 +1,5 @@
+from typing import Annotated
+
 import typer
 
 from cli.functions import handlers
@@ -9,10 +11,9 @@ app = typer.Typer(help="Tool for managing and deploying functions via API.")
 
 @app.command(help="Create a new local function.")
 def new(
-    name: str = typer.Argument(
-        default=settings.FUNCTIONS.DEFAULT_PROJECT_NAME,
-        help="The name of the project folder.",
-    )
+    name: Annotated[
+        str, typer.Argument(help="The name of the project folder.")
+    ] = settings.FUNCTIONS.DEFAULT_PROJECT_NAME
 ):
     language = FunctionLanguageEnum.choose(message="Select a programming language:")
     handlers.create_function(name=name, language=language)

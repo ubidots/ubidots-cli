@@ -12,6 +12,7 @@ from cli.settings import settings
 class FunctionProjectInfo(BaseModel):
     name: str = settings.FUNCTIONS.DEFAULT_PROJECT_NAME
     language: FunctionLanguageEnum
+    runtime: str | None = None
     main_file: str = ""
     created: datetime = Field(default_factory=datetime.now)
 
