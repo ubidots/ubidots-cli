@@ -16,7 +16,8 @@ def new(
     ] = settings.FUNCTIONS.DEFAULT_PROJECT_NAME
 ):
     language = FunctionLanguageEnum.choose(message="Select a programming language:")
-    handlers.create_function(name=name, language=language)
+    runtime = language.choose_runtime(message=f"Select a {language.value} runtime:")
+    handlers.create_function(name=name, language=language, runtime=runtime)
 
 
 @app.command(

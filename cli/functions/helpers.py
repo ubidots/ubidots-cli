@@ -8,6 +8,8 @@ import yaml
 from pydantic import ValidationError
 
 from cli.functions.enums import FunctionLanguageEnum
+from cli.functions.enums import FunctionNodejsRuntimeLayerTypeEnum
+from cli.functions.enums import FunctionPythonRuntimeLayerTypeEnum
 from cli.functions.models import FunctionInfo
 from cli.functions.models import FunctionProjectInfo
 from cli.functions.models import FunctionProjectMetadata
@@ -17,7 +19,7 @@ from cli.settings import settings
 def save_manifest_project_file(
     project_path: Path,
     language: FunctionLanguageEnum,
-    runtime: str | None = None,
+    runtime: FunctionPythonRuntimeLayerTypeEnum | FunctionNodejsRuntimeLayerTypeEnum,
     function_id: str | None = None,
 ) -> None:
     metadata = FunctionProjectMetadata(

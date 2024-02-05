@@ -6,6 +6,7 @@ from typer.testing import CliRunner
 from cli.commons.utils_tests import override_settings
 from cli.functions.commands import app as function_app
 from cli.functions.enums import FunctionLanguageEnum
+from cli.functions.enums import FunctionPythonRuntimeLayerTypeEnum
 from cli.functions.models import FunctionInfo
 from cli.functions.models import FunctionProjectInfo
 from cli.functions.models import FunctionProjectMetadata
@@ -25,6 +26,11 @@ class TestFunctionNewCommandValidators:
         self.mocker.patch.object(
             FunctionLanguageEnum, "choose", return_value=FunctionLanguageEnum.PYTHON
         )
+        self.mocker.patch.object(
+            FunctionLanguageEnum,
+            "choose_runtime",
+            return_value=FunctionPythonRuntimeLayerTypeEnum.PYTHON_3_9_FULL,
+        )
         # Action
         result = self.runner.invoke(function_app, ["new", "my_function"])
         # Assert
@@ -38,6 +44,11 @@ class TestFunctionNewCommandValidators:
         )
         self.mocker.patch.object(
             FunctionLanguageEnum, "choose", return_value=FunctionLanguageEnum.PYTHON
+        )
+        self.mocker.patch.object(
+            FunctionLanguageEnum,
+            "choose_runtime",
+            return_value=FunctionPythonRuntimeLayerTypeEnum.PYTHON_3_9_FULL,
         )
         self.mocker.patch("pathlib.Path.exists", return_value=False)
         # Action
@@ -57,7 +68,9 @@ class TestFunctionProjectValidators:
         self.project_path = Path("/my_function")
         self.project_metadata = FunctionProjectMetadata(
             project=FunctionProjectInfo(
-                name="my_function", language=FunctionLanguageEnum.PYTHON
+                name="my_function",
+                language=FunctionLanguageEnum.PYTHON,
+                runtime=FunctionPythonRuntimeLayerTypeEnum.PYTHON_3_9_FULL,
             ),
             function=FunctionInfo(id="12345678"),
         )
@@ -78,7 +91,9 @@ class TestFunctionProjectValidators:
         # Setup
         project_metadata = FunctionProjectMetadata(
             project=FunctionProjectInfo(
-                name="my_function", language=FunctionLanguageEnum.PYTHON
+                name="my_function",
+                language=FunctionLanguageEnum.PYTHON,
+                runtime=FunctionPythonRuntimeLayerTypeEnum.PYTHON_3_9_FULL,
             ),
             function=FunctionInfo(id=None),
         )

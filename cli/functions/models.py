@@ -6,13 +6,15 @@ from pydantic import Field
 from pydantic import model_validator
 
 from cli.functions.enums import FunctionLanguageEnum
+from cli.functions.enums import FunctionNodejsRuntimeLayerTypeEnum
+from cli.functions.enums import FunctionPythonRuntimeLayerTypeEnum
 from cli.settings import settings
 
 
 class FunctionProjectInfo(BaseModel):
     name: str = settings.FUNCTIONS.DEFAULT_PROJECT_NAME
     language: FunctionLanguageEnum
-    runtime: str | None = None
+    runtime: FunctionPythonRuntimeLayerTypeEnum | FunctionNodejsRuntimeLayerTypeEnum
     main_file: str = ""
     created: datetime = Field(default_factory=datetime.now)
 
@@ -42,4 +44,9 @@ class FunctionProjectMetadata(BaseModel):
         data = self.model_dump()
         if isinstance(self.project.language, FunctionLanguageEnum):
             data["project"]["language"] = self.project.language.value
+        if isinstance(
+            self.project.runtime,
+            FunctionPythonRuntimeLayerTypeEnum | FunctionNodejsRuntimeLayerTypeEnum,
+        ):
+            data["project"]["runtime"] = self.project.runtime.value
         return data

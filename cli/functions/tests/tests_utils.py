@@ -6,6 +6,7 @@ import yaml
 from typer.testing import CliRunner
 
 from cli.functions.enums import FunctionLanguageEnum
+from cli.functions.enums import FunctionPythonRuntimeLayerTypeEnum
 from cli.functions.helpers import compress_project_to_zip
 from cli.functions.helpers import read_manifest_project_file
 from cli.functions.helpers import save_manifest_project_file
@@ -34,12 +35,15 @@ class TestFunctionUtils:
         project_path = self.tmp_path / "fake_project"
         project_path.mkdir()
         language = FunctionLanguageEnum.PYTHON
+        runtime = FunctionPythonRuntimeLayerTypeEnum.PYTHON_3_9_FULL
         expected_metadata = FunctionProjectMetadata(
-            project=FunctionProjectInfo(name=project_path.name, language=language),
+            project=FunctionProjectInfo(
+                name=project_path.name, language=language, runtime=runtime
+            ),
             function=FunctionInfo(id=None),
         )
         # Action
-        save_manifest_project_file(project_path, language)
+        save_manifest_project_file(project_path, language, runtime)
         # Assert
         metadata_file = project_path / settings.FUNCTIONS.PROJECT_METADATA_FILE
         with open(metadata_file) as file:
@@ -55,8 +59,11 @@ class TestFunctionUtils:
         project_path = self.tmp_path / "fake_project"
         project_path.mkdir()
         language = FunctionLanguageEnum.PYTHON
+        runtime = FunctionPythonRuntimeLayerTypeEnum.PYTHON_3_9_FULL
         metadata = FunctionProjectMetadata(
-            project=FunctionProjectInfo(name=project_path.name, language=language)
+            project=FunctionProjectInfo(
+                name=project_path.name, language=language, runtime=runtime
+            )
         )
         metadata_file = project_path / settings.FUNCTIONS.PROJECT_METADATA_FILE
         with open(metadata_file, "w") as file:

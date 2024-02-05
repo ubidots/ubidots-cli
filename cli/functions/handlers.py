@@ -8,6 +8,8 @@ from cli.commons.enums import HTTPMethodEnum
 from cli.commons.utils import build_endpoint
 from cli.commons.utils import perform_http_request
 from cli.functions.enums import FunctionLanguageEnum
+from cli.functions.enums import FunctionNodejsRuntimeLayerTypeEnum
+from cli.functions.enums import FunctionPythonRuntimeLayerTypeEnum
 from cli.functions.helpers import compress_project_to_zip
 from cli.functions.helpers import save_manifest_project_file
 from cli.functions.validators import FunctionProjectValidator
@@ -15,7 +17,11 @@ from cli.functions.validators import ProjectValidationDataManager
 from cli.settings import settings
 
 
-def create_function(name: str, language: FunctionLanguageEnum):
+def create_function(
+    name: str,
+    language: FunctionLanguageEnum,
+    runtime: FunctionPythonRuntimeLayerTypeEnum | FunctionNodejsRuntimeLayerTypeEnum,
+):
     project_path = Path.cwd() / name if not Path(name).is_absolute() else Path(name)
     if project_path.exists():
         typer.echo(f"A folder named '{name}' already exists.")
@@ -31,7 +37,9 @@ def create_function(name: str, language: FunctionLanguageEnum):
         project_path.mkdir(parents=True, exist_ok=False)
         with zipfile.ZipFile(template_file, "r") as zip_ref:
             zip_ref.extractall(project_path)
-        save_manifest_project_file(project_path=project_path, language=language)
+        save_manifest_project_file(
+            project_path=project_path, language=language, runtime=runtime
+        )
         typer.echo(f"Project {name} created in '{project_path}'.")
 
     except PermissionError as error:
@@ -84,7 +92,6 @@ def pull_function():
             project_metadata=project_metadata, project_files=project_files
         )
         validator.validate_manifest_file()
-
     except (FileNotFoundError, ValueError) as error:
         typer.echo(error)
         raise typer.Exit(1) from error
