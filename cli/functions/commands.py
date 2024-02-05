@@ -20,6 +20,11 @@ def new(
     handlers.create_function(name=name, language=language, runtime=runtime)
 
 
+@app.command(help="Build and validate the local function project.")
+def build():
+    handlers.build_function()
+
+
 @app.command(
     help="Update and synchronize your local function code with the remote server."
 )

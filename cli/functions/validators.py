@@ -1,7 +1,11 @@
 import os
 import re
+import subprocess
 from pathlib import Path
 
+from cli.functions.exceptions import DockerImageNotAvailableLocallyError
+from cli.functions.exceptions import DockerImageNotFoundError
+from cli.functions.exceptions import DockerNotInstalledError
 from cli.functions.helpers import read_manifest_project_file
 from cli.functions.models import FunctionProjectMetadata
 from cli.settings import settings
@@ -44,6 +48,7 @@ class FunctionProjectValidator:
             raise ValueError(error_message)
 
     def validate_main_file_presence(self):
+        # validar que sea en la ruta principal
         main_file_name = self.project_metadata.project.language.main_file
         main_file_found = any(
             file_path.name == main_file_name for file_path in self.project_files
@@ -81,3 +86,36 @@ class FunctionProjectValidator:
                     f"'{max_individual_file_size / (1024 * 1024)}' MB."
                 )
                 raise ValueError(error_message)
+
+
+class FunctionDockerValidator:
+    def __init__(self, image_name: str):
+        self.image_name: str = image_name
+
+    def _run_docker_command(self, command):
+        try:
+            subprocess.run(command, capture_output=True, check=True, text=True)
+        except subprocess.CalledProcessError as error:
+            return False, error
+        return True, None
+
+    def validate_docker_is_installed(self):
+        success, _ = self._run_docker_command(["docker", "--version"])
+        if not success:
+            raise DockerNotInstalledError
+
+    def validate_image_available_locally(self):
+        success, _ = self._run_docker_command(
+            ["docker", "image", "inspect", self.image_name]
+        )
+        if not success:
+            error_message = f"Image '{self.image_name}' is not available locally."
+            raise DockerImageNotAvailableLocallyError(error_message)
+
+    def validate_image_available_on_dockerhub(self):
+        success, _ = self._run_docker_command(
+            ["docker", "manifest", "inspect", self.image_name]
+        )
+        if not success:
+            error_message = f"Image '{self.image_name}' does not exist on Docker Hub."
+            raise DockerImageNotFoundError(error_message)

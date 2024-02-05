@@ -1,3 +1,4 @@
+import subprocess
 import zipfile
 from io import BytesIO
 from pathlib import Path
@@ -10,8 +11,12 @@ from cli.commons.utils import perform_http_request
 from cli.functions.enums import FunctionLanguageEnum
 from cli.functions.enums import FunctionNodejsRuntimeLayerTypeEnum
 from cli.functions.enums import FunctionPythonRuntimeLayerTypeEnum
+from cli.functions.exceptions import DockerImageNotAvailableLocallyError
+from cli.functions.exceptions import DockerImageNotFoundError
+from cli.functions.exceptions import DockerNotInstalledError
 from cli.functions.helpers import compress_project_to_zip
 from cli.functions.helpers import save_manifest_project_file
+from cli.functions.validators import FunctionDockerValidator
 from cli.functions.validators import FunctionProjectValidator
 from cli.functions.validators import ProjectValidationDataManager
 from cli.settings import settings
@@ -45,6 +50,48 @@ def create_function(
     except PermissionError as error:
         typer.echo(f"Permission denied: {error}.")
         raise typer.Exit(1) from error
+
+
+def build_function():
+    actual_path = Path.cwd()
+    try:
+        project_data_manager = ProjectValidationDataManager(project_path=actual_path)
+        project_metadata, project_files = project_data_manager.prepare_data()
+        validator = FunctionProjectValidator(
+            project_metadata=project_metadata, project_files=project_files
+        )
+        validator.validate_manifest_file()
+    except (FileNotFoundError, ValueError) as error:
+        typer.echo(error)
+        raise typer.Exit(1) from error
+    image_name = f"{settings.FUNCTIONS.DOCKER_CONFIG.DOCKER_HUB_USERNAME}/{project_metadata.project.runtime}"
+    docker_validator = FunctionDockerValidator(image_name=image_name)
+    try:
+        docker_validator.validate_docker_is_installed()
+    except DockerNotInstalledError as error:
+        typer.echo(error)
+        raise typer.Exit(1) from error
+    try:
+        docker_validator.validate_image_available_locally()
+        typer.echo("Docker image is available locally.")
+    except DockerImageNotAvailableLocallyError:
+        try:
+            docker_validator.validate_image_available_on_dockerhub()
+            typer.echo("Docker image is available on Docker Hub.")
+        except DockerImageNotFoundError as error:
+            typer.echo(error)
+            raise typer.Exit(1) from error
+    try:
+        subprocess.run(
+            ["docker", "pull", image_name], check=True, capture_output=True, text=True
+        )
+        typer.echo("Docker image is now up-to-date locally.")
+    except subprocess.CalledProcessError as error:
+        typer.echo(
+            f"Failed to download or update image '{image_name}' from Docker Hub: {error.stderr}"
+        )
+        raise typer.Exit(1) from error
+    typer.echo("Process completed successfully.")
 
 
 def push_function():
