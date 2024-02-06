@@ -1,7 +1,9 @@
 import os
 import re
-import subprocess
 from pathlib import Path
+
+from docker import DockerClient
+from docker import errors
 
 from cli.functions.exceptions import DockerImageNotAvailableLocallyError
 from cli.functions.exceptions import DockerImageNotFoundError
@@ -90,32 +92,29 @@ class FunctionProjectValidator:
 
 class FunctionDockerValidator:
     def __init__(self, image_name: str):
-        self.image_name: str = image_name
-
-    def _run_docker_command(self, command):
-        try:
-            subprocess.run(command, capture_output=True, check=True, text=True)
-        except subprocess.CalledProcessError as error:
-            return False, error
-        return True, None
+        self.image_name = image_name
+        self.client = DockerClient.from_env()
 
     def validate_docker_is_installed(self):
-        success, _ = self._run_docker_command(["docker", "--version"])
-        if not success:
-            raise DockerNotInstalledError
+        try:
+            self.client.ping()
+        except errors.APIError as error:
+            error_message = "Docker is not installed."
+            raise DockerNotInstalledError(error_message) from error
 
     def validate_image_available_locally(self):
-        success, _ = self._run_docker_command(
-            ["docker", "image", "inspect", self.image_name]
-        )
-        if not success:
+        try:
+            self.client.images.get(self.image_name)
+        except errors.ImageNotFound as error:
             error_message = f"Image '{self.image_name}' is not available locally."
-            raise DockerImageNotAvailableLocallyError(error_message)
+            raise DockerImageNotAvailableLocallyError(error_message) from error
 
     def validate_image_available_on_dockerhub(self):
-        success, _ = self._run_docker_command(
-            ["docker", "manifest", "inspect", self.image_name]
-        )
-        if not success:
+        try:
+            self.client.images.pull(self.image_name)
+        except errors.NotFound as error:
             error_message = f"Image '{self.image_name}' does not exist on Docker Hub."
-            raise DockerImageNotFoundError(error_message)
+            raise DockerImageNotFoundError(error_message) from error
+        except errors.APIError as error:
+            error_message = f"Failed to fetch image '{self.image_name}' from Docker Hub: {error.strerror}"
+            raise DockerImageNotFoundError(error_message) from error

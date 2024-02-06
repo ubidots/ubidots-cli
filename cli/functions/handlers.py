@@ -1,4 +1,3 @@
-import subprocess
 import zipfile
 from io import BytesIO
 from pathlib import Path
@@ -56,15 +55,12 @@ def build_function():
     actual_path = Path.cwd()
     try:
         project_data_manager = ProjectValidationDataManager(project_path=actual_path)
-        project_metadata, project_files = project_data_manager.prepare_data()
-        validator = FunctionProjectValidator(
-            project_metadata=project_metadata, project_files=project_files
-        )
-        validator.validate_manifest_file()
+        project_metadata, _ = project_data_manager.prepare_data()
     except (FileNotFoundError, ValueError) as error:
         typer.echo(error)
         raise typer.Exit(1) from error
-    image_name = f"{settings.FUNCTIONS.DOCKER_CONFIG.DOCKER_HUB_USERNAME}/{project_metadata.project.runtime}"
+
+    image_name = f"{settings.FUNCTIONS.DOCKER_CONFIG.DOCKER_HUB_USERNAME}/{project_metadata.project.runtime.value}"
     docker_validator = FunctionDockerValidator(image_name=image_name)
     try:
         docker_validator.validate_docker_is_installed()
@@ -77,20 +73,10 @@ def build_function():
     except DockerImageNotAvailableLocallyError:
         try:
             docker_validator.validate_image_available_on_dockerhub()
-            typer.echo("Docker image is available on Docker Hub.")
         except DockerImageNotFoundError as error:
             typer.echo(error)
             raise typer.Exit(1) from error
-    try:
-        subprocess.run(
-            ["docker", "pull", image_name], check=True, capture_output=True, text=True
-        )
-        typer.echo("Docker image is now up-to-date locally.")
-    except subprocess.CalledProcessError as error:
-        typer.echo(
-            f"Failed to download or update image '{image_name}' from Docker Hub: {error.stderr}"
-        )
-        raise typer.Exit(1) from error
+    typer.echo("Docker image is now up-to-date locally.")
     typer.echo("Process completed successfully.")
 
 

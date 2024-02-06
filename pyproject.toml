@@ -20,6 +20,7 @@ requests = "^2.31.0"
 inquirerpy = "^0.3.4"
 pydantic-settings = "^2.1.0"
 rich = "^13.7.0"
+docker = "^7.0.0"
 
 [build-system]
 requires = ["poetry-core"]
