@@ -20,9 +20,13 @@ def new(
     handlers.create_function(name=name, language=language, runtime=runtime)
 
 
-@app.command(help="Build and validate the local function project.")
-def build():
-    handlers.build_function()
+@app.command(help="Initialize the function container environment for execution.")
+def init(
+    host_port: Annotated[
+        int, typer.Option(help="host port to bind the container.")
+    ] = settings.FUNCTIONS.DOCKER_CONFIG.HOST_PORT
+):
+    handlers.init_function(host_port=host_port)
 
 
 @app.command(

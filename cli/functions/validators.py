@@ -3,7 +3,7 @@ import re
 from pathlib import Path
 
 from docker import DockerClient
-from docker import errors
+from docker import errors as docker_errors
 
 from cli.functions.exceptions import DockerImageNotAvailableLocallyError
 from cli.functions.exceptions import DockerImageNotFoundError
@@ -91,30 +91,30 @@ class FunctionProjectValidator:
 
 
 class FunctionDockerValidator:
-    def __init__(self, image_name: str):
+    def __init__(self, docker_client: DockerClient, image_name: str):
         self.image_name = image_name
-        self.client = DockerClient.from_env()
+        self.client = docker_client
 
     def validate_docker_is_installed(self):
         try:
             self.client.ping()
-        except errors.APIError as error:
+        except docker_errors.APIError as error:
             error_message = "Docker is not installed."
             raise DockerNotInstalledError(error_message) from error
 
     def validate_image_available_locally(self):
         try:
             self.client.images.get(self.image_name)
-        except errors.ImageNotFound as error:
+        except docker_errors.ImageNotFound as error:
             error_message = f"Image '{self.image_name}' is not available locally."
             raise DockerImageNotAvailableLocallyError(error_message) from error
 
     def validate_image_available_on_dockerhub(self):
         try:
             self.client.images.pull(self.image_name)
-        except errors.NotFound as error:
+        except docker_errors.NotFound as error:
             error_message = f"Image '{self.image_name}' does not exist on Docker Hub."
             raise DockerImageNotFoundError(error_message) from error
-        except errors.APIError as error:
+        except docker_errors.APIError as error:
             error_message = f"Failed to fetch image '{self.image_name}' from Docker Hub: {error.strerror}"
             raise DockerImageNotFoundError(error_message) from error

@@ -43,12 +43,12 @@ class FunctionNodejsVersionEnum(ChoosableEnum):
 class FunctionPythonRuntimeLayerTypeEnum(ChoosableEnum):
     # PYTHON_3_6 = FunctionPythonVersionEnum.PYTHON_3_6.value
     # PYTHON_3_7 = FunctionPythonVersionEnum.PYTHON_3_7.value
-    PYTHON_3_9_FULL = f"{FunctionPythonVersionEnum.PYTHON_3_9.value}:{FunctionLayerTypeEnum.FULL.value}"
     PYTHON_3_9_LITE = f"{FunctionPythonVersionEnum.PYTHON_3_9.value}:{FunctionLayerTypeEnum.LITE.value}"
     PYTHON_3_9_BASE = f"{FunctionPythonVersionEnum.PYTHON_3_9.value}:{FunctionLayerTypeEnum.BASE.value}"
-    PYTHON_3_11_FULL = f"{FunctionPythonVersionEnum.PYTHON_3_11.value}:{FunctionLayerTypeEnum.FULL.value}"
+    PYTHON_3_9_FULL = f"{FunctionPythonVersionEnum.PYTHON_3_9.value}:{FunctionLayerTypeEnum.FULL.value}"
     PYTHON_3_11_LITE = f"{FunctionPythonVersionEnum.PYTHON_3_11.value}:{FunctionLayerTypeEnum.LITE.value}"
     PYTHON_3_11_BASE = f"{FunctionPythonVersionEnum.PYTHON_3_11.value}:{FunctionLayerTypeEnum.BASE.value}"
+    PYTHON_3_11_FULL = f"{FunctionPythonVersionEnum.PYTHON_3_11.value}:{FunctionLayerTypeEnum.FULL.value}"
 
 
 class FunctionNodejsRuntimeLayerTypeEnum(ChoosableEnum):

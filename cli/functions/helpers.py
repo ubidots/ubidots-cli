@@ -5,6 +5,7 @@ from pathlib import Path
 from typing import IO
 
 import yaml
+from docker import DockerClient
 from pydantic import ValidationError
 
 from cli.functions.enums import FunctionLanguageEnum
@@ -68,3 +69,15 @@ def compress_project_to_zip(actual_path: Path) -> IO[bytes]:
                     zipf.write(folder_path, arcname=arcname)
     zip_buffer.seek(0)
     return zip_buffer
+
+
+def stop_and_remove_container_by_label(
+    docker_client: DockerClient, label: str, status: str = "running"
+):
+    existing_containers = docker_client.containers.list(filters={"label": label})
+    for existing_container in existing_containers:
+        if existing_container.status == status:
+            existing_container.stop()
+            existing_container.remove()
+        else:
+            existing_container.remove()

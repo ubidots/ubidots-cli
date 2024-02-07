@@ -3,6 +3,8 @@ from io import BytesIO
 from pathlib import Path
 
 import typer
+from docker import DockerClient
+from docker import errors as docker_errors
 
 from cli.commons.enums import HTTPMethodEnum
 from cli.commons.utils import build_endpoint
@@ -15,6 +17,7 @@ from cli.functions.exceptions import DockerImageNotFoundError
 from cli.functions.exceptions import DockerNotInstalledError
 from cli.functions.helpers import compress_project_to_zip
 from cli.functions.helpers import save_manifest_project_file
+from cli.functions.helpers import stop_and_remove_container_by_label
 from cli.functions.validators import FunctionDockerValidator
 from cli.functions.validators import FunctionProjectValidator
 from cli.functions.validators import ProjectValidationDataManager
@@ -51,33 +54,63 @@ def create_function(
         raise typer.Exit(1) from error
 
 
-def build_function():
+def init_function(host_port: int):
     actual_path = Path.cwd()
     try:
         project_data_manager = ProjectValidationDataManager(project_path=actual_path)
-        project_metadata, _ = project_data_manager.prepare_data()
+        project_metadata, project_files = project_data_manager.prepare_data()
+        validator = FunctionProjectValidator(
+            project_metadata=project_metadata, project_files=project_files
+        )
+        validator.validate_manifest_file()
     except (FileNotFoundError, ValueError) as error:
         typer.echo(error)
         raise typer.Exit(1) from error
 
-    image_name = f"{settings.FUNCTIONS.DOCKER_CONFIG.DOCKER_HUB_USERNAME}/{project_metadata.project.runtime.value}"
-    docker_validator = FunctionDockerValidator(image_name=image_name)
+    docker_client = DockerClient.from_env()
+    image_name = f"{settings.FUNCTIONS.DOCKER_CONFIG.HUB_USERNAME}/{project_metadata.project.runtime.value}"
+    docker_validator = FunctionDockerValidator(
+        docker_client=docker_client, image_name=image_name
+    )
     try:
         docker_validator.validate_docker_is_installed()
-    except DockerNotInstalledError as error:
+        try:
+            docker_validator.validate_image_available_locally()
+        except DockerImageNotAvailableLocallyError:
+            docker_validator.validate_image_available_on_dockerhub()
+    except (DockerNotInstalledError, DockerImageNotFoundError) as error:
         typer.echo(error)
         raise typer.Exit(1) from error
-    try:
-        docker_validator.validate_image_available_locally()
-        typer.echo("Docker image is available locally.")
-    except DockerImageNotAvailableLocallyError:
-        try:
-            docker_validator.validate_image_available_on_dockerhub()
-        except DockerImageNotFoundError as error:
-            typer.echo(error)
-            raise typer.Exit(1) from error
     typer.echo("Docker image is now up-to-date locally.")
-    typer.echo("Process completed successfully.")
+
+    container_label_key = settings.FUNCTIONS.DOCKER_CONFIG.CONTAINER_LABEL
+    container_label_value = (
+        f"{container_label_key}_{project_metadata.project.name}_{image_name}"
+    )
+    stop_and_remove_container_by_label(
+        docker_client=docker_client, label=container_label_key
+    )
+    try:
+        container = docker_client.containers.run(
+            image_name,
+            labels={container_label_key: container_label_value},
+            volumes={str(actual_path): settings.FUNCTIONS.DOCKER_CONFIG.VOLUME_MAPPING},
+            ports={f"{settings.FUNCTIONS.DOCKER_CONFIG.CONTAINER_PORT}/tcp": host_port},
+            detach=settings.FUNCTIONS.DOCKER_CONFIG.IS_DETACH,
+        )
+        typer.echo(
+            f"Container started successfully on port {host_port}: {container.id}"
+        )
+    except docker_errors.APIError as error:
+        typer.echo(
+            "Try specifying a different host port using the '--host-port' option "
+            f"or free up the port '{host_port}'."
+        )
+        raise typer.Exit(1) from error
+    except docker_errors.ContainerError as error:
+        typer.echo(f"Error executing the container: {error}")
+        raise typer.Exit(1) from error
+    typer.echo("Function successfully executed inside the container.")
 
 
 def push_function():

@@ -17,7 +17,14 @@ class FunctionSettings(BaseModel):
         DEFAULT_MAX_FILE_SIZE: int = 5 * 1024 * 1024  # 5MB
 
     class DockerSettings(BaseModel):
-        DOCKER_HUB_USERNAME: str = "cristianrubioa"
+        HUB_USERNAME: str = "cristianrubioa"
+        CONTAINER_PORT: int = 8080
+        CONTAINER_LABEL: str = "ubidots_cli_container"
+        HOST_PORT: int = 9000
+        VOLUME_PATH: str = "/var/task"
+        VOLUME_MODE: str = "ro"
+        VOLUME_MAPPING: dict = {"bind": VOLUME_PATH, "path": VOLUME_MODE}
+        IS_DETACH: bool = True
 
     DEFAULT_PROJECT_NAME: str = "my_function"
     DEFAULT_MAIN_FILE_NAME: str = "main"
