@@ -10,7 +10,7 @@ def save_cli_configuration(config_model: APIConfigModel) -> None:
 
     config_path.mkdir(parents=True, exist_ok=True)
     with open(config_file, "w") as file:
-        yaml.dump(config_model.for_yaml_dump(), file)
+        yaml.dump(config_model.to_yaml_serializable_format(), file)
 
 
 def read_cli_configuration() -> APIConfigModel:

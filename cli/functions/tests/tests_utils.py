@@ -48,7 +48,7 @@ class TestFunctionUtils:
         metadata_file = project_path / settings.FUNCTIONS.PROJECT_METADATA_FILE
         with open(metadata_file) as file:
             written_metadata = yaml.safe_load(file)
-        expected_metadata_dict = expected_metadata.for_yaml_dump()
+        expected_metadata_dict = expected_metadata.to_yaml_serializable_format()
         written_metadata_dict = dict(written_metadata)
         written_metadata_dict["project"].pop("created", None)
         expected_metadata_dict["project"].pop("created", None)
@@ -67,7 +67,7 @@ class TestFunctionUtils:
         )
         metadata_file = project_path / settings.FUNCTIONS.PROJECT_METADATA_FILE
         with open(metadata_file, "w") as file:
-            yaml.dump(metadata.for_yaml_dump(), file)
+            yaml.dump(metadata.to_yaml_serializable_format(), file)
         # Action
         read_metadata = read_manifest_project_file(project_path)
         # Assert

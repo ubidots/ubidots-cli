@@ -32,8 +32,12 @@ class ProjectValidationDataManager:
 
 class FunctionProjectValidator:
     def __init__(
-        self, project_metadata: FunctionProjectMetadata, project_files: list[Path]
+        self,
+        project_metadata: FunctionProjectMetadata,
+        project_files: list[Path],
+        project_path: Path | None = None,
     ):
+        self.project_path = project_path
         self.project_metadata = project_metadata
         self.project_files = project_files
 
@@ -50,10 +54,14 @@ class FunctionProjectValidator:
             raise ValueError(error_message)
 
     def validate_main_file_presence(self):
-        # validar que sea en la ruta principal
+        if self.project_path is None:
+            error_message = "The main file's project could not be determined."
+            raise FileNotFoundError(error_message)
+
         main_file_name = self.project_metadata.project.language.main_file
         main_file_found = any(
-            file_path.name == main_file_name for file_path in self.project_files
+            file_path.name == main_file_name and file_path.parent == self.project_path
+            for file_path in self.project_files
         )
         if not main_file_found:
             error_message = (

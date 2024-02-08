@@ -6,7 +6,6 @@ from typing import IO
 
 import yaml
 from docker import DockerClient
-from pydantic import ValidationError
 
 from cli.functions.enums import FunctionLanguageEnum
 from cli.functions.enums import FunctionNodejsRuntimeLayerTypeEnum
@@ -31,7 +30,7 @@ def save_manifest_project_file(
     )
     metadata_file = project_path / settings.FUNCTIONS.PROJECT_METADATA_FILE
     with open(metadata_file, "w") as file:
-        yaml.dump(metadata.for_yaml_dump(), file)
+        yaml.dump(metadata.to_yaml_serializable_format(), file)
 
 
 def read_manifest_project_file(project_path: Path) -> FunctionProjectMetadata:
@@ -49,8 +48,10 @@ def read_manifest_project_file(project_path: Path) -> FunctionProjectMetadata:
 
     try:
         return FunctionProjectMetadata(**manifest_data)
-    except ValidationError as error:
-        error_message = f"Error in '{manifest_file}' format: {error}"
+    except ValueError as error:
+        error_message = f"Invalid input in '{manifest_file}' file for "
+        for err in error.errors():
+            error_message += f"'{'.'.join(err['loc'][0:2])}' -> {err['msg']} | "
         raise ValueError(error_message) from error
 
 

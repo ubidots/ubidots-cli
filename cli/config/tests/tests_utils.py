@@ -24,7 +24,7 @@ class TestCliConfigurationUtils:
             auth_method=AuthHeaderType.TOKEN,
             access_token="123456",
         )
-        expected_yaml = yaml.dump(config_model.for_yaml_dump())
+        expected_yaml = yaml.dump(config_model.to_yaml_serializable_format())
         mock_file_open = mock_open()
         self.mocker.patch("builtins.open", mock_file_open, create=True)
         self.mocker.patch.object(Path, "mkdir")
@@ -43,7 +43,7 @@ class TestCliConfigurationUtils:
             auth_method=AuthHeaderType.TOKEN,
             access_token="123456",
         )
-        expected_yaml = yaml.dump(config_model.for_yaml_dump())
+        expected_yaml = yaml.dump(config_model.to_yaml_serializable_format())
         self.mocker.patch("builtins.open", mock_open(read_data=expected_yaml))
         # Action
         read_config = read_cli_configuration()

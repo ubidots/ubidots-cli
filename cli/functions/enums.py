@@ -17,7 +17,7 @@ class ChoosableEnum(Enum):
         return cls(selected)
 
 
-class FileExtensionEnum(Enum):
+class FunctionMainFileExtensionEnum(Enum):
     PYTHON_EXTENSION = "py"
     NODEJS_EXTENSION = "js"
 
@@ -64,8 +64,8 @@ class FunctionLanguageEnum(ChoosableEnum):
     @property
     def extension(self):
         extension_map = {
-            self.PYTHON: FileExtensionEnum.PYTHON_EXTENSION,
-            self.NODEJS: FileExtensionEnum.NODEJS_EXTENSION,
+            self.PYTHON: FunctionMainFileExtensionEnum.PYTHON_EXTENSION,
+            self.NODEJS: FunctionMainFileExtensionEnum.NODEJS_EXTENSION,
         }
         return extension_map[self]
 

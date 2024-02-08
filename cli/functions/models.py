@@ -1,10 +1,12 @@
 from datetime import datetime
-from typing import Any
 
 from pydantic import BaseModel
 from pydantic import Field
+from pydantic import field_validator
 from pydantic import model_validator
 
+from cli.commons.models import BaseYAMLDumpModel
+from cli.commons.validators import is_valid_object_id
 from cli.functions.enums import FunctionLanguageEnum
 from cli.functions.enums import FunctionNodejsRuntimeLayerTypeEnum
 from cli.functions.enums import FunctionPythonRuntimeLayerTypeEnum
@@ -18,35 +20,25 @@ class FunctionProjectInfo(BaseModel):
     main_file: str = ""
     created: datetime = Field(default_factory=datetime.now)
 
-    @model_validator(mode="before")
-    def set_main_file_based_on_language(cls, values: dict[str, Any]) -> dict[str, Any]:
-        language_str = values.get("language")
-        try:
-            values["main_file"] = FunctionLanguageEnum(language_str).main_file
-        except ValueError as error:
-            error_message = (
-                f"'{language_str}' is not a valid language. "
-                f"Choose from: {[lang.value for lang in FunctionLanguageEnum]}"
-            )
-            raise ValueError(error_message) from error
-        return values
+    @model_validator(mode="after")
+    def set_main_file_based_on_language(self):
+        language_value = self.language.value
+        self.main_file = FunctionLanguageEnum(language_value).main_file
+        return self
 
 
 class FunctionInfo(BaseModel):
     id: str | None = None
 
+    @field_validator("id")
+    @classmethod
+    def validate_id(cls, value):
+        if isinstance(value, str) and not is_valid_object_id(value):
+            error_message = "Input is not a valid object id"
+            ValueError(error_message)
+        return value
 
-class FunctionProjectMetadata(BaseModel):
+
+class FunctionProjectMetadata(BaseYAMLDumpModel):
     project: FunctionProjectInfo
     function: FunctionInfo | None = None
-
-    def for_yaml_dump(self):
-        data = self.model_dump()
-        if isinstance(self.project.language, FunctionLanguageEnum):
-            data["project"]["language"] = self.project.language.value
-        if isinstance(
-            self.project.runtime,
-            FunctionPythonRuntimeLayerTypeEnum | FunctionNodejsRuntimeLayerTypeEnum,
-        ):
-            data["project"]["runtime"] = self.project.runtime.value
-        return data

@@ -119,7 +119,9 @@ def push_function():
         project_data_manager = ProjectValidationDataManager(project_path=actual_path)
         project_metadata, project_files = project_data_manager.prepare_data()
         validator = FunctionProjectValidator(
-            project_metadata=project_metadata, project_files=project_files
+            project_metadata=project_metadata,
+            project_files=project_files,
+            project_path=actual_path,
         )
         validator.run_all_validations()
         typer.echo(
@@ -155,7 +157,9 @@ def pull_function():
         project_data_manager = ProjectValidationDataManager(project_path=actual_path)
         project_metadata, project_files = project_data_manager.prepare_data()
         validator = FunctionProjectValidator(
-            project_metadata=project_metadata, project_files=project_files
+            project_metadata=project_metadata,
+            project_files=project_files,
+            project_path=actual_path,
         )
         validator.validate_manifest_file()
     except (FileNotFoundError, ValueError) as error:

@@ -7,6 +7,7 @@ import typer
 
 from cli.commons.enums import HTTPMethodEnum
 from cli.commons.enums import RequestErrorEnum
+from cli.commons.validators import is_valid_object_id
 from cli.config.helpers import read_cli_configuration
 
 
@@ -23,7 +24,10 @@ def build_endpoint(route: str, query_params: dict | None = None, **kwargs) -> st
 
 def get_instance_key(id: str | None = None, label: str | None = None) -> str | None:
     if isinstance(id, str):
-        return id
+        if is_valid_object_id(key=id):
+            return id
+        error_message = "'--id' is not a valid object id"
+        raise typer.BadParameter(error_message)
     if isinstance(label, str):
         return f"~{label}"
     error_message = "Providing an '--id' or '--label' is required."
