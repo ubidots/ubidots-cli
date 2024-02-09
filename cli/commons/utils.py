@@ -58,7 +58,7 @@ def simple_lookup_key(entity_name: str):
 
 
 def perform_http_request(
-    method: HTTPMethodEnum, url: str, headers: dict[str, str], **kwargs: Any
+    method: HTTPMethodEnum, url: str, **kwargs: Any
 ) -> requests.Response:
     supported_methods = {
         HTTPMethodEnum.GET: requests.get,
@@ -75,7 +75,7 @@ def perform_http_request(
         RequestErrorEnum.UNKNOWN_ERROR: "Unknown error occurred.",
     }
     try:
-        response = supported_methods[method](url, headers=headers, **kwargs)
+        response = supported_methods[method](url, **kwargs)
         response.raise_for_status()
         return response
     except requests.RequestException as error:

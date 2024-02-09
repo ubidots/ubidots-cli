@@ -6,13 +6,25 @@ from typing import IO
 
 import yaml
 from docker import DockerClient
+from docker import errors as docker_errors
+from docker.models.containers import Container
 
+from cli.functions.enums import FunctionDockerStatusEnum
 from cli.functions.enums import FunctionLanguageEnum
 from cli.functions.enums import FunctionNodejsRuntimeLayerTypeEnum
+from cli.functions.enums import FunctionProjectValidationTypeEnum
 from cli.functions.enums import FunctionPythonRuntimeLayerTypeEnum
+from cli.functions.exceptions import DockerContainerAlreadyRunningError
+from cli.functions.exceptions import DockerContainerExecutionError
+from cli.functions.exceptions import DockerHostPortError
+from cli.functions.exceptions import DockerImageNotAvailableLocallyError
+from cli.functions.exceptions import DockerImageNotFoundError
+from cli.functions.exceptions import DockerNotInstalledError
 from cli.functions.models import FunctionInfo
 from cli.functions.models import FunctionProjectInfo
 from cli.functions.models import FunctionProjectMetadata
+from cli.functions.validators import FunctionDockerValidator
+from cli.functions.validators import FunctionProjectValidator
 from cli.settings import settings
 
 
@@ -46,6 +58,12 @@ def read_manifest_project_file(project_path: Path) -> FunctionProjectMetadata:
     with open(manifest_file_path) as file:
         manifest_data = yaml.safe_load(file)
 
+    if manifest_data is None:
+        error_message = (
+            f"The '{manifest_file}' is empty, make sure it has the correct structure."
+        )
+        raise ValueError(error_message)
+
     try:
         return FunctionProjectMetadata(**manifest_data)
     except ValueError as error:
@@ -72,13 +90,90 @@ def compress_project_to_zip(actual_path: Path) -> IO[bytes]:
     return zip_buffer
 
 
-def stop_and_remove_container_by_label(
-    docker_client: DockerClient, label: str, status: str = "running"
-):
-    existing_containers = docker_client.containers.list(filters={"label": label})
-    for existing_container in existing_containers:
-        if existing_container.status == status:
-            existing_container.stop()
-            existing_container.remove()
-        else:
-            existing_container.remove()
+def enumerate_project_files(project_path: Path) -> list[Path]:
+    return [
+        Path(root) / file for root, _, files in os.walk(project_path) for file in files
+    ]
+
+
+def ensure_project_integrity(
+    project_path: Path,
+    run_all_validations: bool = False,
+    validation_flags: dict[FunctionProjectValidationTypeEnum, bool] | None = None,
+) -> tuple[FunctionProjectMetadata, list[Path]]:
+    try:
+        project_metadata = read_manifest_project_file(project_path)
+        project_files = enumerate_project_files(project_path)
+        validator = FunctionProjectValidator(
+            project_metadata=project_metadata,
+            project_files=project_files,
+            project_path=project_path,
+            run_all_validations=run_all_validations,
+            validation_flags=validation_flags,
+        )
+        validator.run_validations()
+        return project_metadata, project_files
+    except (FileNotFoundError, ValueError) as error:
+        raise error
+
+
+def ensure_image_available(client: DockerClient, image_name: str) -> None:
+    validator = FunctionDockerValidator(client=client, image_name=image_name)
+    try:
+        validator.validate_docker_is_installed()
+    except DockerNotInstalledError as error:
+        raise error
+
+    try:
+        validator.validate_image_available_locally()
+    except DockerImageNotAvailableLocallyError:
+        try:
+            client.images.pull(image_name)
+        except docker_errors.NotFound as error:
+            error_message = f"Image '{image_name}' does not exist on Docker Hub."
+            raise DockerImageNotFoundError(error_message) from error
+        except docker_errors.APIError as error:
+            error_message = f"Failed to fetch image '{image_name}' from Docker Hub: {error.strerror}"
+            raise DockerImageNotFoundError(error_message) from error
+
+
+def manage_container(
+    client: DockerClient,
+    image_name: str,
+    actual_path: Path,
+    project_name: str,
+    host_port: int,
+    is_exec_function: bool = False,
+) -> Container | None:
+
+    container_label_key = settings.FUNCTIONS.DOCKER_CONFIG.CONTAINER_LABEL
+    container_label_value = f"{container_label_key}_{project_name}_{image_name}"
+
+    existing_containers = client.containers.list(filters={"label": container_label_key})
+    if existing_containers:
+        target_container = existing_containers[0]
+        is_running = target_container.status == FunctionDockerStatusEnum.RUNNING.value
+        if is_exec_function and is_running:
+            target_container.restart()
+            return target_container
+        if not is_exec_function and is_running:
+            raise DockerContainerAlreadyRunningError
+    else:
+        try:
+            return client.containers.run(
+                image_name,
+                labels={container_label_key: container_label_value},
+                volumes={
+                    str(actual_path): settings.FUNCTIONS.DOCKER_CONFIG.VOLUME_MAPPING
+                },
+                ports={
+                    f"{settings.FUNCTIONS.DOCKER_CONFIG.CONTAINER_PORT}/tcp": host_port
+                },
+                detach=settings.FUNCTIONS.DOCKER_CONFIG.IS_DETACH,
+            )
+        except docker_errors.APIError as error:
+            raise DockerHostPortError(host_port) from error
+        except docker_errors.ContainerError as error:
+            raise DockerContainerExecutionError(str(error)) from error
+
+    return None

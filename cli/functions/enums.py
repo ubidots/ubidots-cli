@@ -1,4 +1,5 @@
 from enum import Enum
+from enum import auto
 
 from InquirerPy import inquirer
 
@@ -92,3 +93,18 @@ class FunctionLanguageEnum(ChoosableEnum):
 
     def choose_runtime(self, message: str = "Select a runtime:"):
         return self.runtime.choose(message)
+
+
+class FunctionProjectValidationTypeEnum(Enum):
+    MANIFEST_FILE = auto()
+    MAIN_FILE_PRESENCE = auto()
+    FILE_NAMES = auto()
+    FILE_COUNT = auto()
+    INDIVIDUAL_FILE_SIZE = auto()
+
+
+class FunctionDockerStatusEnum(Enum):
+    RESTARTING = "restarting"
+    RUNNING = "running"
+    PAUSED = "paused"
+    EXITED = "exited"

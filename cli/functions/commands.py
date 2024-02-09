@@ -29,6 +29,22 @@ def init(
     handlers.init_function(host_port=host_port)
 
 
+@app.command(help="Test the lambda function locally in a Docker container environment.")
+def test(
+    host_port: Annotated[
+        int, typer.Option(help="host port to bind the container.")
+    ] = settings.FUNCTIONS.DOCKER_CONFIG.HOST_PORT,
+    payload: Annotated[
+        str,
+        typer.Option(
+            help='Payload as JSON string for function testing. e.g. \'{"key": "value"}\'',
+            show_default=False,
+        ),
+    ] = "{}",
+):
+    handlers.test_function(host_port=host_port, payload=payload)
+
+
 @app.command(
     help="Update and synchronize your local function code with the remote server."
 )

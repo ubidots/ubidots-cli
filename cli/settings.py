@@ -20,11 +20,13 @@ class FunctionSettings(BaseModel):
         HUB_USERNAME: str = "cristianrubioa"
         CONTAINER_PORT: int = 8080
         CONTAINER_LABEL: str = "ubidots_cli_container"
+        HOST: str = "localhost"
         HOST_PORT: int = 9000
         VOLUME_PATH: str = "/var/task"
-        VOLUME_MODE: str = "ro"
-        VOLUME_MAPPING: dict = {"bind": VOLUME_PATH, "path": VOLUME_MODE}
+        VOLUME_MODE: str = "rw"
+        VOLUME_MAPPING: dict = {"bind": VOLUME_PATH, "mode": VOLUME_MODE}
         IS_DETACH: bool = True
+        RIE_INVOCATION_PATH: str = "/2015-03-31/functions/function/invocations"
 
     DEFAULT_PROJECT_NAME: str = "my_function"
     DEFAULT_MAIN_FILE_NAME: str = "main"

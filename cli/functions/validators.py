@@ -5,29 +5,11 @@ from pathlib import Path
 from docker import DockerClient
 from docker import errors as docker_errors
 
+from cli.functions.enums import FunctionProjectValidationTypeEnum
 from cli.functions.exceptions import DockerImageNotAvailableLocallyError
-from cli.functions.exceptions import DockerImageNotFoundError
 from cli.functions.exceptions import DockerNotInstalledError
-from cli.functions.helpers import read_manifest_project_file
 from cli.functions.models import FunctionProjectMetadata
 from cli.settings import settings
-
-
-class ProjectValidationDataManager:
-    def __init__(self, project_path: Path):
-        self.project_path: Path = project_path
-
-    def prepare_data(self) -> tuple[FunctionProjectMetadata, list[Path]]:
-        project_metadata = read_manifest_project_file(self.project_path)
-        project_files = self.enumerate_project_files()
-        return project_metadata, project_files
-
-    def enumerate_project_files(self) -> list[Path]:
-        return [
-            Path(root) / file
-            for root, _, files in os.walk(self.project_path)
-            for file in files
-        ]
 
 
 class FunctionProjectValidator:
@@ -36,17 +18,39 @@ class FunctionProjectValidator:
         project_metadata: FunctionProjectMetadata,
         project_files: list[Path],
         project_path: Path | None = None,
+        run_all_validations: bool = False,
+        validation_flags: dict[FunctionProjectValidationTypeEnum, bool] | None = None,
     ):
         self.project_path = project_path
         self.project_metadata = project_metadata
         self.project_files = project_files
+        self.run_all_validations = run_all_validations
 
-    def run_all_validations(self):
-        self.validate_manifest_file()
-        self.validate_main_file_presence()
-        self.validate_file_names()
-        self.validate_file_count()
-        self.validate_individual_file_size()
+        if validation_flags is None:
+            validation_flags = {}
+        self.validation_flags = validation_flags
+
+    def run_validations(self):
+        if self.run_all_validations or self.validation_flags.get(
+            FunctionProjectValidationTypeEnum.MANIFEST_FILE, False
+        ):
+            self.validate_manifest_file()
+        if self.run_all_validations or self.validation_flags.get(
+            FunctionProjectValidationTypeEnum.MAIN_FILE_PRESENCE, False
+        ):
+            self.validate_main_file_presence()
+        if self.run_all_validations or self.validation_flags.get(
+            FunctionProjectValidationTypeEnum.FILE_NAMES, False
+        ):
+            self.validate_file_names()
+        if self.run_all_validations or self.validation_flags.get(
+            FunctionProjectValidationTypeEnum.FILE_COUNT, False
+        ):
+            self.validate_file_count()
+        if self.run_all_validations or self.validation_flags.get(
+            FunctionProjectValidationTypeEnum.INDIVIDUAL_FILE_SIZE, False
+        ):
+            self.validate_individual_file_size()
 
     def validate_manifest_file(self):
         if self.project_metadata.function.id is None:
@@ -99,9 +103,9 @@ class FunctionProjectValidator:
 
 
 class FunctionDockerValidator:
-    def __init__(self, docker_client: DockerClient, image_name: str):
+    def __init__(self, client: DockerClient, image_name: str):
         self.image_name = image_name
-        self.client = docker_client
+        self.client = client
 
     def validate_docker_is_installed(self):
         try:
@@ -116,13 +120,3 @@ class FunctionDockerValidator:
         except docker_errors.ImageNotFound as error:
             error_message = f"Image '{self.image_name}' is not available locally."
             raise DockerImageNotAvailableLocallyError(error_message) from error
-
-    def validate_image_available_on_dockerhub(self):
-        try:
-            self.client.images.pull(self.image_name)
-        except docker_errors.NotFound as error:
-            error_message = f"Image '{self.image_name}' does not exist on Docker Hub."
-            raise DockerImageNotFoundError(error_message) from error
-        except docker_errors.APIError as error:
-            error_message = f"Failed to fetch image '{self.image_name}' from Docker Hub: {error.strerror}"
-            raise DockerImageNotFoundError(error_message) from error
