@@ -20,7 +20,7 @@ from cli.functions.exceptions import DockerHostPortError
 from cli.functions.exceptions import DockerImageNotFoundError
 from cli.functions.exceptions import DockerNotInstalledError
 from cli.functions.helpers import compress_project_to_zip
-from cli.functions.helpers import ensure_image_available
+from cli.functions.helpers import ensure_image_availability
 from cli.functions.helpers import ensure_project_integrity
 from cli.functions.helpers import manage_container
 from cli.functions.helpers import save_manifest_project_file
@@ -57,11 +57,11 @@ def create_function(
         raise typer.Exit(1) from error
 
 
-def init_function(host_port: int):
-    actual_path = Path.cwd()
+def start_function(host_port: int):
+    current_path = Path.cwd()
     try:
         project_metadata, _ = ensure_project_integrity(
-            project_path=actual_path,
+            project_path=current_path,
             validation_flags={
                 FunctionProjectValidationTypeEnum.MANIFEST_FILE: True,
             },
@@ -74,7 +74,7 @@ def init_function(host_port: int):
     image_name = f"{settings.FUNCTIONS.DOCKER_CONFIG.HUB_USERNAME}/{project_metadata.project.runtime.value}"
 
     try:
-        ensure_image_available(client=docker_client, image_name=image_name)
+        ensure_image_availability(client=docker_client, image_name=image_name)
     except (DockerNotInstalledError, DockerImageNotFoundError) as error:
         typer.echo(error)
         raise typer.Exit(1) from error
@@ -84,7 +84,7 @@ def init_function(host_port: int):
         container = manage_container(
             client=docker_client,
             image_name=image_name,
-            actual_path=actual_path,
+            current_path=current_path,
             project_name=project_metadata.project.name,
             host_port=host_port,
         )
@@ -101,11 +101,11 @@ def init_function(host_port: int):
     typer.echo("Function successfully executed inside the container.")
 
 
-def test_function(host_port: int, payload: str):
-    actual_path = Path.cwd()
+def run_function(host_port: int, payload: str):
+    current_path = Path.cwd()
     try:
         project_metadata, _ = ensure_project_integrity(
-            project_path=actual_path,
+            project_path=current_path,
             validation_flags={
                 FunctionProjectValidationTypeEnum.MANIFEST_FILE: True,
             },
@@ -118,7 +118,7 @@ def test_function(host_port: int, payload: str):
     image_name = f"{settings.FUNCTIONS.DOCKER_CONFIG.HUB_USERNAME}/{project_metadata.project.runtime.value}"
 
     try:
-        ensure_image_available(client=docker_client, image_name=image_name)
+        ensure_image_availability(client=docker_client, image_name=image_name)
     except (DockerNotInstalledError, DockerImageNotFoundError) as error:
         typer.echo(error)
         raise typer.Exit(1) from error
@@ -127,7 +127,7 @@ def test_function(host_port: int, payload: str):
         manage_container(
             client=docker_client,
             image_name=image_name,
-            actual_path=actual_path,
+            current_path=current_path,
             project_name=project_metadata.project.name,
             host_port=host_port,
             is_exec_function=True,
@@ -151,7 +151,7 @@ def test_function(host_port: int, payload: str):
     typer.echo(response.json())
 
 
-def push_function():
+def push_function(confirm: bool):
     actual_path = Path.cwd()
     try:
         project_metadata, _ = ensure_project_integrity(
@@ -160,6 +160,13 @@ def push_function():
     except (FileNotFoundError, ValueError) as error:
         typer.echo(error)
         raise typer.Exit(1) from error
+
+    if not confirm:
+        confirm = project_metadata.globals.auto_overwrite
+    if not confirm and not typer.confirm(
+        "Are you sure you want to overwrite the local files?"
+    ):
+        raise typer.Abort
 
     zip_file_obj = compress_project_to_zip(actual_path)
     typer.echo("Project successfully compressed into a ZIP file, ready for upload.")
@@ -181,7 +188,7 @@ def push_function():
     typer.echo(response.json()["message"])
 
 
-def pull_function():
+def pull_function(confirm: bool):
     actual_path = Path.cwd()
     try:
         project_metadata, _ = ensure_project_integrity(
@@ -193,6 +200,13 @@ def pull_function():
     except (FileNotFoundError, ValueError) as error:
         typer.echo(error)
         raise typer.Exit(1) from error
+
+    if not confirm:
+        confirm = project_metadata.globals.auto_overwrite
+    if not confirm and not typer.confirm(
+        "Are you sure you want to overwrite the local files?"
+    ):
+        raise typer.Abort
 
     url, headers = build_endpoint(
         route="/api/-/functions/{function_key}/zip-file/",

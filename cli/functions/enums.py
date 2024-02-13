@@ -108,3 +108,8 @@ class FunctionDockerStatusEnum(Enum):
     RUNNING = "running"
     PAUSED = "paused"
     EXITED = "exited"
+
+
+class FunctionEngineServeEnum(Enum):
+    DOCKER = "docker"
+    PODMAN = "podman"

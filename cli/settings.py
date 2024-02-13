@@ -21,7 +21,7 @@ class FunctionSettings(BaseModel):
         CONTAINER_PORT: int = 8080
         CONTAINER_LABEL: str = "ubidots_cli_container"
         HOST: str = "localhost"
-        HOST_PORT: int = 9000
+        PORT: int = 9000
         VOLUME_PATH: str = "/var/task"
         VOLUME_MODE: str = "rw"
         VOLUME_MAPPING: dict = {"bind": VOLUME_PATH, "mode": VOLUME_MODE}

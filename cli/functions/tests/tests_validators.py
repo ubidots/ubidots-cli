@@ -7,6 +7,7 @@ from cli.commons.utils_tests import override_settings
 from cli.functions.commands import app as function_app
 from cli.functions.enums import FunctionLanguageEnum
 from cli.functions.enums import FunctionPythonRuntimeLayerTypeEnum
+from cli.functions.models import FunctionGlobals
 from cli.functions.models import FunctionInfo
 from cli.functions.models import FunctionProjectInfo
 from cli.functions.models import FunctionProjectMetadata
@@ -67,6 +68,7 @@ class TestFunctionProjectValidators:
         self.mocker = mocker
         self.project_path = Path("/my_function")
         self.project_metadata = FunctionProjectMetadata(
+            globals=FunctionGlobals(auto_overwrite=False),
             project=FunctionProjectInfo(
                 name="my_function",
                 language=FunctionLanguageEnum.PYTHON,
@@ -90,6 +92,7 @@ class TestFunctionProjectValidators:
     def test_validate_manifest_file(self):
         # Setup
         project_metadata = FunctionProjectMetadata(
+            globals=FunctionGlobals(auto_overwrite=False),
             project=FunctionProjectInfo(
                 name="my_function",
                 language=FunctionLanguageEnum.PYTHON,

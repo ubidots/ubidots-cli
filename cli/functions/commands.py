@@ -21,19 +21,19 @@ def new(
 
 
 @app.command(help="Initialize the function container environment for execution.")
-def init(
-    host_port: Annotated[
+def start(
+    port: Annotated[
         int, typer.Option(help="host port to bind the container.")
-    ] = settings.FUNCTIONS.DOCKER_CONFIG.HOST_PORT
+    ] = settings.FUNCTIONS.DOCKER_CONFIG.PORT
 ):
-    handlers.init_function(host_port=host_port)
+    handlers.start_function(host_port=port)
 
 
 @app.command(help="Test the lambda function locally in a Docker container environment.")
-def test(
-    host_port: Annotated[
+def run(
+    port: Annotated[
         int, typer.Option(help="host port to bind the container.")
-    ] = settings.FUNCTIONS.DOCKER_CONFIG.HOST_PORT,
+    ] = settings.FUNCTIONS.DOCKER_CONFIG.PORT,
     payload: Annotated[
         str,
         typer.Option(
@@ -42,18 +42,28 @@ def test(
         ),
     ] = "{}",
 ):
-    handlers.test_function(host_port=host_port, payload=payload)
+    handlers.run_function(host_port=port, payload=payload)
 
 
 @app.command(
     help="Update and synchronize your local function code with the remote server."
 )
-def push():
-    handlers.push_function()
+def push(
+    confirm: Annotated[
+        bool,
+        typer.Option("--yes", "-y", help="Confirm file overwrite without prompt."),
+    ] = False
+):
+    handlers.push_function(confirm=confirm)
 
 
 @app.command(
     help="Retrieve and update your local function code with the latest changes from the remote server."
 )
-def pull():
-    handlers.pull_function()
+def pull(
+    confirm: Annotated[
+        bool,
+        typer.Option("--yes", "-y", help="Confirm file overwrite without prompt."),
+    ] = False
+):
+    handlers.pull_function(confirm=confirm)

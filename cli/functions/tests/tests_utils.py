@@ -10,6 +10,7 @@ from cli.functions.enums import FunctionPythonRuntimeLayerTypeEnum
 from cli.functions.helpers import compress_project_to_zip
 from cli.functions.helpers import read_manifest_project_file
 from cli.functions.helpers import save_manifest_project_file
+from cli.functions.models import FunctionGlobals
 from cli.functions.models import FunctionInfo
 from cli.functions.models import FunctionProjectInfo
 from cli.functions.models import FunctionProjectMetadata
@@ -37,6 +38,7 @@ class TestFunctionUtils:
         language = FunctionLanguageEnum.PYTHON
         runtime = FunctionPythonRuntimeLayerTypeEnum.PYTHON_3_9_FULL
         expected_metadata = FunctionProjectMetadata(
+            globals=FunctionGlobals(auto_overwrite=False),
             project=FunctionProjectInfo(
                 name=project_path.name, language=language, runtime=runtime
             ),
@@ -61,9 +63,11 @@ class TestFunctionUtils:
         language = FunctionLanguageEnum.PYTHON
         runtime = FunctionPythonRuntimeLayerTypeEnum.PYTHON_3_9_FULL
         metadata = FunctionProjectMetadata(
+            globals=FunctionGlobals(auto_overwrite=False),
             project=FunctionProjectInfo(
                 name=project_path.name, language=language, runtime=runtime
-            )
+            ),
+            function=FunctionInfo(id=None),
         )
         metadata_file = project_path / settings.FUNCTIONS.PROJECT_METADATA_FILE
         with open(metadata_file, "w") as file:

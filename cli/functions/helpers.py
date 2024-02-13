@@ -20,6 +20,7 @@ from cli.functions.exceptions import DockerHostPortError
 from cli.functions.exceptions import DockerImageNotAvailableLocallyError
 from cli.functions.exceptions import DockerImageNotFoundError
 from cli.functions.exceptions import DockerNotInstalledError
+from cli.functions.models import FunctionGlobals
 from cli.functions.models import FunctionInfo
 from cli.functions.models import FunctionProjectInfo
 from cli.functions.models import FunctionProjectMetadata
@@ -33,8 +34,10 @@ def save_manifest_project_file(
     language: FunctionLanguageEnum,
     runtime: FunctionPythonRuntimeLayerTypeEnum | FunctionNodejsRuntimeLayerTypeEnum,
     function_id: str | None = None,
+    auto_overwrite: bool = False,
 ) -> None:
     metadata = FunctionProjectMetadata(
+        globals=FunctionGlobals(auto_overwrite=auto_overwrite),
         project=FunctionProjectInfo(
             name=project_path.name, language=language, runtime=runtime
         ),
@@ -117,7 +120,7 @@ def ensure_project_integrity(
         raise error
 
 
-def ensure_image_available(client: DockerClient, image_name: str) -> None:
+def ensure_image_availability(client: DockerClient, image_name: str) -> None:
     validator = FunctionDockerValidator(client=client, image_name=image_name)
     try:
         validator.validate_docker_is_installed()
@@ -140,7 +143,7 @@ def ensure_image_available(client: DockerClient, image_name: str) -> None:
 def manage_container(
     client: DockerClient,
     image_name: str,
-    actual_path: Path,
+    current_path: Path,
     project_name: str,
     host_port: int,
     is_exec_function: bool = False,
@@ -164,7 +167,7 @@ def manage_container(
                 image_name,
                 labels={container_label_key: container_label_value},
                 volumes={
-                    str(actual_path): settings.FUNCTIONS.DOCKER_CONFIG.VOLUME_MAPPING
+                    str(current_path): settings.FUNCTIONS.DOCKER_CONFIG.VOLUME_MAPPING
                 },
                 ports={
                     f"{settings.FUNCTIONS.DOCKER_CONFIG.CONTAINER_PORT}/tcp": host_port

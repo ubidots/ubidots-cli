@@ -13,6 +13,10 @@ from cli.functions.enums import FunctionPythonRuntimeLayerTypeEnum
 from cli.settings import settings
 
 
+class FunctionGlobals(BaseModel):
+    auto_overwrite: bool = False
+
+
 class FunctionProjectInfo(BaseModel):
     name: str = settings.FUNCTIONS.DEFAULT_PROJECT_NAME
     language: FunctionLanguageEnum
@@ -40,5 +44,6 @@ class FunctionInfo(BaseModel):
 
 
 class FunctionProjectMetadata(BaseYAMLDumpModel):
+    globals: FunctionGlobals
     project: FunctionProjectInfo
-    function: FunctionInfo | None = None
+    function: FunctionInfo
