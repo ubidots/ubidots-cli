@@ -10,6 +10,9 @@ from docker import DockerClient
 from cli.commons.enums import HTTPMethodEnum
 from cli.commons.utils import build_endpoint
 from cli.commons.utils import perform_http_request
+from cli.functions.engines.exceptions import EngineNotInstalledException
+from cli.functions.engines.exceptions import ImageFetchException
+from cli.functions.engines.exceptions import ImageNotFoundException
 from cli.functions.enums import FunctionLanguageEnum
 from cli.functions.enums import FunctionNodejsRuntimeLayerTypeEnum
 from cli.functions.enums import FunctionProjectValidationTypeEnum
@@ -75,7 +78,11 @@ def start_function(host_port: int):
 
     try:
         ensure_image_availability(client=docker_client, image_name=image_name)
-    except (DockerNotInstalledError, DockerImageNotFoundError) as error:
+    except (
+        EngineNotInstalledException,
+        ImageNotFoundException,
+        ImageFetchException,
+    ) as error:
         typer.echo(error)
         raise typer.Exit(1) from error
     typer.echo("Docker image is now up-to-date locally.")
