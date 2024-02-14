@@ -9,6 +9,12 @@ from docker import DockerClient
 from docker import errors as docker_errors
 from docker.models.containers import Container
 
+from cli.functions.engines.docker.helpers import DockerImageDownloader
+from cli.functions.engines.docker.validators import FunctionDockerValidator
+from cli.functions.engines.exceptions import EngineNotInstalledException
+from cli.functions.engines.exceptions import ImageFetchException
+from cli.functions.engines.exceptions import ImageNotAvailableLocallyException
+from cli.functions.engines.exceptions import ImageNotFoundException
 from cli.functions.enums import FunctionDockerStatusEnum
 from cli.functions.enums import FunctionLanguageEnum
 from cli.functions.enums import FunctionNodejsRuntimeLayerTypeEnum
@@ -17,14 +23,10 @@ from cli.functions.enums import FunctionPythonRuntimeLayerTypeEnum
 from cli.functions.exceptions import DockerContainerAlreadyRunningError
 from cli.functions.exceptions import DockerContainerExecutionError
 from cli.functions.exceptions import DockerHostPortError
-from cli.functions.exceptions import DockerImageNotAvailableLocallyError
-from cli.functions.exceptions import DockerImageNotFoundError
-from cli.functions.exceptions import DockerNotInstalledError
 from cli.functions.models import FunctionGlobals
 from cli.functions.models import FunctionInfo
 from cli.functions.models import FunctionProjectInfo
 from cli.functions.models import FunctionProjectMetadata
-from cli.functions.validators import FunctionDockerValidator
 from cli.functions.validators import FunctionProjectValidator
 from cli.settings import settings
 
@@ -121,23 +123,18 @@ def ensure_project_integrity(
 
 
 def ensure_image_availability(client: DockerClient, image_name: str) -> None:
-    validator = FunctionDockerValidator(client=client, image_name=image_name)
+    validator = FunctionDockerValidator(client=client)
     try:
-        validator.validate_docker_is_installed()
-    except DockerNotInstalledError as error:
+        validator.validate_engine_installed()
+        validator.validate_image_available_locally(image_name=image_name)
+    except EngineNotInstalledException as error:
         raise error
-
-    try:
-        validator.validate_image_available_locally()
-    except DockerImageNotAvailableLocallyError:
+    except ImageNotAvailableLocallyException:
+        downloader = DockerImageDownloader(client=client)
         try:
-            client.images.pull(image_name)
-        except docker_errors.NotFound as error:
-            error_message = f"Image '{image_name}' does not exist on Docker Hub."
-            raise DockerImageNotFoundError(error_message) from error
-        except docker_errors.APIError as error:
-            error_message = f"Failed to fetch image '{image_name}' from Docker Hub: {error.strerror}"
-            raise DockerImageNotFoundError(error_message) from error
+            downloader.pull_image(image_name=image_name)
+        except (ImageNotFoundException, ImageFetchException) as error:
+            raise error
 
 
 def manage_container(
