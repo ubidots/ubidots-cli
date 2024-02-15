@@ -10,10 +10,12 @@ from docker import DockerClient
 from cli.commons.enums import HTTPMethodEnum
 from cli.commons.utils import build_endpoint
 from cli.commons.utils import perform_http_request
+from cli.functions.engines.enums import FunctionEngineServeEnum
 from cli.functions.engines.exceptions import EngineNotInstalledException
 from cli.functions.engines.exceptions import ImageFetchException
 from cli.functions.engines.exceptions import ImageNotFoundException
 from cli.functions.enums import FunctionLanguageEnum
+from cli.functions.enums import FunctionMethodEnum
 from cli.functions.enums import FunctionNodejsRuntimeLayerTypeEnum
 from cli.functions.enums import FunctionProjectValidationTypeEnum
 from cli.functions.enums import FunctionPythonRuntimeLayerTypeEnum
@@ -60,7 +62,17 @@ def create_function(
         raise typer.Exit(1) from error
 
 
-def start_function(host_port: int):
+def start_function(
+    engine: FunctionEngineServeEnum,
+    host: str,
+    port: int,
+    raw: bool,
+    method: FunctionMethodEnum,
+    token: str,
+    cors: bool,
+    cron: str,
+    timeout: int,
+):
     current_path = Path.cwd()
     try:
         project_metadata, _ = ensure_project_integrity(
@@ -93,11 +105,9 @@ def start_function(host_port: int):
             image_name=image_name,
             current_path=current_path,
             project_name=project_metadata.project.name,
-            host_port=host_port,
+            host_port=port,
         )
-        typer.echo(
-            f"Container started successfully on port {host_port}: {container.id}"
-        )
+        typer.echo(f"Container started successfully on port {port}: {container.id}")
     except (
         DockerContainerAlreadyRunningError,
         DockerHostPortError,

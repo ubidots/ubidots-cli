@@ -113,3 +113,8 @@ class FunctionDockerStatusEnum(Enum):
 class FunctionEngineServeEnum(Enum):
     DOCKER = "docker"
     PODMAN = "podman"
+
+
+class FunctionMethodEnum(Enum):
+    GET = "GET"
+    POST = "POST"

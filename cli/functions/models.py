@@ -1,5 +1,6 @@
 from datetime import datetime
 
+from croniter import croniter
 from pydantic import BaseModel
 from pydantic import Field
 from pydantic import field_validator
@@ -7,7 +8,9 @@ from pydantic import model_validator
 
 from cli.commons.models import BaseYAMLDumpModel
 from cli.commons.validators import is_valid_object_id
+from cli.functions.engines.enums import FunctionEngineServeEnum
 from cli.functions.enums import FunctionLanguageEnum
+from cli.functions.enums import FunctionMethodEnum
 from cli.functions.enums import FunctionNodejsRuntimeLayerTypeEnum
 from cli.functions.enums import FunctionPythonRuntimeLayerTypeEnum
 from cli.settings import settings
@@ -15,9 +18,11 @@ from cli.settings import settings
 
 class FunctionGlobals(BaseModel):
     auto_overwrite: bool = False
+    engine: FunctionEngineServeEnum = FunctionEngineServeEnum.DOCKER
 
 
 class FunctionProjectInfo(BaseModel):
+    label: str = ""
     name: str = settings.FUNCTIONS.DEFAULT_PROJECT_NAME
     language: FunctionLanguageEnum
     runtime: FunctionPythonRuntimeLayerTypeEnum | FunctionNodejsRuntimeLayerTypeEnum
@@ -33,13 +38,38 @@ class FunctionProjectInfo(BaseModel):
 
 class FunctionInfo(BaseModel):
     id: str | None = None
+    method: FunctionMethodEnum = FunctionMethodEnum.GET
+    token: str | None = None
+    is_raw: bool = False
+    has_cors: bool = False
+    cron: str = settings.FUNCTIONS.DEFAULT_CRON
+    timeout: int = 10  # Seconds
+    memory_size: int = 128  # MB
+    payload: dict = {}
 
     @field_validator("id")
     @classmethod
     def validate_id(cls, value):
         if isinstance(value, str) and not is_valid_object_id(value):
-            error_message = "Input is not a valid object id"
+            error_message = "Input is not a valid object id."
             ValueError(error_message)
+        return value
+
+    @field_validator("cron")
+    @classmethod
+    def validate_cron(cls, value):
+        if not croniter.is_valid(value):
+            error_message = "Input is not a valid cron expression."
+            raise ValueError(error_message)
+        return value
+
+    @field_validator("timeout")
+    @classmethod
+    def validate_timeout(cls, value):
+        max_timeout = settings.FUNCTIONS.MAX_TIMEOUT_SECONDS
+        if value > max_timeout:
+            error_message = f"Timeout value must not exceed '{max_timeout}' seconds"
+            raise ValueError(error_message)
         return value
 
 

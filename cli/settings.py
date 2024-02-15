@@ -20,7 +20,7 @@ class FunctionSettings(BaseModel):
         HUB_USERNAME: str = "cristianrubioa"
         CONTAINER_PORT: int = 8080
         CONTAINER_LABEL: str = "ubidots_cli_container"
-        HOST: str = "localhost"
+        HOST: str = "127.0.0.1"
         PORT: int = 9000
         VOLUME_PATH: str = "/var/task"
         VOLUME_MODE: str = "rw"
@@ -34,6 +34,8 @@ class FunctionSettings(BaseModel):
     TEMPLATES_PATH: Path = (
         Path(__file__).resolve().parent.parent / "cli" / "functions" / "templates"
     )
+    MAX_TIMEOUT_SECONDS: int = 300
+    DEFAULT_CRON: str = "* * * * *"
     DOCKER_CONFIG: DockerSettings = DockerSettings()
     ZIP_FILE: ZipFileSettings = ZipFileSettings()
 
