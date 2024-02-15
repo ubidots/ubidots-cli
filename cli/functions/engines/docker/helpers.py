@@ -8,7 +8,7 @@ class DockerImageDownloader(AbstractImageDownloader):
     def pull_image(self, image_name: str):
         try:
             self.client.images.pull(image_name)
-        except NotFound as error:
-            self.handle_image_exception(error=error, image_name=image_name)
-        except APIError as error:
-            self.handle_server_exception(error=error, image_name=image_name)
+        except NotFound:
+            self.raise_exception("image_not_found_on_hub", image_name=image_name)
+        except APIError:
+            self.raise_exception("image_fetch_error", image_name=image_name)

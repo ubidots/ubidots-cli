@@ -22,8 +22,6 @@ from cli.functions.enums import FunctionPythonRuntimeLayerTypeEnum
 from cli.functions.exceptions import DockerContainerAlreadyRunningError
 from cli.functions.exceptions import DockerContainerExecutionError
 from cli.functions.exceptions import DockerHostPortError
-from cli.functions.exceptions import DockerImageNotFoundError
-from cli.functions.exceptions import DockerNotInstalledError
 from cli.functions.helpers import compress_project_to_zip
 from cli.functions.helpers import ensure_image_availability
 from cli.functions.helpers import ensure_project_integrity
@@ -136,7 +134,11 @@ def run_function(host_port: int, payload: str):
 
     try:
         ensure_image_availability(client=docker_client, image_name=image_name)
-    except (DockerNotInstalledError, DockerImageNotFoundError) as error:
+    except (
+        EngineNotInstalledException,
+        ImageNotFoundException,
+        ImageFetchException,
+    ) as error:
         typer.echo(error)
         raise typer.Exit(1) from error
 

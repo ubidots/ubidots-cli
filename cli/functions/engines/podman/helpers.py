@@ -1,8 +1,10 @@
+from dataclasses import dataclass
+
 from podman import PodmanClient
 
 from cli.functions.engines.helpers import AbstractImageDownloader
 
 
+@dataclass
 class PodmanImageDownloader(AbstractImageDownloader):
-    def __init__(self, client: PodmanClient):
-        super().__init__(client)
+    client: PodmanClient
