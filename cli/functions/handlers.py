@@ -5,15 +5,15 @@ from json import JSONDecodeError
 from pathlib import Path
 
 import typer
-from docker import DockerClient
 
 from cli.commons.enums import HTTPMethodEnum
 from cli.commons.utils import build_endpoint
 from cli.commons.utils import perform_http_request
-from cli.functions.engines.enums import FunctionEngineServeEnum
+from cli.functions.engines.enums import FunctionEngineTypeEnum
 from cli.functions.engines.exceptions import EngineNotInstalledException
 from cli.functions.engines.exceptions import ImageFetchException
 from cli.functions.engines.exceptions import ImageNotFoundException
+from cli.functions.engines.manager import FunctionEngineClientManager
 from cli.functions.enums import FunctionLanguageEnum
 from cli.functions.enums import FunctionMethodEnum
 from cli.functions.enums import FunctionNodejsRuntimeLayerTypeEnum
@@ -23,10 +23,10 @@ from cli.functions.exceptions import DockerContainerAlreadyRunningError
 from cli.functions.exceptions import DockerContainerExecutionError
 from cli.functions.exceptions import DockerHostPortError
 from cli.functions.helpers import compress_project_to_zip
-from cli.functions.helpers import ensure_image_availability
 from cli.functions.helpers import ensure_project_integrity
 from cli.functions.helpers import manage_container
 from cli.functions.helpers import save_manifest_project_file
+from cli.functions.helpers import verify_and_fetch_image
 from cli.settings import settings
 
 
@@ -61,7 +61,7 @@ def create_function(
 
 
 def start_function(
-    engine: FunctionEngineServeEnum,
+    engine: FunctionEngineTypeEnum,
     host: str,
     port: int,
     raw: bool,
@@ -83,11 +83,12 @@ def start_function(
         typer.echo(error)
         raise typer.Exit(1) from error
 
-    docker_client = DockerClient.from_env()
     image_name = f"{settings.FUNCTIONS.DOCKER_CONFIG.HUB_USERNAME}/{project_metadata.project.runtime.value}"
+    engine_manager = FunctionEngineClientManager(engine_type=engine)
+    client = engine_manager.get_client()
 
     try:
-        ensure_image_availability(client=docker_client, image_name=image_name)
+        verify_and_fetch_image(client=client, image_name=image_name)
     except (
         EngineNotInstalledException,
         ImageNotFoundException,
@@ -95,11 +96,10 @@ def start_function(
     ) as error:
         typer.echo(error)
         raise typer.Exit(1) from error
-    typer.echo("Docker image is now up-to-date locally.")
 
     try:
         container = manage_container(
-            client=docker_client,
+            client=client,
             image_name=image_name,
             current_path=current_path,
             project_name=project_metadata.project.name,
@@ -117,48 +117,6 @@ def start_function(
 
 
 def run_function(host_port: int, payload: str):
-    current_path = Path.cwd()
-    try:
-        project_metadata, _ = ensure_project_integrity(
-            project_path=current_path,
-            validation_flags={
-                FunctionProjectValidationTypeEnum.MANIFEST_FILE: True,
-            },
-        )
-    except (FileNotFoundError, ValueError) as error:
-        typer.echo(error)
-        raise typer.Exit(1) from error
-
-    docker_client = DockerClient.from_env()
-    image_name = f"{settings.FUNCTIONS.DOCKER_CONFIG.HUB_USERNAME}/{project_metadata.project.runtime.value}"
-
-    try:
-        ensure_image_availability(client=docker_client, image_name=image_name)
-    except (
-        EngineNotInstalledException,
-        ImageNotFoundException,
-        ImageFetchException,
-    ) as error:
-        typer.echo(error)
-        raise typer.Exit(1) from error
-
-    try:
-        manage_container(
-            client=docker_client,
-            image_name=image_name,
-            current_path=current_path,
-            project_name=project_metadata.project.name,
-            host_port=host_port,
-            is_exec_function=True,
-        )
-    except (
-        DockerContainerAlreadyRunningError,
-        DockerHostPortError,
-        DockerContainerExecutionError,
-    ) as error:
-        typer.echo(error)
-        raise typer.Exit(1) from error
-
     try:
         json.loads(payload)
     except (TypeError, JSONDecodeError) as error:

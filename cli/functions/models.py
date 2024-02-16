@@ -8,7 +8,7 @@ from pydantic import model_validator
 
 from cli.commons.models import BaseYAMLDumpModel
 from cli.commons.validators import is_valid_object_id
-from cli.functions.engines.enums import FunctionEngineServeEnum
+from cli.functions.engines.enums import FunctionEngineTypeEnum
 from cli.functions.enums import FunctionLanguageEnum
 from cli.functions.enums import FunctionMethodEnum
 from cli.functions.enums import FunctionNodejsRuntimeLayerTypeEnum
@@ -18,7 +18,7 @@ from cli.settings import settings
 
 class FunctionGlobals(BaseModel):
     auto_overwrite: bool = False
-    engine: FunctionEngineServeEnum = FunctionEngineServeEnum.DOCKER
+    engine: FunctionEngineTypeEnum = FunctionEngineTypeEnum.DOCKER
 
 
 class FunctionProjectInfo(BaseModel):

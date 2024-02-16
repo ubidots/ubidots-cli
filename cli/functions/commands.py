@@ -3,7 +3,7 @@ from typing import Annotated
 import typer
 
 from cli.functions import handlers
-from cli.functions.engines.enums import FunctionEngineServeEnum
+from cli.functions.engines.enums import FunctionEngineTypeEnum
 from cli.functions.enums import FunctionLanguageEnum
 from cli.functions.enums import FunctionMethodEnum
 from cli.settings import settings
@@ -25,9 +25,9 @@ def new(
 @app.command(help="Initialize the function container environment for execution.")
 def start(
     engine: Annotated[
-        FunctionEngineServeEnum,
+        FunctionEngineTypeEnum,
         typer.Option(help="The engine used to serve the function."),
-    ] = FunctionEngineServeEnum.DOCKER.value,
+    ] = FunctionEngineTypeEnum.DOCKER.value,
     host: Annotated[
         str,
         typer.Option(

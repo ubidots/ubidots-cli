@@ -9,12 +9,12 @@ from docker import DockerClient
 from docker import errors as docker_errors
 from docker.models.containers import Container
 
-from cli.functions.engines.docker.helpers import DockerImageDownloader
-from cli.functions.engines.docker.validators import FunctionDockerValidator
+from cli.functions.engines.docker.client import FunctionDockerClient
 from cli.functions.engines.exceptions import EngineNotInstalledException
 from cli.functions.engines.exceptions import ImageFetchException
 from cli.functions.engines.exceptions import ImageNotAvailableLocallyException
 from cli.functions.engines.exceptions import ImageNotFoundException
+from cli.functions.engines.podman.client import FunctionPodmanClient
 from cli.functions.enums import FunctionDockerStatusEnum
 from cli.functions.enums import FunctionLanguageEnum
 from cli.functions.enums import FunctionNodejsRuntimeLayerTypeEnum
@@ -122,15 +122,17 @@ def ensure_project_integrity(
         raise error
 
 
-def ensure_image_availability(client: DockerClient, image_name: str) -> None:
-    validator = FunctionDockerValidator(client=client)
+def verify_and_fetch_image(
+    client: FunctionDockerClient | FunctionPodmanClient, image_name: str
+) -> None:
+    validator = client.get_validator()
     try:
         validator.validate_engine_installed()
         validator.validate_image_available_locally(image_name=image_name)
     except EngineNotInstalledException as error:
         raise error
     except ImageNotAvailableLocallyException:
-        downloader = DockerImageDownloader(client=client)
+        downloader = client.get_downloader()
         try:
             downloader.pull_image(image_name=image_name)
         except (ImageNotFoundException, ImageFetchException) as error:
@@ -149,7 +151,9 @@ def manage_container(
     container_label_key = settings.FUNCTIONS.DOCKER_CONFIG.CONTAINER_LABEL
     container_label_value = f"{container_label_key}_{project_name}_{image_name}"
 
-    existing_containers = client.containers.list(filters={"label": container_label_key})
+    existing_containers = client.client.containers.list(
+        filters={"label": container_label_key}
+    )
     if existing_containers:
         target_container = existing_containers[0]
         is_running = target_container.status == FunctionDockerStatusEnum.RUNNING.value

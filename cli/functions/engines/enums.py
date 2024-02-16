@@ -1,6 +1,6 @@
 from enum import Enum
 
 
-class FunctionEngineServeEnum(Enum):
+class FunctionEngineTypeEnum(Enum):
     DOCKER = "docker"
     PODMAN = "podman"

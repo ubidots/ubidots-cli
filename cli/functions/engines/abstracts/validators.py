@@ -1,0 +1,17 @@
+from abc import ABC
+from abc import abstractmethod
+from dataclasses import dataclass
+from typing import Any
+
+
+@dataclass
+class AbstractEngineValidator(ABC):
+    client: Any
+
+    @abstractmethod
+    def validate_engine_installed(self) -> None:
+        raise NotImplementedError
+
+    @abstractmethod
+    def validate_image_available_locally(self, image_name: str) -> None:
+        raise NotImplementedError

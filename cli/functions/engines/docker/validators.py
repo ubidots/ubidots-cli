@@ -1,31 +1,32 @@
 from dataclasses import dataclass
+from dataclasses import field
 
 from docker import DockerClient
 from docker.errors import APIError
 from docker.errors import ImageNotFound
 
-from cli.functions.engines.enums import FunctionEngineServeEnum
-from cli.functions.engines.validators import AbstractEngineValidator
+from cli.functions.engines.abstracts.validators import AbstractEngineValidator
+from cli.functions.engines.enums import FunctionEngineTypeEnum
+from cli.functions.engines.exceptions import EngineNotInstalledException
+from cli.functions.engines.exceptions import ImageNotAvailableLocallyException
 
 
 @dataclass
 class FunctionDockerValidator(AbstractEngineValidator):
-    client: DockerClient
+    client: DockerClient = field(default_factory=DockerClient)
 
     def validate_engine_installed(self):
         try:
             self.client.ping()
-        except APIError:
-            self.raise_exception(
-                "engine_not_installed", engine=FunctionEngineServeEnum.DOCKER.value
-            )
+        except APIError as error:
+            raise EngineNotInstalledException(
+                engine=FunctionEngineTypeEnum.DOCKER.value
+            ) from error
 
     def validate_image_available_locally(self, image_name: str):
         try:
             self.client.images.get(image_name)
-        except ImageNotFound:
-            self.raise_exception(
-                "image_not_available_locally",
-                engine=FunctionEngineServeEnum.DOCKER.value,
-                image_name=image_name,
-            )
+        except ImageNotFound as error:
+            raise ImageNotAvailableLocallyException(
+                engine=FunctionEngineTypeEnum.DOCKER.value, image_name=image_name
+            ) from error
