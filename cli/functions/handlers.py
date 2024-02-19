@@ -10,6 +10,8 @@ from cli.commons.enums import HTTPMethodEnum
 from cli.commons.utils import build_endpoint
 from cli.commons.utils import perform_http_request
 from cli.functions.engines.enums import FunctionEngineTypeEnum
+from cli.functions.engines.exceptions import ContainerAlreadyRunningException
+from cli.functions.engines.exceptions import ContainerExecutionException
 from cli.functions.engines.exceptions import EngineNotInstalledException
 from cli.functions.engines.exceptions import ImageFetchException
 from cli.functions.engines.exceptions import ImageNotFoundException
@@ -19,9 +21,6 @@ from cli.functions.enums import FunctionMethodEnum
 from cli.functions.enums import FunctionNodejsRuntimeLayerTypeEnum
 from cli.functions.enums import FunctionProjectValidationTypeEnum
 from cli.functions.enums import FunctionPythonRuntimeLayerTypeEnum
-from cli.functions.exceptions import DockerContainerAlreadyRunningError
-from cli.functions.exceptions import DockerContainerExecutionError
-from cli.functions.exceptions import DockerHostPortError
 from cli.functions.helpers import compress_project_to_zip
 from cli.functions.helpers import ensure_project_integrity
 from cli.functions.helpers import manage_container
@@ -54,7 +53,6 @@ def create_function(
             project_path=project_path, language=language, runtime=runtime
         )
         typer.echo(f"Project {name} created in '{project_path}'.")
-
     except PermissionError as error:
         typer.echo(f"Permission denied: {error}.")
         raise typer.Exit(1) from error
@@ -103,17 +101,16 @@ def start_function(
             image_name=image_name,
             current_path=current_path,
             project_name=project_metadata.project.name,
-            host_port=port,
+            host=host,
+            port=port,
         )
         typer.echo(f"Container started successfully on port {port}: {container.id}")
     except (
-        DockerContainerAlreadyRunningError,
-        DockerHostPortError,
-        DockerContainerExecutionError,
+        ContainerAlreadyRunningException,
+        ContainerExecutionException,
     ) as error:
         typer.echo(error)
         raise typer.Exit(1) from error
-    typer.echo("Function successfully executed inside the container.")
 
 
 def run_function(host_port: int, payload: str):

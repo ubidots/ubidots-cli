@@ -32,3 +32,18 @@ class ImageFetchException(EngineException):
     def __init__(self, image_name: str):
         message = f"Failed to fetch image '{image_name}' from Hub."
         super().__init__(message)
+
+
+class ContainerAlreadyRunningException(EngineException):
+    def __init__(self, host: str, port: int):
+        message = (
+            f"Function is already running. Try specifying a different (host:port)=({host}:{port}) to bind "
+            f"or free up the port '{port}'."
+        )
+        super().__init__(message)
+
+
+class ContainerExecutionException(EngineException):
+    def __init__(self):
+        message = "Unexpected error executing the function."
+        super().__init__(message)

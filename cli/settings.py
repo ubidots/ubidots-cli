@@ -18,7 +18,7 @@ class FunctionSettings(BaseModel):
 
     class DockerSettings(BaseModel):
         HUB_USERNAME: str = "cristianrubioa"
-        CONTAINER_PORT: int = 8080
+        CONTAINER_PORT: str = "8080/tcp"
         CONTAINER_LABEL: str = "ubidots_cli_container"
         HOST: str = "127.0.0.1"
         PORT: int = 9000

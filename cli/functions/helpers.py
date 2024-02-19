@@ -5,8 +5,6 @@ from pathlib import Path
 from typing import IO
 
 import yaml
-from docker import DockerClient
-from docker import errors as docker_errors
 from docker.models.containers import Container
 
 from cli.functions.engines.docker.client import FunctionDockerClient
@@ -15,14 +13,10 @@ from cli.functions.engines.exceptions import ImageFetchException
 from cli.functions.engines.exceptions import ImageNotAvailableLocallyException
 from cli.functions.engines.exceptions import ImageNotFoundException
 from cli.functions.engines.podman.client import FunctionPodmanClient
-from cli.functions.enums import FunctionDockerStatusEnum
 from cli.functions.enums import FunctionLanguageEnum
 from cli.functions.enums import FunctionNodejsRuntimeLayerTypeEnum
 from cli.functions.enums import FunctionProjectValidationTypeEnum
 from cli.functions.enums import FunctionPythonRuntimeLayerTypeEnum
-from cli.functions.exceptions import DockerContainerAlreadyRunningError
-from cli.functions.exceptions import DockerContainerExecutionError
-from cli.functions.exceptions import DockerHostPortError
 from cli.functions.models import FunctionGlobals
 from cli.functions.models import FunctionInfo
 from cli.functions.models import FunctionProjectInfo
@@ -140,44 +134,22 @@ def verify_and_fetch_image(
 
 
 def manage_container(
-    client: DockerClient,
+    client: FunctionDockerClient | FunctionPodmanClient,
     image_name: str,
     current_path: Path,
     project_name: str,
-    host_port: int,
-    is_exec_function: bool = False,
-) -> Container | None:
-
+    host: str,
+    port: int,
+) -> Container:
     container_label_key = settings.FUNCTIONS.DOCKER_CONFIG.CONTAINER_LABEL
     container_label_value = f"{container_label_key}_{project_name}_{image_name}"
 
-    existing_containers = client.client.containers.list(
-        filters={"label": container_label_key}
+    container = client.get_container()
+    container.run(
+        image_name,
+        labels={container_label_key: container_label_value},
+        volumes={str(current_path): settings.FUNCTIONS.DOCKER_CONFIG.VOLUME_MAPPING},
+        ports={f"{settings.FUNCTIONS.DOCKER_CONFIG.CONTAINER_PORT}": (host, port)},
+        detach=settings.FUNCTIONS.DOCKER_CONFIG.IS_DETACH,
     )
-    if existing_containers:
-        target_container = existing_containers[0]
-        is_running = target_container.status == FunctionDockerStatusEnum.RUNNING.value
-        if is_exec_function and is_running:
-            target_container.restart()
-            return target_container
-        if not is_exec_function and is_running:
-            raise DockerContainerAlreadyRunningError
-    else:
-        try:
-            return client.containers.run(
-                image_name,
-                labels={container_label_key: container_label_value},
-                volumes={
-                    str(current_path): settings.FUNCTIONS.DOCKER_CONFIG.VOLUME_MAPPING
-                },
-                ports={
-                    f"{settings.FUNCTIONS.DOCKER_CONFIG.CONTAINER_PORT}/tcp": host_port
-                },
-                detach=settings.FUNCTIONS.DOCKER_CONFIG.IS_DETACH,
-            )
-        except docker_errors.APIError as error:
-            raise DockerHostPortError(host_port) from error
-        except docker_errors.ContainerError as error:
-            raise DockerContainerExecutionError(str(error)) from error
-
-    return None
+    return container

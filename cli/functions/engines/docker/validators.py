@@ -1,4 +1,3 @@
-from dataclasses import dataclass
 from dataclasses import field
 
 from docker import DockerClient
@@ -11,7 +10,6 @@ from cli.functions.engines.exceptions import EngineNotInstalledException
 from cli.functions.engines.exceptions import ImageNotAvailableLocallyException
 
 
-@dataclass
 class FunctionDockerValidator(AbstractEngineValidator):
     client: DockerClient = field(default_factory=DockerClient)
 

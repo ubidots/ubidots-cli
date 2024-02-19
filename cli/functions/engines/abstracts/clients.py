@@ -16,6 +16,19 @@ class AbstractImageDownloader(ABC):
         raise NotImplementedError
 
 
+@dataclass
+class AbstractContainerManager(ABC):
+    client: Any
+
+    @abstractmethod
+    def list(self) -> list[Any]:
+        raise NotImplementedError
+
+    @abstractmethod
+    def run(self) -> Any:
+        raise NotImplementedError
+
+
 class AbstractEngineClient(Protocol):
     @abstractmethod
     def get_validator(self) -> AbstractEngineValidator:
