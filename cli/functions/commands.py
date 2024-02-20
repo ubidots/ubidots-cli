@@ -83,6 +83,16 @@ def start(
     )
 
 
+@app.command(help="Check the status of deployed functions.")
+def status(
+    engine: Annotated[
+        FunctionEngineTypeEnum,
+        typer.Option(help="The engine used to serve the function."),
+    ] = FunctionEngineTypeEnum.DOCKER.value,
+):
+    handlers.status_function(engine=engine)
+
+
 @app.command(help="Test the lambda function locally in a Docker container environment.")
 def run(
     port: Annotated[

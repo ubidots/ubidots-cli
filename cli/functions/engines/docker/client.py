@@ -8,17 +8,21 @@ from cli.functions.engines.docker.container import \
     FunctionDockerContainerManager
 from cli.functions.engines.docker.image import FunctionDockerImageDownloader
 from cli.functions.engines.docker.validators import FunctionDockerValidator
+from cli.functions.engines.enums import FunctionEngineTypeEnum
 
 
 @dataclass
 class FunctionDockerClient(AbstractEngineClient):
     client: DockerClient = field(default_factory=DockerClient)
+    engine: FunctionEngineTypeEnum = field(
+        default_factory=FunctionEngineTypeEnum.DOCKER
+    )
 
     def get_validator(self) -> FunctionDockerValidator:
-        return FunctionDockerValidator(client=self.client)
+        return FunctionDockerValidator(client=self.client, engine=self.engine)
 
     def get_downloader(self) -> FunctionDockerImageDownloader:
         return FunctionDockerImageDownloader(client=self.client)
 
     def get_container(self) -> FunctionDockerContainerManager:
-        return FunctionDockerContainerManager(client=self.client)
+        return FunctionDockerContainerManager(client=self.client, engine=self.engine)

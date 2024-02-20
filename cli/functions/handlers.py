@@ -7,6 +7,7 @@ from pathlib import Path
 import typer
 
 from cli.commons.enums import HTTPMethodEnum
+from cli.commons.styles import print_colored_table
 from cli.commons.utils import build_endpoint
 from cli.commons.utils import perform_http_request
 from cli.functions.engines.enums import FunctionEngineTypeEnum
@@ -82,7 +83,7 @@ def start_function(
         raise typer.Exit(1) from error
 
     image_name = f"{settings.FUNCTIONS.DOCKER_CONFIG.HUB_USERNAME}/{project_metadata.project.runtime.value}"
-    engine_manager = FunctionEngineClientManager(engine_type=engine)
+    engine_manager = FunctionEngineClientManager(engine=engine)
     client = engine_manager.get_client()
 
     try:
@@ -111,6 +112,13 @@ def start_function(
     ) as error:
         typer.echo(error)
         raise typer.Exit(1) from error
+
+
+def status_function(engine: FunctionEngineTypeEnum):
+    engine_manager = FunctionEngineClientManager(engine=engine)
+    client = engine_manager.get_client()
+    container = client.get_container()
+    print_colored_table(container.status())
 
 
 def run_function(host_port: int, payload: str):

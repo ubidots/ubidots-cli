@@ -9,16 +9,16 @@ from cli.functions.engines.podman.client import FunctionPodmanClient
 
 @dataclass
 class FunctionEngineClientManager:
-    engine_type: FunctionEngineTypeEnum
+    engine: FunctionEngineTypeEnum
 
     def get_client(self) -> FunctionDockerClient | FunctionPodmanClient:
-        if self.engine_type == FunctionEngineTypeEnum.DOCKER:
+        if self.engine == FunctionEngineTypeEnum.DOCKER:
             docker_client = DockerClient()
-            return FunctionDockerClient(client=docker_client)
+            return FunctionDockerClient(client=docker_client, engine=self.engine)
 
-        # if self.engine_type == FunctionEngineTypeEnum.PODMAN:
+        # if self.engine == FunctionEngineTypeEnum.PODMAN:
         #     podman_client = PodmanClient()
         #     return FunctionPodmanClient(client=podman_client)
 
-        error_message = f"Unsupported engine type: {self.engine_type}"
+        error_message = f"Unsupported engine type: {self.engine}"
         raise ValueError(error_message)

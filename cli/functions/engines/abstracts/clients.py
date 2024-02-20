@@ -1,6 +1,7 @@
 from abc import ABC
 from abc import abstractmethod
 from dataclasses import dataclass
+from enum import Enum
 from typing import Any
 from typing import Protocol
 
@@ -19,6 +20,7 @@ class AbstractImageDownloader(ABC):
 @dataclass
 class AbstractContainerManager(ABC):
     client: Any
+    engine: Enum
 
     @abstractmethod
     def list(self) -> list[Any]:
@@ -26,6 +28,10 @@ class AbstractContainerManager(ABC):
 
     @abstractmethod
     def run(self) -> Any:
+        raise NotImplementedError
+
+    @abstractmethod
+    def status(self) -> Any:
         raise NotImplementedError
 
 
@@ -36,4 +42,8 @@ class AbstractEngineClient(Protocol):
 
     @abstractmethod
     def get_downloader(self) -> AbstractImageDownloader:
+        raise NotImplementedError
+
+    @abstractmethod
+    def get_container(self) -> AbstractContainerManager:
         raise NotImplementedError

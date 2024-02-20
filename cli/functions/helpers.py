@@ -141,15 +141,12 @@ def manage_container(
     host: str,
     port: int,
 ) -> Container:
-    container_label_key = settings.FUNCTIONS.DOCKER_CONFIG.CONTAINER_LABEL
-    container_label_value = f"{container_label_key}_{project_name}_{image_name}"
-
+    container_label_value = f"{settings.FUNCTIONS.DOCKER_CONFIG.CONTAINER_LABEL_PREFIX}_{project_name}_{image_name}"
     container = client.get_container()
-    container.run(
+    return container.run(
         image_name,
-        labels={container_label_key: container_label_value},
+        labels={settings.FUNCTIONS.DOCKER_CONFIG.CONTAINER_KEY: container_label_value},
         volumes={str(current_path): settings.FUNCTIONS.DOCKER_CONFIG.VOLUME_MAPPING},
         ports={f"{settings.FUNCTIONS.DOCKER_CONFIG.CONTAINER_PORT}": (host, port)},
         detach=settings.FUNCTIONS.DOCKER_CONFIG.IS_DETACH,
     )
-    return container
