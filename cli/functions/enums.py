@@ -1,4 +1,5 @@
 from enum import Enum
+from enum import StrEnum
 from enum import auto
 
 from InquirerPy import inquirer
@@ -103,6 +104,6 @@ class FunctionProjectValidationTypeEnum(Enum):
     INDIVIDUAL_FILE_SIZE = auto()
 
 
-class FunctionMethodEnum(Enum):
+class FunctionMethodEnum(StrEnum):
     GET = "GET"
     POST = "POST"

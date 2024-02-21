@@ -27,7 +27,7 @@ def start(
     engine: Annotated[
         FunctionEngineTypeEnum,
         typer.Option(help="The engine used to serve the function."),
-    ] = FunctionEngineTypeEnum.DOCKER.value,
+    ] = FunctionEngineTypeEnum.DOCKER,
     host: Annotated[
         str,
         typer.Option(
@@ -47,7 +47,7 @@ def start(
     method: Annotated[
         FunctionMethodEnum,
         typer.Option(help="The HTTP method the function will respond to."),
-    ] = FunctionMethodEnum.GET.value,
+    ] = FunctionMethodEnum.GET,
     token: Annotated[
         str, typer.Option(help="Optional authentication token to invoke the function.")
     ] = "",
@@ -88,7 +88,7 @@ def status(
     engine: Annotated[
         FunctionEngineTypeEnum,
         typer.Option(help="The engine used to serve the function."),
-    ] = FunctionEngineTypeEnum.DOCKER.value,
+    ] = FunctionEngineTypeEnum.DOCKER,
 ):
     handlers.status_function(engine=engine)
 

@@ -20,12 +20,12 @@ class FunctionDockerValidator(AbstractEngineValidator):
         try:
             self.client.ping()
         except APIError as error:
-            raise EngineNotInstalledException(engine=self.engine.value) from error
+            raise EngineNotInstalledException(engine=self.engine) from error
 
     def validate_image_available_locally(self, image_name: str):
         try:
             self.client.images.get(image_name)
         except ImageNotFound as error:
             raise ImageNotAvailableLocallyException(
-                engine=self.engine.value, image_name=image_name
+                engine=self.engine, image_name=image_name
             ) from error

@@ -1,12 +1,12 @@
-from enum import Enum
+from enum import StrEnum
 
 
-class FunctionEngineTypeEnum(Enum):
+class FunctionEngineTypeEnum(StrEnum):
     DOCKER = "docker"
     # PODMAN = "podman"
 
 
-class ContainerStatusEnum(Enum):
+class ContainerStatusEnum(StrEnum):
     RESTARTING = "restarting"
     RUNNING = "running"
     PAUSED = "paused"
