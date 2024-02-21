@@ -11,6 +11,7 @@ from cli.functions.engines.docker.models import DockerContainerStatusListModel
 from cli.functions.engines.enums import FunctionEngineTypeEnum
 from cli.functions.engines.exceptions import ContainerAlreadyRunningException
 from cli.functions.engines.exceptions import ContainerExecutionException
+from cli.functions.engines.exceptions import ContainerNotFoundException
 from cli.settings import settings
 
 
@@ -22,8 +23,18 @@ class FunctionDockerContainerManager(AbstractContainerManager):
 
     def status(self) -> list[dict[str, Any]]:
         containers = self.list()
-        status_model = DockerContainerStatusListModel.from_containers_list([containers])
+        status_model = DockerContainerStatusListModel.from_containers_list(containers)
         return status_model.containers
+
+    def stop(self, label: str) -> None:
+        label_pair = f"{settings.FUNCTIONS.DOCKER_CONFIG.CONTAINER_KEY}={label}"
+        containers = self.list()
+        container = next(iter(containers), None)
+        if container is None:
+            raise ContainerNotFoundException(label=label_pair)
+
+        container.stop()
+        container.remove()
 
     def list(
         self, label: str = settings.FUNCTIONS.DOCKER_CONFIG.CONTAINER_KEY

@@ -13,6 +13,7 @@ from cli.commons.utils import perform_http_request
 from cli.functions.engines.enums import FunctionEngineTypeEnum
 from cli.functions.engines.exceptions import ContainerAlreadyRunningException
 from cli.functions.engines.exceptions import ContainerExecutionException
+from cli.functions.engines.exceptions import ContainerNotFoundException
 from cli.functions.engines.exceptions import EngineNotInstalledException
 from cli.functions.engines.exceptions import ImageFetchException
 from cli.functions.engines.exceptions import ImageNotFoundException
@@ -110,6 +111,17 @@ def start_function(
         ContainerAlreadyRunningException,
         ContainerExecutionException,
     ) as error:
+        typer.echo(error)
+        raise typer.Exit(1) from error
+
+
+def stop_function(engine: FunctionEngineTypeEnum, label: str):
+    engine_manager = FunctionEngineClientManager(engine=engine)
+    client = engine_manager.get_client()
+    container_manager = client.get_container_manager()
+    try:
+        container_manager.stop(label=label)
+    except ContainerNotFoundException as error:
         typer.echo(error)
         raise typer.Exit(1) from error
 

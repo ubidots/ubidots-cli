@@ -47,3 +47,9 @@ class ContainerExecutionException(EngineException):
     def __init__(self):
         message = "Unexpected error executing the function."
         super().__init__(message)
+
+
+class ContainerNotFoundException(EngineException):
+    def __init__(self, label: str):
+        message = f"Function with label '{label}' does not exist."
+        super().__init__(message)

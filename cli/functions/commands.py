@@ -83,6 +83,19 @@ def start(
     )
 
 
+@app.command(help="Stop the function.")
+def stop(
+    label: Annotated[
+        str, typer.Argument(help="The label of function.", show_default=False)
+    ],
+    engine: Annotated[
+        FunctionEngineTypeEnum,
+        typer.Option(help="The engine used to serve the function."),
+    ] = FunctionEngineTypeEnum.DOCKER.value,
+):
+    handlers.stop_function(engine=engine, label=label)
+
+
 @app.command(help="Check the status of deployed functions.")
 def status(
     engine: Annotated[

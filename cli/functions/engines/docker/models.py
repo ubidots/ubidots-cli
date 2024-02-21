@@ -9,7 +9,7 @@ from cli.functions.engines.models import ContainerStatusListBaseModel
 from cli.settings import settings
 
 
-class DockerContainerStatusBaseModel(ContainerStatusBaseModel):
+class DockerContainerStatusModel(ContainerStatusBaseModel):
     ports: list[dict] = Field(exclude=True)
 
     @model_validator(mode="after")
@@ -29,8 +29,8 @@ class DockerContainerStatusListModel(ContainerStatusListBaseModel):
     ) -> "DockerContainerStatusListModel":
         container_models = []
         for container in containers:
-            container_model = DockerContainerStatusBaseModel(
-                engine=FunctionEngineTypeEnum.DOCKER,
+            container_model = DockerContainerStatusModel(
+                engine=FunctionEngineTypeEnum.DOCKER.value,
                 label=container.labels.get(
                     settings.FUNCTIONS.DOCKER_CONFIG.CONTAINER_KEY, ""
                 ),
