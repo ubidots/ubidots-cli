@@ -117,8 +117,8 @@ def start_function(
 def status_function(engine: FunctionEngineTypeEnum):
     engine_manager = FunctionEngineClientManager(engine=engine)
     client = engine_manager.get_client()
-    container = client.get_container()
-    print_colored_table(container.status())
+    container_manager = client.get_container_manager()
+    print_colored_table(container_manager.status())
 
 
 def run_function(host_port: int, payload: str):

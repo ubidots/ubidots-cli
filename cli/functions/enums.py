@@ -103,13 +103,6 @@ class FunctionProjectValidationTypeEnum(Enum):
     INDIVIDUAL_FILE_SIZE = auto()
 
 
-class FunctionDockerStatusEnum(Enum):
-    RESTARTING = "restarting"
-    RUNNING = "running"
-    PAUSED = "paused"
-    EXITED = "exited"
-
-
 class FunctionMethodEnum(Enum):
     GET = "GET"
     POST = "POST"

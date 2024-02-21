@@ -11,9 +11,7 @@ class AbstractEngineValidator(ABC):
     engine: Enum
 
     @abstractmethod
-    def validate_engine_installed(self) -> None:
-        raise NotImplementedError
+    def validate_engine_installed(self) -> None: ...
 
     @abstractmethod
-    def validate_image_available_locally(self, image_name: str) -> None:
-        raise NotImplementedError
+    def validate_image_available_locally(self, image_name: str) -> None: ...

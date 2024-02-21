@@ -1,4 +1,5 @@
 from dataclasses import field
+from typing import Any
 
 from docker import DockerClient
 from docker.errors import APIError
@@ -6,6 +7,7 @@ from docker.errors import ContainerError
 from docker.models.containers import Container
 
 from cli.functions.engines.abstracts.clients import AbstractContainerManager
+from cli.functions.engines.docker.models import DockerContainerStatusListModel
 from cli.functions.engines.enums import FunctionEngineTypeEnum
 from cli.functions.engines.exceptions import ContainerAlreadyRunningException
 from cli.functions.engines.exceptions import ContainerExecutionException
@@ -18,35 +20,15 @@ class FunctionDockerContainerManager(AbstractContainerManager):
         default_factory=FunctionEngineTypeEnum.DOCKER
     )
 
-    def status(self) -> list:
-        containers = self.list(all=True)
-        return [
-            {
-                "engine": self.engine.value,
-                "label": container.labels.get(
-                    settings.FUNCTIONS.DOCKER_CONFIG.CONTAINER_KEY
-                ),
-                "bind": (
-                    f"{ports[0]['HostIp']}:{ports[0]['HostPort']}"
-                    if (
-                        ports := container.ports.get(
-                            settings.FUNCTIONS.DOCKER_CONFIG.CONTAINER_PORT
-                        )
-                    )
-                    else ""
-                ),
-                "status": container.status,
-                "raw": True,
-            }
-            for container in containers
-        ]
+    def status(self) -> list[dict[str, Any]]:
+        containers = self.list()
+        status_model = DockerContainerStatusListModel.from_containers_list([containers])
+        return status_model.containers
 
-    def list(self, label: str = "", all: bool = False) -> list[Container]:
-        if all:
-            label = settings.FUNCTIONS.DOCKER_CONFIG.CONTAINER_KEY
-
-        filters = {"label": label} if label else {}
-        return self.client.containers.list(filters=filters)
+    def list(
+        self, label: str = settings.FUNCTIONS.DOCKER_CONFIG.CONTAINER_KEY
+    ) -> list[Container]:
+        return self.client.containers.list(filters={"label": label})
 
     def run(
         self, image_name: str, labels: dict, volumes: dict, ports: dict, detach: bool

@@ -20,5 +20,5 @@ class FunctionPodmanClient(AbstractEngineClient):
     def get_downloader(self) -> FunctionPodmanImageDownloader:
         return FunctionPodmanImageDownloader(client=self.client)
 
-    def get_container(self) -> FunctionPodmanContainerManager:
+    def get_container_manager(self) -> FunctionPodmanContainerManager:
         return FunctionPodmanContainerManager(client=self.client)

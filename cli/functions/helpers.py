@@ -142,8 +142,8 @@ def manage_container(
     port: int,
 ) -> Container:
     container_label_value = f"{settings.FUNCTIONS.DOCKER_CONFIG.CONTAINER_LABEL_PREFIX}_{project_name}_{image_name}"
-    container = client.get_container()
-    return container.run(
+    container_manager = client.get_container_manager()
+    return container_manager.run(
         image_name,
         labels={settings.FUNCTIONS.DOCKER_CONFIG.CONTAINER_KEY: container_label_value},
         volumes={str(current_path): settings.FUNCTIONS.DOCKER_CONFIG.VOLUME_MAPPING},

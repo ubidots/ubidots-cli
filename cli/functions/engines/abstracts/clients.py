@@ -13,8 +13,7 @@ class AbstractImageDownloader(ABC):
     client: Any
 
     @abstractmethod
-    def pull_image(self, image_name: str):
-        raise NotImplementedError
+    def pull_image(self, image_name: str): ...
 
 
 @dataclass
@@ -23,27 +22,21 @@ class AbstractContainerManager(ABC):
     engine: Enum
 
     @abstractmethod
-    def list(self) -> list[Any]:
-        raise NotImplementedError
+    def list(self) -> list[Any]: ...
 
     @abstractmethod
-    def run(self) -> Any:
-        raise NotImplementedError
+    def run(self) -> Any: ...
 
     @abstractmethod
-    def status(self) -> Any:
-        raise NotImplementedError
+    def status(self) -> Any: ...
 
 
 class AbstractEngineClient(Protocol):
     @abstractmethod
-    def get_validator(self) -> AbstractEngineValidator:
-        raise NotImplementedError
+    def get_validator(self) -> AbstractEngineValidator: ...
 
     @abstractmethod
-    def get_downloader(self) -> AbstractImageDownloader:
-        raise NotImplementedError
+    def get_downloader(self) -> AbstractImageDownloader: ...
 
     @abstractmethod
-    def get_container(self) -> AbstractContainerManager:
-        raise NotImplementedError
+    def get_container_manager(self) -> AbstractContainerManager: ...

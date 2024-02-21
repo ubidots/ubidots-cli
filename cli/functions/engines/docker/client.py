@@ -24,5 +24,5 @@ class FunctionDockerClient(AbstractEngineClient):
     def get_downloader(self) -> FunctionDockerImageDownloader:
         return FunctionDockerImageDownloader(client=self.client)
 
-    def get_container(self) -> FunctionDockerContainerManager:
+    def get_container_manager(self) -> FunctionDockerContainerManager:
         return FunctionDockerContainerManager(client=self.client, engine=self.engine)
