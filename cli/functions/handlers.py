@@ -133,6 +133,18 @@ def status_function(engine: FunctionEngineTypeEnum):
     print_colored_table(container_manager.status())
 
 
+def log_function(engine: FunctionEngineTypeEnum, label: str, tail: str, follow: bool):
+    engine_manager = FunctionEngineClientManager(engine=engine)
+    client = engine_manager.get_client()
+    container_manager = client.get_container_manager()
+    try:
+        logs = container_manager.logs(label=label, tail=tail, follow=follow)
+    except ContainerNotFoundException as error:
+        typer.echo(error)
+        raise typer.Exit(1) from error
+    typer.echo(logs)
+
+
 def run_function(host_port: int, payload: str):
     try:
         json.loads(payload)

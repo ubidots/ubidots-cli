@@ -1,3 +1,4 @@
+from collections.abc import Generator
 from dataclasses import field
 from typing import Any
 
@@ -26,22 +27,23 @@ class FunctionDockerContainerManager(AbstractContainerManager):
         status_model = DockerContainerStatusListModel.from_containers_list(containers)
         return status_model.containers
 
-    def stop(self, label: str) -> None:
-        label_pair = f"{settings.FUNCTIONS.DOCKER_CONFIG.CONTAINER_KEY}={label}"
-        containers = self.list()
-        container = next(iter(containers), None)
-        if container is None:
-            raise ContainerNotFoundException(label=label_pair)
-
-        container.stop()
-        container.remove()
-
     def list(
         self, label: str = settings.FUNCTIONS.DOCKER_CONFIG.CONTAINER_KEY
     ) -> list[Container]:
         return self.client.containers.list(filters={"label": label})
 
-    def run(
+    def logs(
+        self, label: str, tail: int | str = "all", follow: bool = False
+    ) -> Generator | str:
+        label_pair = f"{settings.FUNCTIONS.DOCKER_CONFIG.CONTAINER_KEY}={label}"
+        containers = self.list(label=label_pair)
+        container = next(iter(containers), None)
+        if container is None:
+            raise ContainerNotFoundException(label=label_pair)
+
+        return container.logs(tail=tail, follow=follow)
+
+    def start(
         self, image_name: str, labels: dict, volumes: dict, ports: dict, detach: bool
     ) -> Container:
         try:
@@ -57,3 +59,13 @@ class FunctionDockerContainerManager(AbstractContainerManager):
             raise ContainerAlreadyRunningException(host=host, port=port) from error
         except ContainerError as error:
             raise ContainerExecutionException from error
+
+    def stop(self, label: str) -> None:
+        label_pair = f"{settings.FUNCTIONS.DOCKER_CONFIG.CONTAINER_KEY}={label}"
+        containers = self.list(label=label_pair)
+        container = next(iter(containers), None)
+        if container is None:
+            raise ContainerNotFoundException(label=label_pair)
+
+        container.stop()
+        container.remove()

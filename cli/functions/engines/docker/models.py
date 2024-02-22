@@ -30,7 +30,7 @@ class DockerContainerStatusListModel(ContainerStatusListBaseModel):
         container_models = []
         for container in containers:
             container_model = DockerContainerStatusModel(
-                engine=FunctionEngineTypeEnum.DOCKER.value,
+                engine=FunctionEngineTypeEnum.DOCKER,
                 label=container.labels.get(
                     settings.FUNCTIONS.DOCKER_CONFIG.CONTAINER_KEY, ""
                 ),

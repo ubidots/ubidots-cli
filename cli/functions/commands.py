@@ -91,7 +91,7 @@ def stop(
     engine: Annotated[
         FunctionEngineTypeEnum,
         typer.Option(help="The engine used to serve the function."),
-    ] = FunctionEngineTypeEnum.DOCKER.value,
+    ] = FunctionEngineTypeEnum.DOCKER,
 ):
     handlers.stop_function(engine=engine, label=label)
 
@@ -104,6 +104,31 @@ def status(
     ] = FunctionEngineTypeEnum.DOCKER,
 ):
     handlers.status_function(engine=engine)
+
+
+@app.command(help="Get logs from the function.")
+def logs(
+    label: Annotated[
+        str, typer.Argument(help="The label of function.", show_default=False)
+    ],
+    engine: Annotated[
+        FunctionEngineTypeEnum,
+        typer.Option(help="The engine used to serve the function."),
+    ] = FunctionEngineTypeEnum.DOCKER,
+    tail: Annotated[
+        str,
+        typer.Option(
+            "--tail/",
+            "-n/",
+            help="Output specified number of lines at the end of logs.",
+        ),
+    ] = "all",
+    follow: Annotated[
+        bool,
+        typer.Option("--follow/", "-f/", help="Follow log output."),
+    ] = False,
+):
+    handlers.log_function(engine=engine, label=label, tail=tail, follow=follow)
 
 
 @app.command(help="Test the lambda function locally in a Docker container environment.")
