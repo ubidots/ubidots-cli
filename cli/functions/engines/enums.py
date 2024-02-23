@@ -2,7 +2,7 @@ from enum import StrEnum
 
 
 class FunctionEngineTypeEnum(StrEnum):
-    DOCKER = "docker"
+    DOCKER = "DOCKER"
     # PODMAN = "podman"
 
 

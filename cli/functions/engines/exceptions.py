@@ -37,8 +37,8 @@ class ImageFetchException(EngineException):
 class ContainerAlreadyRunningException(EngineException):
     def __init__(self, host: str, port: int):
         message = (
-            f"Function is already running. Try specifying a different (host:port)=({host}:{port}) to bind "
-            f"or free up the port '{port}'."
+            f"Please consider using an alternative host or port ({host}:{port}) for binding, "
+            f"or ensure the port '{port}' is available."
         )
         super().__init__(message)
 

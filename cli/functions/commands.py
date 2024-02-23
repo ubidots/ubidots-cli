@@ -26,19 +26,15 @@ def new(
 def start(
     engine: Annotated[
         FunctionEngineTypeEnum,
-        typer.Option(help="The engine used to serve the function."),
+        typer.Option(help="The engine used to serve the function.", show_default=False),
     ] = FunctionEngineTypeEnum.DOCKER,
     host: Annotated[
         str,
-        typer.Option(
-            help="The hostname or IP address for the function container to bind to."
-        ),
+        typer.Option(help="The hostname/IP address for the function."),
     ] = settings.FUNCTIONS.DOCKER_CONFIG.HOST,
     port: Annotated[
         int,
-        typer.Option(
-            help="The host port to bind the function container to for network access."
-        ),
+        typer.Option(help="The host port to bind the function."),
     ] = settings.FUNCTIONS.DOCKER_CONFIG.PORT,
     raw: Annotated[
         bool,
@@ -96,7 +92,7 @@ def stop(
     handlers.stop_function(engine=engine, label=label)
 
 
-@app.command(help="Check the status of deployed functions.")
+@app.command(help="Check the status of the functions.")
 def status(
     engine: Annotated[
         FunctionEngineTypeEnum,
@@ -128,13 +124,25 @@ def logs(
         typer.Option("--follow/", "-f/", help="Follow log output."),
     ] = False,
 ):
-    handlers.log_function(engine=engine, label=label, tail=tail, follow=follow)
+    handlers.logs_function(engine=engine, label=label, tail=tail, follow=follow)
 
 
 @app.command(help="Test the lambda function locally in a Docker container environment.")
 def run(
+    label: Annotated[
+        str, typer.Argument(help="The label of function.", show_default=False)
+    ],
+    engine: Annotated[
+        FunctionEngineTypeEnum,
+        typer.Option(help="The engine used to serve the function."),
+    ] = FunctionEngineTypeEnum.DOCKER,
+    host: Annotated[
+        str,
+        typer.Option(help="The hostname/IP address for the function."),
+    ] = settings.FUNCTIONS.DOCKER_CONFIG.HOST,
     port: Annotated[
-        int, typer.Option(help="host port to bind the container.")
+        int,
+        typer.Option(help="The host port to bind the function."),
     ] = settings.FUNCTIONS.DOCKER_CONFIG.PORT,
     payload: Annotated[
         str,
@@ -144,7 +152,9 @@ def run(
         ),
     ] = "{}",
 ):
-    handlers.run_function(host_port=port, payload=payload)
+    handlers.run_function(
+        engine=engine, label=label, host=host, port=port, payload=payload
+    )
 
 
 @app.command(

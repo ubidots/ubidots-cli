@@ -6,6 +6,7 @@ import requests
 import typer
 
 from cli.commons.enums import HTTPMethodEnum
+from cli.commons.enums import MessageColorEnum
 from cli.commons.enums import RequestErrorEnum
 from cli.commons.validators import is_valid_object_id
 from cli.config.helpers import read_cli_configuration
@@ -85,3 +86,14 @@ def perform_http_request(
         error_message = error_messages.get(RequestErrorEnum(error_type))
         typer.echo(f"{error_message} {error.response.content}")
         raise typer.Exit(1) from error
+
+
+def show_error_and_exit(error: Exception):
+    typer.echo(
+        typer.style(
+            f"* {error}\n",
+            fg=MessageColorEnum.ERROR,
+            bold=True,
+        )
+    )
+    raise typer.Exit(1) from error

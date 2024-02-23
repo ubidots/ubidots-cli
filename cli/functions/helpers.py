@@ -1,11 +1,12 @@
 import io
 import os
+import secrets
+import string
 import zipfile
 from pathlib import Path
 from typing import IO
 
 import yaml
-from docker.models.containers import Container
 
 from cli.functions.engines.docker.client import FunctionDockerClient
 from cli.functions.engines.exceptions import EngineNotInstalledException
@@ -133,20 +134,11 @@ def verify_and_fetch_image(
             raise error
 
 
-def manage_container(
-    client: FunctionDockerClient | FunctionPodmanClient,
-    image_name: str,
-    current_path: Path,
-    project_name: str,
-    host: str,
-    port: int,
-) -> Container:
-    container_label_value = f"{settings.FUNCTIONS.DOCKER_CONFIG.CONTAINER_LABEL_PREFIX}_{project_name}_{image_name}"
-    container_manager = client.get_container_manager()
-    return container_manager.run(
-        image_name,
-        labels={settings.FUNCTIONS.DOCKER_CONFIG.CONTAINER_KEY: container_label_value},
-        volumes={str(current_path): settings.FUNCTIONS.DOCKER_CONFIG.VOLUME_MAPPING},
-        ports={f"{settings.FUNCTIONS.DOCKER_CONFIG.CONTAINER_PORT}": (host, port)},
-        detach=settings.FUNCTIONS.DOCKER_CONFIG.IS_DETACH,
-    )
+def generate_random_suffix(length: int = 10):
+    characters = string.ascii_letters + string.digits
+    return "".join(secrets.choice(characters) for _ in range(length))
+
+
+def generate_local_function_label(name: str):
+    suffix = generate_random_suffix()
+    return f"{settings.FUNCTIONS.DOCKER_CONFIG.CONTAINER_LABEL_PREFIX}_{name}_{suffix}"

@@ -27,6 +27,14 @@ class FunctionDockerContainerManager(AbstractContainerManager):
         status_model = DockerContainerStatusListModel.from_containers_list(containers)
         return status_model.containers
 
+    def get(self, label: str) -> Container:
+        label_pair = f"{settings.FUNCTIONS.DOCKER_CONFIG.CONTAINER_KEY}={label}"
+        containers = self.list(label=label_pair)
+        container = next(iter(containers), None)
+        if container is None:
+            raise ContainerNotFoundException(label=label)
+        return container
+
     def list(
         self, label: str = settings.FUNCTIONS.DOCKER_CONFIG.CONTAINER_KEY
     ) -> list[Container]:
@@ -35,16 +43,16 @@ class FunctionDockerContainerManager(AbstractContainerManager):
     def logs(
         self, label: str, tail: int | str = "all", follow: bool = False
     ) -> Generator | str:
-        label_pair = f"{settings.FUNCTIONS.DOCKER_CONFIG.CONTAINER_KEY}={label}"
-        containers = self.list(label=label_pair)
-        container = next(iter(containers), None)
-        if container is None:
-            raise ContainerNotFoundException(label=label_pair)
-
+        container = self.get(label=label)
         return container.logs(tail=tail, follow=follow)
 
     def start(
-        self, image_name: str, labels: dict, volumes: dict, ports: dict, detach: bool
+        self,
+        image_name: str,
+        labels: dict,
+        volumes: dict,
+        ports: dict,
+        detach: bool = settings.FUNCTIONS.DOCKER_CONFIG.IS_DETACH,
     ) -> Container:
         try:
             return self.client.containers.run(
@@ -61,11 +69,10 @@ class FunctionDockerContainerManager(AbstractContainerManager):
             raise ContainerExecutionException from error
 
     def stop(self, label: str) -> None:
-        label_pair = f"{settings.FUNCTIONS.DOCKER_CONFIG.CONTAINER_KEY}={label}"
-        containers = self.list(label=label_pair)
-        container = next(iter(containers), None)
-        if container is None:
-            raise ContainerNotFoundException(label=label_pair)
-
+        container = self.get(label=label)
         container.stop()
         container.remove()
+
+    def reload(self, label: str) -> None:
+        container = self.get(label=label)
+        container.restart()

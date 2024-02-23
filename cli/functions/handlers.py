@@ -7,9 +7,11 @@ from pathlib import Path
 import typer
 
 from cli.commons.enums import HTTPMethodEnum
+from cli.commons.enums import MessageColorEnum
 from cli.commons.styles import print_colored_table
 from cli.commons.utils import build_endpoint
 from cli.commons.utils import perform_http_request
+from cli.commons.utils import show_error_and_exit
 from cli.functions.engines.enums import FunctionEngineTypeEnum
 from cli.functions.engines.exceptions import ContainerAlreadyRunningException
 from cli.functions.engines.exceptions import ContainerExecutionException
@@ -25,7 +27,7 @@ from cli.functions.enums import FunctionProjectValidationTypeEnum
 from cli.functions.enums import FunctionPythonRuntimeLayerTypeEnum
 from cli.functions.helpers import compress_project_to_zip
 from cli.functions.helpers import ensure_project_integrity
-from cli.functions.helpers import manage_container
+from cli.functions.helpers import generate_local_function_label
 from cli.functions.helpers import save_manifest_project_file
 from cli.functions.helpers import verify_and_fetch_image
 from cli.settings import settings
@@ -76,16 +78,16 @@ def start_function(
         project_metadata, _ = ensure_project_integrity(
             project_path=current_path,
             validation_flags={
-                FunctionProjectValidationTypeEnum.MANIFEST_FILE: True,
+                FunctionProjectValidationTypeEnum.MAIN_FILE_PRESENCE: True,
             },
         )
     except (FileNotFoundError, ValueError) as error:
-        typer.echo(error)
-        raise typer.Exit(1) from error
+        show_error_and_exit(error=error)
 
     image_name = f"{settings.FUNCTIONS.DOCKER_CONFIG.HUB_USERNAME}/{project_metadata.project.runtime.value}"
     engine_manager = FunctionEngineClientManager(engine=engine)
     client = engine_manager.get_client()
+    container_manager = client.get_container_manager()
 
     try:
         verify_and_fetch_image(client=client, image_name=image_name)
@@ -94,25 +96,41 @@ def start_function(
         ImageNotFoundException,
         ImageFetchException,
     ) as error:
-        typer.echo(error)
-        raise typer.Exit(1) from error
+        show_error_and_exit(error=error)
+
+    info_project = project_metadata.project
+    label_value = generate_local_function_label(name=info_project.name)
 
     try:
-        container = manage_container(
-            client=client,
+        container = container_manager.start(
             image_name=image_name,
-            current_path=current_path,
-            project_name=project_metadata.project.name,
-            host=host,
-            port=port,
+            labels={settings.FUNCTIONS.DOCKER_CONFIG.CONTAINER_KEY: label_value},
+            volumes={
+                str(current_path): settings.FUNCTIONS.DOCKER_CONFIG.VOLUME_MAPPING
+            },
+            ports={f"{settings.FUNCTIONS.DOCKER_CONFIG.CONTAINER_PORT}": (host, port)},
         )
-        typer.echo(f"Container started successfully on port {port}: {container.id}")
+        typer.echo("")
+        typer.echo("  -------------------")
+        typer.echo("  Starting function: ")
+        typer.echo("  -------------------")
+        typer.echo(f"  Name: {info_project.name}")
+        typer.echo(f"  Runtime: {info_project.runtime.value}")
+        typer.echo(f"  Local Function label: {label_value}")
+        typer.echo(f"  Local Function ID: {container.id}")
+        typer.echo("")
+        typer.echo(
+            typer.style(
+                f"* Function started successfully on ({host}:{port})\n",
+                fg=MessageColorEnum.SUCCESS,
+                bold=True,
+            )
+        )
     except (
         ContainerAlreadyRunningException,
         ContainerExecutionException,
     ) as error:
-        typer.echo(error)
-        raise typer.Exit(1) from error
+        show_error_and_exit(error=error)
 
 
 def stop_function(engine: FunctionEngineTypeEnum, label: str):
@@ -121,38 +139,50 @@ def stop_function(engine: FunctionEngineTypeEnum, label: str):
     container_manager = client.get_container_manager()
     try:
         container_manager.stop(label=label)
+        typer.echo(
+            typer.style(
+                f"* Function '{label}' stoped successfully\n",
+                fg=MessageColorEnum.SUCCESS,
+                bold=True,
+            )
+        )
     except ContainerNotFoundException as error:
-        typer.echo(error)
-        raise typer.Exit(1) from error
+        show_error_and_exit(error=error)
 
 
 def status_function(engine: FunctionEngineTypeEnum):
     engine_manager = FunctionEngineClientManager(engine=engine)
     client = engine_manager.get_client()
     container_manager = client.get_container_manager()
-    print_colored_table(container_manager.status())
+    container_status = container_manager.status()
+    print_colored_table(results=container_status)
 
 
-def log_function(engine: FunctionEngineTypeEnum, label: str, tail: str, follow: bool):
+def logs_function(engine: FunctionEngineTypeEnum, label: str, tail: str, follow: bool):
     engine_manager = FunctionEngineClientManager(engine=engine)
     client = engine_manager.get_client()
     container_manager = client.get_container_manager()
     try:
-        logs = container_manager.logs(label=label, tail=tail, follow=follow)
+        container_logs = container_manager.logs(label=label, tail=tail, follow=follow)
     except ContainerNotFoundException as error:
-        typer.echo(error)
-        raise typer.Exit(1) from error
-    typer.echo(logs)
+        show_error_and_exit(error=error)
+    typer.echo(container_logs)
 
 
-def run_function(host_port: int, payload: str):
+def run_function(
+    engine: FunctionEngineTypeEnum, label: str, host: str, port: int, payload: str
+):
     try:
         json.loads(payload)
     except (TypeError, JSONDecodeError) as error:
-        typer.echo(error)
-        raise typer.Exit(1) from error
+        show_error_and_exit(error=error)
 
-    url = f"http://{settings.FUNCTIONS.DOCKER_CONFIG.HOST}:{host_port}{settings.FUNCTIONS.DOCKER_CONFIG.RIE_INVOCATION_PATH}"
+    engine_manager = FunctionEngineClientManager(engine=engine)
+    client = engine_manager.get_client()
+    container_manager = client.get_container_manager()
+    container_manager.reload(label=label)
+
+    url = f"http://{host}:{port}{settings.FUNCTIONS.DOCKER_CONFIG.RIE_INVOCATION_PATH}"
     response = perform_http_request(method=HTTPMethodEnum.POST, url=url, json=payload)
     typer.echo(response.json())
 
@@ -164,8 +194,7 @@ def push_function(confirm: bool):
             project_path=actual_path, run_all_validations=True
         )
     except (FileNotFoundError, ValueError) as error:
-        typer.echo(error)
-        raise typer.Exit(1) from error
+        show_error_and_exit(error=error)
 
     if not confirm:
         confirm = project_metadata.globals.auto_overwrite
@@ -204,8 +233,7 @@ def pull_function(confirm: bool):
             },
         )
     except (FileNotFoundError, ValueError) as error:
-        typer.echo(error)
-        raise typer.Exit(1) from error
+        show_error_and_exit(error=error)
 
     if not confirm:
         confirm = project_metadata.globals.auto_overwrite
