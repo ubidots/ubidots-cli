@@ -7,13 +7,13 @@ from docker.errors import APIError
 from docker.errors import ContainerError
 from docker.models.containers import Container
 
-from cli.functions.engines.abstracts.clients import AbstractContainerManager
+from cli.functions.engines.abstracts.client import AbstractContainerManager
 from cli.functions.engines.docker.models import DockerContainerStatusListModel
 from cli.functions.engines.enums import FunctionEngineTypeEnum
 from cli.functions.engines.exceptions import ContainerAlreadyRunningException
 from cli.functions.engines.exceptions import ContainerExecutionException
 from cli.functions.engines.exceptions import ContainerNotFoundException
-from cli.settings import settings
+from cli.functions.engines.settings import engine_settings
 
 
 class FunctionDockerContainerManager(AbstractContainerManager):
@@ -28,16 +28,14 @@ class FunctionDockerContainerManager(AbstractContainerManager):
         return status_model.containers
 
     def get(self, label: str) -> Container:
-        label_pair = f"{settings.FUNCTIONS.DOCKER_CONFIG.CONTAINER_KEY}={label}"
+        label_pair = f"{engine_settings.CONTAINER_KEY}={label}"
         containers = self.list(label=label_pair)
         container = next(iter(containers), None)
         if container is None:
             raise ContainerNotFoundException(label=label)
         return container
 
-    def list(
-        self, label: str = settings.FUNCTIONS.DOCKER_CONFIG.CONTAINER_KEY
-    ) -> list[Container]:
+    def list(self, label: str = engine_settings.CONTAINER_KEY) -> list[Container]:
         return self.client.containers.list(filters={"label": label})
 
     def logs(
@@ -52,7 +50,7 @@ class FunctionDockerContainerManager(AbstractContainerManager):
         labels: dict,
         volumes: dict,
         ports: dict,
-        detach: bool = settings.FUNCTIONS.DOCKER_CONFIG.IS_DETACH,
+        detach: bool = engine_settings.IS_DETACH,
     ) -> Container:
         try:
             return self.client.containers.run(
@@ -63,7 +61,7 @@ class FunctionDockerContainerManager(AbstractContainerManager):
                 detach=detach,
             )
         except APIError as error:
-            host, port = ports[f"{settings.FUNCTIONS.DOCKER_CONFIG.CONTAINER_PORT}"]
+            host, port = ports[f"{engine_settings.CONTAINER_PORT}"]
             raise ContainerAlreadyRunningException(host=host, port=port) from error
         except ContainerError as error:
             raise ContainerExecutionException from error

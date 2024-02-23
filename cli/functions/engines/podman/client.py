@@ -3,7 +3,7 @@ from dataclasses import field
 
 from podman import PodmanClient
 
-from cli.functions.engines.abstracts.clients import AbstractEngineClient
+from cli.functions.engines.abstracts.client import AbstractEngineClient
 from cli.functions.engines.podman.container import \
     FunctionPodmanContainerManager
 from cli.functions.engines.podman.image import FunctionPodmanImageDownloader

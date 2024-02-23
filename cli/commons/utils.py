@@ -89,9 +89,10 @@ def perform_http_request(
 
 
 def show_error_and_exit(error: Exception):
+    message = f"* {error}\n"
     typer.echo(
         typer.style(
-            f"* {error}\n",
+            text=message,
             fg=MessageColorEnum.ERROR,
             bold=True,
         )

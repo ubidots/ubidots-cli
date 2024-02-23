@@ -4,6 +4,7 @@ import typer
 
 from cli.functions import handlers
 from cli.functions.engines.enums import FunctionEngineTypeEnum
+from cli.functions.engines.settings import engine_settings
 from cli.functions.enums import FunctionLanguageEnum
 from cli.functions.enums import FunctionMethodEnum
 from cli.settings import settings
@@ -31,11 +32,11 @@ def start(
     host: Annotated[
         str,
         typer.Option(help="The hostname/IP address for the function."),
-    ] = settings.FUNCTIONS.DOCKER_CONFIG.HOST,
+    ] = engine_settings.HOST,
     port: Annotated[
         int,
         typer.Option(help="The host port to bind the function."),
-    ] = settings.FUNCTIONS.DOCKER_CONFIG.PORT,
+    ] = engine_settings.PORT,
     raw: Annotated[
         bool,
         typer.Option(help="Flag to determine if the output should be in raw format."),
@@ -139,11 +140,11 @@ def run(
     host: Annotated[
         str,
         typer.Option(help="The hostname/IP address for the function."),
-    ] = settings.FUNCTIONS.DOCKER_CONFIG.HOST,
+    ] = engine_settings.HOST,
     port: Annotated[
         int,
         typer.Option(help="The host port to bind the function."),
-    ] = settings.FUNCTIONS.DOCKER_CONFIG.PORT,
+    ] = engine_settings.PORT,
     payload: Annotated[
         str,
         typer.Option(

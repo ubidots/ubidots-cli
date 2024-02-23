@@ -20,6 +20,7 @@ from cli.functions.engines.exceptions import EngineNotInstalledException
 from cli.functions.engines.exceptions import ImageFetchException
 from cli.functions.engines.exceptions import ImageNotFoundException
 from cli.functions.engines.manager import FunctionEngineClientManager
+from cli.functions.engines.settings import engine_settings
 from cli.functions.enums import FunctionLanguageEnum
 from cli.functions.enums import FunctionMethodEnum
 from cli.functions.enums import FunctionNodejsRuntimeLayerTypeEnum
@@ -84,7 +85,9 @@ def start_function(
     except (FileNotFoundError, ValueError) as error:
         show_error_and_exit(error=error)
 
-    image_name = f"{settings.FUNCTIONS.DOCKER_CONFIG.HUB_USERNAME}/{project_metadata.project.runtime.value}"
+    image_name = (
+        f"{engine_settings.HUB_USERNAME}/{project_metadata.project.runtime.value}"
+    )
     engine_manager = FunctionEngineClientManager(engine=engine)
     client = engine_manager.get_client()
     container_manager = client.get_container_manager()
@@ -104,11 +107,9 @@ def start_function(
     try:
         container = container_manager.start(
             image_name=image_name,
-            labels={settings.FUNCTIONS.DOCKER_CONFIG.CONTAINER_KEY: label_value},
-            volumes={
-                str(current_path): settings.FUNCTIONS.DOCKER_CONFIG.VOLUME_MAPPING
-            },
-            ports={f"{settings.FUNCTIONS.DOCKER_CONFIG.CONTAINER_PORT}": (host, port)},
+            labels={engine_settings.CONTAINER_KEY: label_value},
+            volumes={str(current_path): engine_settings.VOLUME_MAPPING},
+            ports={f"{engine_settings.CONTAINER_PORT}": (host, port)},
         )
         typer.echo("")
         typer.echo("  -------------------")
@@ -182,7 +183,7 @@ def run_function(
     container_manager = client.get_container_manager()
     container_manager.reload(label=label)
 
-    url = f"http://{host}:{port}{settings.FUNCTIONS.DOCKER_CONFIG.RIE_INVOCATION_PATH}"
+    url = f"http://{host}:{port}{engine_settings.RIE_INVOCATION_PATH}"
     response = perform_http_request(method=HTTPMethodEnum.POST, url=url, json=payload)
     typer.echo(response.json())
 

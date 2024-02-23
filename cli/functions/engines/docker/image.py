@@ -4,7 +4,7 @@ from docker import DockerClient
 from docker.errors import APIError
 from docker.errors import NotFound
 
-from cli.functions.engines.abstracts.clients import AbstractImageDownloader
+from cli.functions.engines.abstracts.client import AbstractImageDownloader
 from cli.functions.engines.exceptions import ImageFetchException
 from cli.functions.engines.exceptions import ImageNotFoundException
 

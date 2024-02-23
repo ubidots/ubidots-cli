@@ -14,6 +14,7 @@ from cli.functions.engines.exceptions import ImageFetchException
 from cli.functions.engines.exceptions import ImageNotAvailableLocallyException
 from cli.functions.engines.exceptions import ImageNotFoundException
 from cli.functions.engines.podman.client import FunctionPodmanClient
+from cli.functions.engines.settings import engine_settings
 from cli.functions.enums import FunctionLanguageEnum
 from cli.functions.enums import FunctionNodejsRuntimeLayerTypeEnum
 from cli.functions.enums import FunctionProjectValidationTypeEnum
@@ -141,4 +142,4 @@ def generate_random_suffix(length: int = 10):
 
 def generate_local_function_label(name: str):
     suffix = generate_random_suffix()
-    return f"{settings.FUNCTIONS.DOCKER_CONFIG.CONTAINER_LABEL_PREFIX}_{name}_{suffix}"
+    return f"{engine_settings.CONTAINER_LABEL_PREFIX}_{name}_{suffix}"

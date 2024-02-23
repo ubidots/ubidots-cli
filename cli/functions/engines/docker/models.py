@@ -6,7 +6,7 @@ from cli.functions.engines.enums import ContainerStatusEnum
 from cli.functions.engines.enums import FunctionEngineTypeEnum
 from cli.functions.engines.models import ContainerStatusBaseModel
 from cli.functions.engines.models import ContainerStatusListBaseModel
-from cli.settings import settings
+from cli.functions.engines.settings import engine_settings
 
 
 class DockerContainerStatusModel(ContainerStatusBaseModel):
@@ -31,12 +31,8 @@ class DockerContainerStatusListModel(ContainerStatusListBaseModel):
         for container in containers:
             container_model = DockerContainerStatusModel(
                 engine=FunctionEngineTypeEnum.DOCKER,
-                label=container.labels.get(
-                    settings.FUNCTIONS.DOCKER_CONFIG.CONTAINER_KEY, ""
-                ),
-                ports=container.ports.get(
-                    settings.FUNCTIONS.DOCKER_CONFIG.CONTAINER_PORT, []
-                ),
+                label=container.labels.get(engine_settings.CONTAINER_KEY, ""),
+                ports=container.ports.get(engine_settings.CONTAINER_PORT, []),
                 status=ContainerStatusEnum(container.status),
                 raw=True,
             )
