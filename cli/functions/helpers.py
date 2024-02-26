@@ -9,6 +9,7 @@ from typing import IO
 import yaml
 
 from cli.functions.engines.docker.client import FunctionDockerClient
+from cli.functions.engines.enums import FunctionEngineTypeEnum
 from cli.functions.engines.exceptions import EngineNotInstalledException
 from cli.functions.engines.exceptions import ImageFetchException
 from cli.functions.engines.exceptions import ImageNotAvailableLocallyException
@@ -29,18 +30,25 @@ from cli.settings import settings
 
 def save_manifest_project_file(
     project_path: Path,
+    engine: FunctionEngineTypeEnum,
     language: FunctionLanguageEnum,
     runtime: FunctionPythonRuntimeLayerTypeEnum | FunctionNodejsRuntimeLayerTypeEnum,
     function_id: str | None = None,
     auto_overwrite: bool = False,
+    **kwargs,
 ) -> None:
-    metadata = FunctionProjectMetadata(
-        globals=FunctionGlobals(auto_overwrite=auto_overwrite),
-        project=FunctionProjectInfo(
-            name=project_path.name, language=language, runtime=runtime
-        ),
-        function=FunctionInfo(id=function_id),
+    globals_instance = FunctionGlobals(engine=engine, auto_overwrite=auto_overwrite)
+    project_instance = FunctionProjectInfo(
+        name=project_path.name, language=language, runtime=runtime
     )
+    function_instance = FunctionInfo(id=function_id, **kwargs)
+
+    metadata = FunctionProjectMetadata(
+        globals=globals_instance,
+        project=project_instance,
+        function=function_instance,
+    )
+
     metadata_file = project_path / settings.FUNCTIONS.PROJECT_METADATA_FILE
     with open(metadata_file, "w") as file:
         yaml.dump(metadata.to_yaml_serializable_format(), file)

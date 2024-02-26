@@ -86,8 +86,22 @@ def start_function(
         show_error_and_exit(error=error)
 
     info_project = project_metadata.project
-    image_name = f"{engine_settings.HUB_USERNAME}/{info_project.runtime}"
+    save_manifest_project_file(
+        project_path=current_path,
+        engine=engine,
+        language=info_project.language,
+        runtime=info_project.runtime,
+        raw=raw,
+        method=method,
+        token=token,
+        cors=cors,
+        cron=cron,
+        timeout=timeout,
+    )
 
+    image_name = (
+        f"{engine_settings.HUB_USERNAME}/{project_metadata.project.runtime.value}"
+    )
     engine_manager = FunctionEngineClientManager(engine=engine)
     client = engine_manager.get_client()
     container_manager = client.get_container_manager()
@@ -175,6 +189,26 @@ def run_function(
         json.loads(payload)
     except (TypeError, JSONDecodeError) as error:
         show_error_and_exit(error=error)
+
+    current_path = Path.cwd()
+    try:
+        project_metadata, _ = ensure_project_integrity(
+            project_path=current_path,
+            validation_flags={
+                FunctionProjectValidationTypeEnum.MAIN_FILE_PRESENCE: True,
+            },
+        )
+    except (FileNotFoundError, ValueError) as error:
+        show_error_and_exit(error=error)
+
+    info_project = project_metadata.project
+    save_manifest_project_file(
+        project_path=current_path,
+        engine=engine,
+        language=info_project.language,
+        runtime=info_project.runtime,
+        payload=payload,
+    )
 
     engine_manager = FunctionEngineClientManager(engine=engine)
     client = engine_manager.get_client()

@@ -5,6 +5,7 @@ import pytest
 import yaml
 from typer.testing import CliRunner
 
+from cli.functions.engines.enums import FunctionEngineTypeEnum
 from cli.functions.enums import FunctionLanguageEnum
 from cli.functions.enums import FunctionPythonRuntimeLayerTypeEnum
 from cli.functions.helpers import compress_project_to_zip
@@ -35,6 +36,7 @@ class TestFunctionUtils:
         # Setup
         project_path = self.tmp_path / "fake_project"
         project_path.mkdir()
+        engine = FunctionEngineTypeEnum.DOCKER
         language = FunctionLanguageEnum.PYTHON
         runtime = FunctionPythonRuntimeLayerTypeEnum.PYTHON_3_9_FULL
         expected_metadata = FunctionProjectMetadata(
@@ -45,7 +47,9 @@ class TestFunctionUtils:
             function=FunctionInfo(id=None),
         )
         # Action
-        save_manifest_project_file(project_path, language, runtime)
+        save_manifest_project_file(
+            project_path=project_path, engine=engine, language=language, runtime=runtime
+        )
         # Assert
         metadata_file = project_path / settings.FUNCTIONS.PROJECT_METADATA_FILE
         with open(metadata_file) as file:
