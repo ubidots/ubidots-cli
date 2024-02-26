@@ -1,51 +1,26 @@
-import os
-import re
+from dataclasses import dataclass
 from pathlib import Path
 
 from cli.functions.enums import FunctionProjectValidationTypeEnum
 from cli.functions.models import FunctionProjectMetadata
-from cli.settings import settings
 
 
+@dataclass
 class FunctionProjectValidator:
-    def __init__(
-        self,
-        project_metadata: FunctionProjectMetadata,
-        project_files: list[Path],
-        project_path: Path | None = None,
-        run_all_validations: bool = False,
-        validation_flags: dict[FunctionProjectValidationTypeEnum, bool] | None = None,
-    ):
-        self.project_path = project_path
-        self.project_metadata = project_metadata
-        self.project_files = project_files
-        self.run_all_validations = run_all_validations
-
-        if validation_flags is None:
-            validation_flags = {}
-        self.validation_flags = validation_flags
+    project_metadata: FunctionProjectMetadata
+    project_files: list[Path]
+    project_path: Path | None = (None,)
+    validation_flags: dict[FunctionProjectValidationTypeEnum, bool] | None = None
 
     def run_validations(self):
-        if self.run_all_validations or self.validation_flags.get(
+        if self.validation_flags.get(
             FunctionProjectValidationTypeEnum.MANIFEST_FILE, False
         ):
             self.validate_manifest_file()
-        if self.run_all_validations or self.validation_flags.get(
+        if self.validation_flags.get(
             FunctionProjectValidationTypeEnum.MAIN_FILE_PRESENCE, False
         ):
             self.validate_main_file_presence()
-        if self.run_all_validations or self.validation_flags.get(
-            FunctionProjectValidationTypeEnum.FILE_NAMES, False
-        ):
-            self.validate_file_names()
-        if self.run_all_validations or self.validation_flags.get(
-            FunctionProjectValidationTypeEnum.FILE_COUNT, False
-        ):
-            self.validate_file_count()
-        if self.run_all_validations or self.validation_flags.get(
-            FunctionProjectValidationTypeEnum.INDIVIDUAL_FILE_SIZE, False
-        ):
-            self.validate_individual_file_size()
 
     def validate_manifest_file(self):
         if self.project_metadata.function.id is None:
@@ -67,31 +42,3 @@ class FunctionProjectValidator:
                 f"Main file '{main_file_name}' not found in the project directory."
             )
             raise FileNotFoundError(error_message)
-
-    def validate_file_names(self):
-        def is_safe_file_name(file_name: str) -> bool:
-            return re.match(r"[^/\\]*$", file_name) is not None
-
-        for file_path in self.project_files:
-            if not is_safe_file_name(file_path.name):
-                error_message = f"Unsafe file name detected: '{file_path}'"
-                raise ValueError(error_message)
-
-    def validate_file_count(self):
-        max_files_allowed = settings.FUNCTIONS.ZIP_FILE.MAX_FILES_ALLOWED
-        if (file_count := len(self.project_files)) > max_files_allowed:
-            error_message = (
-                f"The project contains '{file_count}' files, "
-                f"which exceeds the maximum allowed limit of '{max_files_allowed}'."
-            )
-            raise ValueError(error_message)
-
-    def validate_individual_file_size(self):
-        max_individual_file_size = settings.FUNCTIONS.ZIP_FILE.DEFAULT_MAX_FILE_SIZE
-        for file_path in self.project_files:
-            if os.path.getsize(file_path) > max_individual_file_size:
-                error_message = (
-                    f"The file '{file_path}' exceeds the maximum allowed size of "
-                    f"'{max_individual_file_size / (1024 * 1024)}' MB."
-                )
-                raise ValueError(error_message)

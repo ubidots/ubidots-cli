@@ -11,7 +11,7 @@ def set_configuration(
     api_domain: str, auth_method_key: AuthHeaderType, access_token: str
 ):
     try:
-        auth_method_value = AuthHeaderType[auth_method_key].value
+        auth_method_value = AuthHeaderType[auth_method_key]
     except KeyError as error:
         auth_method_options = [method.name for method in AuthHeaderType]
         valid_options = ", ".join(auth_method_options)

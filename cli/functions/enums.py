@@ -7,10 +7,10 @@ from InquirerPy import inquirer
 from cli.settings import settings
 
 
-class ChoosableEnum(Enum):
+class ChoosableEnum(StrEnum):
     @classmethod
     def choose(cls, message=None):
-        choices = [member.value for member in cls]
+        choices = list(cls)
         if message is None:
             message = f"Choose a {cls.__name__.lower()}:"
         selected = inquirer.select(
@@ -19,12 +19,12 @@ class ChoosableEnum(Enum):
         return cls(selected)
 
 
-class FunctionMainFileExtensionEnum(Enum):
+class FunctionMainFileExtensionEnum(StrEnum):
     PYTHON_EXTENSION = "py"
     NODEJS_EXTENSION = "js"
 
 
-class FunctionLayerTypeEnum(Enum):
+class FunctionLayerTypeEnum(StrEnum):
     LITE = "lite"
     BASE = "base"
     FULL = "full"
@@ -43,20 +43,36 @@ class FunctionNodejsVersionEnum(ChoosableEnum):
 
 
 class FunctionPythonRuntimeLayerTypeEnum(ChoosableEnum):
-    # PYTHON_3_6 = FunctionPythonVersionEnum.PYTHON_3_6.value
-    # PYTHON_3_7 = FunctionPythonVersionEnum.PYTHON_3_7.value
-    PYTHON_3_9_LITE = f"{FunctionPythonVersionEnum.PYTHON_3_9.value}:{FunctionLayerTypeEnum.LITE.value}"
-    PYTHON_3_9_BASE = f"{FunctionPythonVersionEnum.PYTHON_3_9.value}:{FunctionLayerTypeEnum.BASE.value}"
-    PYTHON_3_9_FULL = f"{FunctionPythonVersionEnum.PYTHON_3_9.value}:{FunctionLayerTypeEnum.FULL.value}"
-    PYTHON_3_11_LITE = f"{FunctionPythonVersionEnum.PYTHON_3_11.value}:{FunctionLayerTypeEnum.LITE.value}"
-    PYTHON_3_11_BASE = f"{FunctionPythonVersionEnum.PYTHON_3_11.value}:{FunctionLayerTypeEnum.BASE.value}"
-    PYTHON_3_11_FULL = f"{FunctionPythonVersionEnum.PYTHON_3_11.value}:{FunctionLayerTypeEnum.FULL.value}"
+    # PYTHON_3_6 = FunctionPythonVersionEnum.PYTHON_3_6
+    # PYTHON_3_7 = FunctionPythonVersionEnum.PYTHON_3_7
+    PYTHON_3_9_LITE = (
+        f"{FunctionPythonVersionEnum.PYTHON_3_9}:{FunctionLayerTypeEnum.LITE}"
+    )
+    PYTHON_3_9_BASE = (
+        f"{FunctionPythonVersionEnum.PYTHON_3_9}:{FunctionLayerTypeEnum.BASE}"
+    )
+    PYTHON_3_9_FULL = (
+        f"{FunctionPythonVersionEnum.PYTHON_3_9}:{FunctionLayerTypeEnum.FULL}"
+    )
+    PYTHON_3_11_LITE = (
+        f"{FunctionPythonVersionEnum.PYTHON_3_11}:{FunctionLayerTypeEnum.LITE}"
+    )
+    PYTHON_3_11_BASE = (
+        f"{FunctionPythonVersionEnum.PYTHON_3_11}:{FunctionLayerTypeEnum.BASE}"
+    )
+    PYTHON_3_11_FULL = (
+        f"{FunctionPythonVersionEnum.PYTHON_3_11}:{FunctionLayerTypeEnum.FULL}"
+    )
 
 
 class FunctionNodejsRuntimeLayerTypeEnum(ChoosableEnum):
-    # NODEJS_10 = FunctionNodejsVersionEnum.NODEJS_10.value
-    NODEJS_16_LITE = f"{FunctionNodejsVersionEnum.NODEJS_16.value}:{FunctionLayerTypeEnum.LITE.value}"
-    NODEJS_16_BASE = f"{FunctionNodejsVersionEnum.NODEJS_16.value}:{FunctionLayerTypeEnum.BASE.value}"
+    # NODEJS_10 = FunctionNodejsVersionEnum.NODEJS_10
+    NODEJS_16_LITE = (
+        f"{FunctionNodejsVersionEnum.NODEJS_16}:{FunctionLayerTypeEnum.LITE}"
+    )
+    NODEJS_16_BASE = (
+        f"{FunctionNodejsVersionEnum.NODEJS_16}:{FunctionLayerTypeEnum.BASE}"
+    )
 
 
 class FunctionLanguageEnum(ChoosableEnum):
@@ -74,7 +90,7 @@ class FunctionLanguageEnum(ChoosableEnum):
     @property
     def main_file(self):
         main_file_name = settings.FUNCTIONS.DEFAULT_MAIN_FILE_NAME
-        return f"{main_file_name}.{self.extension.value}"
+        return f"{main_file_name}.{self.extension}"
 
     @property
     def version(self):
@@ -99,9 +115,6 @@ class FunctionLanguageEnum(ChoosableEnum):
 class FunctionProjectValidationTypeEnum(Enum):
     MANIFEST_FILE = auto()
     MAIN_FILE_PRESENCE = auto()
-    FILE_NAMES = auto()
-    FILE_COUNT = auto()
-    INDIVIDUAL_FILE_SIZE = auto()
 
 
 class FunctionMethodEnum(StrEnum):

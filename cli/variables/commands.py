@@ -42,7 +42,7 @@ def add(
             show_choices=True,
             show_default=True,
         ),
-    ] = VariableTypeEnum.RAW.value,
+    ] = VariableTypeEnum.RAW,
     unit: Annotated[
         str, typer.Option(help="The unit of measurement that represents the variable.")
     ] = "",
@@ -50,7 +50,7 @@ def add(
         str,
         typer.Option(
             help=(
-                f"If the variable is of type '{VariableTypeEnum.SYNTHETIC.value}', "
+                f"If the variable is of type '{VariableTypeEnum.SYNTHETIC}', "
                 "this is the corresponding synthetic expression used to calculate its value."
             )
         ),
@@ -69,7 +69,7 @@ def add(
         name=name,
         description=description,
         device=device,
-        type=type.value,
+        type=type,
         unit=unit,
         syntheticExpression=syntheticExpression,
         tags=tags,

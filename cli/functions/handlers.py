@@ -44,7 +44,7 @@ def create_function(
         typer.echo(f"A folder named '{name}' already exists.")
         raise typer.Exit(1)
 
-    language_str = language.value
+    language_str = language
     template_file = settings.FUNCTIONS.TEMPLATES_PATH / f"{language_str}.zip"
     if not template_file.exists():
         typer.echo(f"Template for '{language_str}' not found at '{template_file}'.")
@@ -85,9 +85,9 @@ def start_function(
     except (FileNotFoundError, ValueError) as error:
         show_error_and_exit(error=error)
 
-    image_name = (
-        f"{engine_settings.HUB_USERNAME}/{project_metadata.project.runtime.value}"
-    )
+    info_project = project_metadata.project
+    image_name = f"{engine_settings.HUB_USERNAME}/{info_project.runtime}"
+
     engine_manager = FunctionEngineClientManager(engine=engine)
     client = engine_manager.get_client()
     container_manager = client.get_container_manager()
@@ -101,9 +101,7 @@ def start_function(
     ) as error:
         show_error_and_exit(error=error)
 
-    info_project = project_metadata.project
     label_value = generate_local_function_label(name=info_project.name)
-
     try:
         container = container_manager.start(
             image_name=image_name,
@@ -116,7 +114,7 @@ def start_function(
         typer.echo("  Starting function: ")
         typer.echo("  -------------------")
         typer.echo(f"  Name: {info_project.name}")
-        typer.echo(f"  Runtime: {info_project.runtime.value}")
+        typer.echo(f"  Runtime: {info_project.runtime}")
         typer.echo(f"  Local Function label: {label_value}")
         typer.echo(f"  Local Function ID: {container.id}")
         typer.echo("")
@@ -192,7 +190,11 @@ def push_function(confirm: bool):
     actual_path = Path.cwd()
     try:
         project_metadata, _ = ensure_project_integrity(
-            project_path=actual_path, run_all_validations=True
+            project_path=actual_path,
+            validation_flags={
+                FunctionProjectValidationTypeEnum.MANIFEST_FILE: True,
+                FunctionProjectValidationTypeEnum.MAIN_FILE_PRESENCE: True,
+            },
         )
     except (FileNotFoundError, ValueError) as error:
         show_error_and_exit(error=error)

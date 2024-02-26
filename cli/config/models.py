@@ -1,10 +1,10 @@
-from enum import Enum
+from enum import StrEnum
 
 from cli.commons.models import BaseYAMLDumpModel
 from cli.settings import settings
 
 
-class AuthHeaderType(Enum):
+class AuthHeaderType(StrEnum):
     TOKEN = "X-Auth-Token"
 
 

@@ -19,7 +19,7 @@ def build_endpoint(route: str, query_params: dict | None = None, **kwargs) -> st
         query_string = "&".join(f"{key}={value}" for key, value in query_params.items())
         url += f"?{query_string}"
 
-    headers = {access_config.auth_method.value: access_config.access_token}
+    headers = {access_config.auth_method: access_config.access_token}
     return url, headers
 
 

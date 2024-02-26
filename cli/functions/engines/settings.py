@@ -2,8 +2,6 @@ from functools import lru_cache
 
 from pydantic_settings import BaseSettings
 
-# class EngineSettings(BaseModel):
-
 
 class EngineSettings(BaseSettings):
     HUB_USERNAME: str = "cristianrubioa"

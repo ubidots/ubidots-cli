@@ -1,6 +1,6 @@
-from enum import Enum
+from enum import StrEnum
 
 
-class VariableTypeEnum(Enum):
+class VariableTypeEnum(StrEnum):
     RAW = "raw"
     SYNTHETIC = "synthetic"

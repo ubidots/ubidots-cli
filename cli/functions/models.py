@@ -31,7 +31,7 @@ class FunctionProjectInfo(BaseModel):
 
     @model_validator(mode="after")
     def set_main_file_based_on_language(self):
-        language_value = self.language.value
+        language_value = self.language
         self.main_file = FunctionLanguageEnum(language_value).main_file
         return self
 

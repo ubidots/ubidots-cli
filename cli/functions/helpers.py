@@ -99,7 +99,6 @@ def enumerate_project_files(project_path: Path) -> list[Path]:
 
 def ensure_project_integrity(
     project_path: Path,
-    run_all_validations: bool = False,
     validation_flags: dict[FunctionProjectValidationTypeEnum, bool] | None = None,
 ) -> tuple[FunctionProjectMetadata, list[Path]]:
     try:
@@ -109,7 +108,6 @@ def ensure_project_integrity(
             project_metadata=project_metadata,
             project_files=project_files,
             project_path=project_path,
-            run_all_validations=run_all_validations,
             validation_flags=validation_flags,
         )
         validator.run_validations()

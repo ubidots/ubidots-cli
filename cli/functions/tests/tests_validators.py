@@ -3,7 +3,6 @@ from pathlib import Path
 import pytest
 from typer.testing import CliRunner
 
-from cli.commons.utils_tests import override_settings
 from cli.functions.commands import app as function_app
 from cli.functions.enums import FunctionLanguageEnum
 from cli.functions.enums import FunctionPythonRuntimeLayerTypeEnum
@@ -12,7 +11,6 @@ from cli.functions.models import FunctionInfo
 from cli.functions.models import FunctionProjectInfo
 from cli.functions.models import FunctionProjectMetadata
 from cli.functions.validators import FunctionProjectValidator
-from cli.settings import settings
 
 
 class TestFunctionNewCommandValidators:
@@ -56,7 +54,7 @@ class TestFunctionNewCommandValidators:
         result = self.runner.invoke(function_app, ["new", "my_function"])
         # Assert
         assert (
-            f"Template for '{FunctionLanguageEnum.PYTHON.value}' not found at"
+            f"Template for '{FunctionLanguageEnum.PYTHON}' not found at"
             in result.output
         )
         assert result.exit_code == 1
@@ -117,41 +115,3 @@ class TestFunctionProjectValidators:
         # Action & Assert
         with pytest.raises(FileNotFoundError):
             validator.validate_main_file_presence()
-
-    def test_validate_file_names(self):
-        # Setup
-        project_files = [Path("../archivo.txt"), Path("subdir\\archivo.txt")]
-        validator = FunctionProjectValidator(
-            project_metadata=self.project_metadata, project_files=project_files
-        )
-        # Action & Assert
-        with pytest.raises(ValueError):
-            validator.validate_file_names()
-
-    @override_settings(obj="FUNCTIONS", ZIP_FILE__MAX_FILES_ALLOWED=2)
-    def test_validate_file_count(self):
-        # Setup
-        project_files = [Path("file_1.py"), Path("file_2.py"), Path("file_3.py")]
-        validator = FunctionProjectValidator(
-            project_metadata=self.project_metadata, project_files=project_files
-        )
-        # Action & Assert
-        with pytest.raises(ValueError):
-            validator.validate_file_count()
-
-    @override_settings(obj="FUNCTIONS", ZIP_FILE__DEFAULT_MAX_FILE_SIZE=100)
-    def test_validate_individual_file_size(self):
-        # Setup
-        project_files = [Path("file_within_limit.py"), Path("file_exceeds_limit.py")]
-        validator = FunctionProjectValidator(
-            project_metadata=self.project_metadata, project_files=project_files
-        )
-        self.mocker.patch(
-            "os.walk", lambda path: self.mock_os_walk(self.project_path, project_files)
-        )
-        oversized_size = settings.FUNCTIONS.ZIP_FILE.DEFAULT_MAX_FILE_SIZE + 1
-        getsize_mock = self.mock_getsize(["file_exceeds_limit.py"], oversized_size)
-        self.mocker.patch("os.path.getsize", getsize_mock)
-        # Action & Assert
-        with pytest.raises(ValueError):
-            validator.validate_individual_file_size()
