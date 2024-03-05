@@ -28,14 +28,14 @@ class FunctionDockerContainerManager(AbstractContainerManager):
         return status_model.containers
 
     def get(self, label: str) -> Container:
-        label_pair = f"{engine_settings.CONTAINER_KEY}={label}"
+        label_pair = f"{engine_settings.CONTAINER.KEY}={label}"
         containers = self.list(label=label_pair)
         container = next(iter(containers), None)
         if container is None:
             raise ContainerNotFoundException(label=label)
         return container
 
-    def list(self, label: str = engine_settings.CONTAINER_KEY) -> list[Container]:
+    def list(self, label: str = engine_settings.CONTAINER.KEY) -> list[Container]:
         return self.client.containers.list(filters={"label": label})
 
     def logs(
@@ -46,23 +46,35 @@ class FunctionDockerContainerManager(AbstractContainerManager):
 
     def start(
         self,
+        network_name: str,
         image_name: str,
         labels: dict,
-        volumes: dict,
-        ports: dict,
-        detach: bool = engine_settings.IS_DETACH,
+        ports: dict[str, tuple[str, int]],
+        container_name: str | None = None,
+        volumes: dict | None = None,
+        detach: bool = engine_settings.CONTAINER.IS_DETACH,
     ) -> Container:
+        kwargs = {
+            "image": image_name,
+            "labels": labels,
+            "ports": ports,
+            "network": network_name,
+            "detach": detach,
+        }
+        if container_name is not None:
+            kwargs["name"] = container_name
+
+        if volumes is not None:
+            kwargs["volumes"] = volumes
+
         try:
-            return self.client.containers.run(
-                image=image_name,
-                labels=labels,
-                volumes=volumes,
-                ports=ports,
-                detach=detach,
-            )
+            return self.client.containers.run(**kwargs)
         except APIError as error:
-            host, port = ports[f"{engine_settings.CONTAINER_PORT}"]
-            raise ContainerAlreadyRunningException(host=host, port=port) from error
+            _, port = next(
+                (ports[key] for key in engine_settings.CONTAINER.PORTS if key in ports),
+                (None, None),
+            )
+            raise ContainerAlreadyRunningException(port=port) from error
         except ContainerError as error:
             raise ContainerExecutionException from error
 

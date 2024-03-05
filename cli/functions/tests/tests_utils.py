@@ -42,13 +42,20 @@ class TestFunctionUtils:
         expected_metadata = FunctionProjectMetadata(
             globals=FunctionGlobals(auto_overwrite=False),
             project=FunctionProjectInfo(
-                name=project_path.name, language=language, runtime=runtime
+                name=project_path.name,
+                label="my_function",
+                language=language,
+                runtime=runtime,
             ),
             function=FunctionInfo(id=None),
         )
         # Action
         save_manifest_project_file(
-            project_path=project_path, engine=engine, language=language, runtime=runtime
+            project_path=project_path,
+            engine=engine,
+            label="my_function",
+            language=language,
+            runtime=runtime,
         )
         # Assert
         metadata_file = project_path / settings.FUNCTIONS.PROJECT_METADATA_FILE

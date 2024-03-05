@@ -36,7 +36,7 @@ def start(
     port: Annotated[
         int,
         typer.Option(help="The host port to bind the function."),
-    ] = engine_settings.PORT,
+    ] = engine_settings.CONTAINER.FRIE.EXTERNAL_PORT,
     raw: Annotated[
         bool,
         typer.Option(help="Flag to determine if the output should be in raw format."),
@@ -144,7 +144,7 @@ def run(
     port: Annotated[
         int,
         typer.Option(help="The host port to bind the function."),
-    ] = engine_settings.PORT,
+    ] = engine_settings.CONTAINER.FRIE.EXTERNAL_PORT,
     payload: Annotated[
         str,
         typer.Option(

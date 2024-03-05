@@ -3,7 +3,7 @@ from enum import StrEnum
 
 
 class MessageColorEnum(StrEnum):
-    WARINING = "bright_yellow"
+    WARNING = "bright_yellow"
     SUCCESS = "bright_green"
     ERROR = "bright_red"
     INFO = "bright_blue"

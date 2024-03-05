@@ -31,8 +31,10 @@ class DockerContainerStatusListModel(ContainerStatusListBaseModel):
         for container in containers:
             container_model = DockerContainerStatusModel(
                 engine=FunctionEngineTypeEnum.DOCKER,
-                label=container.labels.get(engine_settings.CONTAINER_KEY, ""),
-                ports=container.ports.get(engine_settings.CONTAINER_PORT, []),
+                label=container.labels.get(engine_settings.CONTAINER.KEY, ""),
+                ports=container.ports.get(
+                    engine_settings.CONTAINER.FRIE.EXTERNAL_PORT, []
+                ),
                 status=ContainerStatusEnum(container.status),
                 raw=True,
             )

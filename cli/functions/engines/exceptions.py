@@ -2,6 +2,18 @@ class EngineException(Exception):
     """Base class for container engine-related errors."""
 
 
+class ImageException(Exception):
+    """Base class for container image-related errors."""
+
+
+class ContainerException(Exception):
+    """Base class for container container-related errors."""
+
+
+class NetworkException(Exception):
+    """Base class for container network-containers-related errors."""
+
+
 class EngineNotInstalledException(EngineException):
     """Exception raised when the container engine is not installed or cannot be reached."""
 
@@ -14,7 +26,7 @@ class EngineNotInstalledException(EngineException):
         super().__init__(message)
 
 
-class ImageNotAvailableLocallyException(EngineException):
+class ImageNotAvailableLocallyException(ImageException):
     """Exception raised when a container image is not available locally."""
 
     def __init__(self, engine: str, image_name: str):
@@ -22,34 +34,40 @@ class ImageNotAvailableLocallyException(EngineException):
         super().__init__(message)
 
 
-class ImageNotFoundException(EngineException):
+class ImageNotFoundException(ImageException):
     def __init__(self, image_name: str):
         message = f"Image '{image_name}' does not exist on Hub."
         super().__init__(message)
 
 
-class ImageFetchException(EngineException):
+class ImageFetchException(ImageException):
     def __init__(self, image_name: str):
         message = f"Failed to fetch image '{image_name}' from Hub."
         super().__init__(message)
 
 
-class ContainerAlreadyRunningException(EngineException):
-    def __init__(self, host: str, port: int):
+class ContainerAlreadyRunningException(ContainerException):
+    def __init__(self, port: int):
         message = (
-            f"Please consider using an alternative host or port ({host}:{port}) for binding, "
-            f"or ensure the port '{port}' is available."
+            f"The port {port} is already in use. "
+            "Please consider using an alternative port."
         )
         super().__init__(message)
 
 
-class ContainerExecutionException(EngineException):
+class ContainerExecutionException(ContainerException):
     def __init__(self):
         message = "Unexpected error executing the function."
         super().__init__(message)
 
 
-class ContainerNotFoundException(EngineException):
+class ContainerNotFoundException(ContainerException):
     def __init__(self, label: str):
         message = f"Function with label '{label}' does not exist."
+        super().__init__(message)
+
+
+class NetworkNotFoundException(NetworkException):
+    def __init__(self, id: str):
+        message = f"Network with id '{id}' does not exist."
         super().__init__(message)

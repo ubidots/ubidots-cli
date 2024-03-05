@@ -11,6 +11,12 @@ class ConfigSettings(BaseModel):
     FILE_PATH: Path = DIRECTORY_PATH / "config.yaml"
 
 
+class RequestSettings(BaseModel):
+    RETRY_MAX_ATTEMPTS: int = 5
+    RETRY_DELAY: int = 5
+    RETRY_BACKOFF_MULTIPLIER: int = 2
+
+
 class FunctionSettings(BaseModel):
     class ZipFileSettings(BaseModel):
         MAX_FILES_ALLOWED: int = 2000
@@ -29,6 +35,7 @@ class FunctionSettings(BaseModel):
 
 class Settings(BaseSettings):
     CONFIG: ConfigSettings = ConfigSettings()
+    REQUESTS: RequestSettings = RequestSettings()
     FUNCTIONS: FunctionSettings = FunctionSettings()
 
 
