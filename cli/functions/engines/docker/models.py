@@ -33,7 +33,7 @@ class DockerContainerStatusListModel(ContainerStatusListBaseModel):
                 engine=FunctionEngineTypeEnum.DOCKER,
                 label=container.labels.get(engine_settings.CONTAINER.KEY, ""),
                 ports=container.ports.get(
-                    engine_settings.CONTAINER.FRIE.EXTERNAL_PORT, []
+                    engine_settings.CONTAINER.FRIE.INTERNAL_PORT, []
                 ),
                 status=ContainerStatusEnum(container.status),
                 raw=True,

@@ -67,6 +67,17 @@ class ContainerNotFoundException(ContainerException):
         super().__init__(message)
 
 
+class ContainerNotInitializedException(ContainerException):
+    def __init__(self, command: str, hint: str | None = None):
+        message = (
+            "No function has been initialized. Please ensure to create a function. "
+            f"You can create it using the command '{command}'. "
+        )
+        if hint:
+            message += f"\n{hint}"
+        super().__init__(message)
+
+
 class NetworkNotFoundException(NetworkException):
     def __init__(self, id: str):
         message = f"Network with id '{id}' does not exist."

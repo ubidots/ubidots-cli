@@ -7,6 +7,7 @@ from pathlib import Path
 
 import typer
 from docker.errors import NotFound
+from rich import print_json
 
 from cli.commons.enums import HTTPMethodEnum
 from cli.commons.enums import MessageColorEnum
@@ -22,6 +23,7 @@ from cli.functions.engines.enums import TargetTypeEnum
 from cli.functions.engines.exceptions import ContainerAlreadyRunningException
 from cli.functions.engines.exceptions import ContainerExecutionException
 from cli.functions.engines.exceptions import ContainerNotFoundException
+from cli.functions.engines.exceptions import ContainerNotInitializedException
 from cli.functions.engines.exceptions import EngineNotInstalledException
 from cli.functions.engines.exceptions import ImageFetchException
 from cli.functions.engines.exceptions import ImageNotFoundException
@@ -191,11 +193,6 @@ def start_function(
         argo_container = client.client.containers.get(
             engine_settings.CONTAINER.ARGO.NAME
         )
-        if argo_container and argo_container.status in [
-            ContainerStatusEnum.PAUSED,
-            ContainerStatusEnum.EXITED,
-        ]:
-            argo_container.restart()
         argo_adapter_port = next(
             iter(
                 argo_container.ports.get(
@@ -204,6 +201,17 @@ def start_function(
             ),
             {},
         ).get("HostPort")
+        if argo_container and argo_container.status in [
+            ContainerStatusEnum.PAUSED,
+            ContainerStatusEnum.EXITED,
+        ]:
+            argo_container.restart()
+        if argo_container and argo_container.status == ContainerStatusEnum.RUNNING:
+            url = f"http://{host}:{argo_adapter_port}/{engine_settings.CONTAINER.ARGO.API_ADAPTER_BASE_PATH}/~{label_value}"
+            try:
+                perform_http_request(method=HTTPMethodEnum.DELETE, url=url)
+            except (HttpRequestException, HttpMaxAttemptsRequestException) as error:
+                show_error_and_exit(error=error)
 
     if not argo_container:
         argo_adapter_port, argo_taget_port = find_available_ports(
@@ -311,9 +319,7 @@ def logs_function(engine: FunctionEngineTypeEnum, label: str, tail: str, follow:
     typer.echo(container_logs)
 
 
-def run_function(
-    engine: FunctionEngineTypeEnum, label: str, host: str, port: int, payload: str
-):
+def run_function(engine: FunctionEngineTypeEnum, host: str, port: int, payload: str):
     try:
         payload_obj = json.loads(payload)
     except (TypeError, JSONDecodeError) as error:
@@ -331,10 +337,11 @@ def run_function(
         show_error_and_exit(error=error)
 
     info_project = project_metadata.project
+    label_value = info_project.label
     save_manifest_project_file(
         project_path=current_path,
         engine=engine,
-        label=info_project.label,
+        label=label_value,
         language=info_project.language,
         runtime=info_project.runtime,
         payload=payload_obj,
@@ -343,26 +350,47 @@ def run_function(
     engine_manager = FunctionEngineClientManager(engine=engine)
     client = engine_manager.get_client()
 
-    argo_container = None
-    with suppress(NotFound):
+    try:
         argo_container = client.client.containers.get(
             engine_settings.CONTAINER.ARGO.NAME
         )
+    except NotFound:
+        show_error_and_exit(
+            error=ContainerNotInitializedException(
+                command="start", hint="Hint: ubidots fn start --help"
+            )
+        )
+
+    container_manager = client.get_container_manager()
+    try:
+        container_manager.reload(label=label_value)
+    except ContainerNotFoundException as error:
+        show_error_and_exit(error=error)
 
     install_command = ["/bin/sh", "-c", "apt-get update && apt-get install -y curl"]
     _, output = argo_container.exec_run(install_command, user="root")
 
-    url = f"http://localhost:8042/{label}"
-    command = f"curl -s {url}"
+    argo_port = engine_settings.CONTAINER.ARGO.INTERNAL_TARGET_PORT.split("/")[0]
+    url = f"http://{host}:{argo_port}/{label_value}"
+    method = project_metadata.function.method
+    command = (
+        f"curl '{url}' -d '{payload}'"
+        if method == FunctionMethodEnum.POST
+        else f"curl -s {url}"
+    )
+
     _, output = argo_container.exec_run(command)
-    typer.echo(output.decode("utf8"))
+    try:
+        print_json(output.decode("utf8"), indent=3)
+    except JSONDecodeError as error:
+        show_error_and_exit(error=error)
 
 
 def push_function(confirm: bool):
-    actual_path = Path.cwd()
+    current_path = Path.cwd()
     try:
         project_metadata, _ = ensure_project_integrity(
-            project_path=actual_path,
+            project_path=current_path,
             validation_flags={
                 FunctionProjectValidationTypeEnum.MANIFEST_FILE: True,
                 FunctionProjectValidationTypeEnum.MAIN_FILE_PRESENCE: True,
@@ -378,7 +406,7 @@ def push_function(confirm: bool):
     ):
         raise typer.Abort
 
-    zip_file_obj = compress_project_to_zip(actual_path)
+    zip_file_obj = compress_project_to_zip(current_path)
     typer.echo("Project successfully compressed into a ZIP file, ready for upload.")
 
     url, headers = build_endpoint(
@@ -402,10 +430,10 @@ def push_function(confirm: bool):
 
 
 def pull_function(confirm: bool):
-    actual_path = Path.cwd()
+    current_path = Path.cwd()
     try:
         project_metadata, _ = ensure_project_integrity(
-            project_path=actual_path,
+            project_path=current_path,
             validation_flags={
                 FunctionProjectValidationTypeEnum.MANIFEST_FILE: True,
             },
@@ -432,5 +460,5 @@ def pull_function(confirm: bool):
         show_error_and_exit(error=error)
 
     with zipfile.ZipFile(BytesIO(response.content), "r") as zip_ref:
-        zip_ref.extractall(actual_path)
+        zip_ref.extractall(current_path)
     typer.echo("Function downloaded successfully.")

@@ -130,9 +130,6 @@ def logs(
 
 @app.command(help="Test the lambda function locally in a Docker container environment.")
 def run(
-    label: Annotated[
-        str, typer.Argument(help="The label of function.", show_default=False)
-    ],
     engine: Annotated[
         FunctionEngineTypeEnum,
         typer.Option(help="The engine used to serve the function."),
@@ -153,9 +150,7 @@ def run(
         ),
     ] = "{}",
 ):
-    handlers.run_function(
-        engine=engine, label=label, host=host, port=port, payload=payload
-    )
+    handlers.run_function(engine=engine, host=host, port=port, payload=payload)
 
 
 @app.command(

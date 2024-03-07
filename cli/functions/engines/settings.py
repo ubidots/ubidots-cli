@@ -8,7 +8,7 @@ from cli.functions.engines.enums import ContainerNetworkModeEnum
 
 class ArgoContainerSettings(BaseModel):
     NAME: str = "argo"
-    API_ADAPTER_BASE_PATH: str = "api/v2/adapter/"
+    API_ADAPTER_BASE_PATH: str = "api/v2/adapter"
     INTERNAL_ADAPTER_PORT: str = "8040/tcp"
     INTERNAL_TARGET_PORT: str = "8042/tcp"
     EXTERNAL_ADAPTER_PORT: int = 8040
