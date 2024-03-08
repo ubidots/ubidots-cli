@@ -44,8 +44,8 @@ class EngineSettings(BaseSettings):
     CONTAINER: ContainerSettings = ContainerSettings()
     HUB_USERNAME: str = "cristianrubioa"
     HOST: str = "127.0.0.1"
-    DEFAULT_FROM_PORT: int = 8000
-    DEFAULT_TO_PORT: int = 65535
+    DEFAULT_START_PORT_RANGE: int = 8000
+    DEFAULT_END_PORT_RANGE: int = 65535
 
 
 @lru_cache

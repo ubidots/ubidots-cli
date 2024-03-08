@@ -1,6 +1,5 @@
 import json
 import zipfile
-from contextlib import suppress
 from io import BytesIO
 from json import JSONDecodeError
 from pathlib import Path
@@ -17,9 +16,7 @@ from cli.commons.styles import print_colored_table
 from cli.commons.utils import build_endpoint
 from cli.commons.utils import perform_http_request
 from cli.commons.utils import show_error_and_exit
-from cli.functions.engines.enums import ContainerStatusEnum
 from cli.functions.engines.enums import FunctionEngineTypeEnum
-from cli.functions.engines.enums import TargetTypeEnum
 from cli.functions.engines.exceptions import ContainerAlreadyRunningException
 from cli.functions.engines.exceptions import ContainerExecutionException
 from cli.functions.engines.exceptions import ContainerNotFoundException
@@ -34,10 +31,11 @@ from cli.functions.enums import FunctionMethodEnum
 from cli.functions.enums import FunctionNodejsRuntimeLayerTypeEnum
 from cli.functions.enums import FunctionProjectValidationTypeEnum
 from cli.functions.enums import FunctionPythonRuntimeLayerTypeEnum
+from cli.functions.helpers import argo_container_manager
 from cli.functions.helpers import compress_project_to_zip
 from cli.functions.helpers import ensure_project_integrity
-from cli.functions.helpers import find_available_ports
-from cli.functions.helpers import generate_local_function_label
+from cli.functions.helpers import frie_container_manager
+from cli.functions.helpers import get_argo_input_adapter
 from cli.functions.helpers import get_or_create_network
 from cli.functions.helpers import save_manifest_project_file
 from cli.functions.helpers import verify_and_fetch_images
@@ -97,7 +95,6 @@ def start_function(
 
     engine_manager = FunctionEngineClientManager(engine=engine)
     client = engine_manager.get_client()
-
     # function_image_name = (
     #     f"{engine_settings.HUB_USERNAME}/{project_metadata.project.runtime.value}"
     # )
@@ -116,28 +113,24 @@ def start_function(
 
     network = get_or_create_network(client=client)
     container_manager = client.get_container_manager()
-
     info_project = project_metadata.project
-    if label := info_project.label:
-        try:
-            rie_container = container_manager.get(label=label)
-            if rie_container and rie_container.status == ContainerStatusEnum.RUNNING:
-                typer.echo(
-                    typer.style(
-                        f"* The function with label '{label}' is already running.\n",
-                        fg=MessageColorEnum.WARNING,
-                        bold=True,
-                    )
-                )
-                raise typer.Exit(1)
-        except ContainerNotFoundException:
-            pass
 
-    label_value = (
-        info_project.label
-        if info_project.label
-        else generate_local_function_label(name=info_project.name)
-    )
+    try:
+        frie_container, label_value = frie_container_manager(
+            container_manager=container_manager,
+            current_path=current_path,
+            network=network,
+            image_name=function_image_name,
+            name=info_project.name,
+            label=info_project.label,
+            port=port,
+        )
+    except (
+        ContainerAlreadyRunningException,
+        ContainerExecutionException,
+    ) as error:
+        show_error_and_exit(error=error)
+
     save_manifest_project_file(
         project_path=current_path,
         engine=engine,
@@ -151,20 +144,6 @@ def start_function(
         cron=cron,
         timeout=timeout,
     )
-
-    try:
-        frie_container = container_manager.start(
-            image_name=function_image_name,
-            labels={engine_settings.CONTAINER.KEY: label_value},
-            ports={engine_settings.CONTAINER.FRIE.INTERNAL_PORT: (host, port)},
-            volumes={str(current_path): engine_settings.CONTAINER.FRIE.VOLUME_MAPPING},
-            network_name=network.name,
-        )
-    except (
-        ContainerAlreadyRunningException,
-        ContainerExecutionException,
-    ) as error:
-        show_error_and_exit(error=error)
 
     typer.echo("")
     typer.echo("  ------------------")
@@ -188,87 +167,29 @@ def start_function(
     typer.echo(f"   Timeout: {timeout}")
     typer.echo("")
 
-    argo_container = None
-    with suppress(NotFound):
-        argo_container = client.client.containers.get(
-            engine_settings.CONTAINER.ARGO.NAME
+    try:
+        _, argo_adapter_port = argo_container_manager(
+            container_manager=container_manager,
+            client=client,
+            network=network,
+            image_name=argo_image_name,
+            label_value=label_value,
         )
-        argo_adapter_port = next(
-            iter(
-                argo_container.ports.get(
-                    engine_settings.CONTAINER.ARGO.INTERNAL_ADAPTER_PORT, []
-                )
-            ),
-            {},
-        ).get("HostPort")
-        if argo_container and argo_container.status in [
-            ContainerStatusEnum.PAUSED,
-            ContainerStatusEnum.EXITED,
-        ]:
-            argo_container.restart()
-        if argo_container and argo_container.status == ContainerStatusEnum.RUNNING:
-            url = f"http://{host}:{argo_adapter_port}/{engine_settings.CONTAINER.ARGO.API_ADAPTER_BASE_PATH}/~{label_value}"
-            try:
-                perform_http_request(method=HTTPMethodEnum.DELETE, url=url)
-            except (HttpRequestException, HttpMaxAttemptsRequestException) as error:
-                show_error_and_exit(error=error)
+    except (
+        ContainerAlreadyRunningException,
+        ContainerExecutionException,
+    ) as error:
+        show_error_and_exit(error=error)
 
-    if not argo_container:
-        argo_adapter_port, argo_taget_port = find_available_ports(
-            ports=[
-                engine_settings.CONTAINER.ARGO.EXTERNAL_ADAPTER_PORT,
-                engine_settings.CONTAINER.ARGO.EXTERNAL_TARGET_PORT,
-            ]
-        )
-        try:
-            argo_container = container_manager.start(
-                image_name=argo_image_name,
-                container_name=engine_settings.CONTAINER.ARGO.NAME,
-                labels={
-                    engine_settings.CONTAINER.KEY: engine_settings.CONTAINER.ARGO.NAME
-                },
-                ports={
-                    engine_settings.CONTAINER.ARGO.INTERNAL_ADAPTER_PORT: (
-                        host,
-                        argo_adapter_port,
-                    ),
-                    engine_settings.CONTAINER.ARGO.INTERNAL_TARGET_PORT: (
-                        host,
-                        argo_taget_port,
-                    ),
-                },
-                network_name=network.name,
-            )
-        except (
-            ContainerAlreadyRunningException,
-            ContainerExecutionException,
-        ) as error:
-            show_error_and_exit(error=error)
-
-    network_manager = client.get_network_manager()
-    network = network_manager.get(network.id)
-
-    frie_ip_address = network.attrs["Containers"][frie_container.id][
-        "IPv4Address"
-    ].split("/")[0]
-    frie_port = engine_settings.CONTAINER.FRIE.INTERNAL_PORT.split("/")[0]
-
-    url = f"http://{host}:{argo_adapter_port}/{engine_settings.CONTAINER.ARGO.API_ADAPTER_BASE_PATH}"
-    data = {
-        "label": label_value,
-        "path": label_value,
-        "is_strict": True,
-        "middlewares": [],
-        "target": {
-            "type": (
-                TargetTypeEnum.RIE_FUNCTION_RAW.value
-                if raw
-                else TargetTypeEnum.RIE_FUNCTION.value
-            ),
-            "url": f"http://{frie_ip_address}:{frie_port}{engine_settings.CONTAINER.FRIE.API_INVOKE_BASE_PATH}",
-            "auth_token": token,
-        },
-    }
+    url, data = get_argo_input_adapter(
+        client=client,
+        network=network,
+        label_value=label_value,
+        frie_container_id=frie_container.id,
+        argo_adapter_port=argo_adapter_port,
+        raw=raw,
+        token=token,
+    )
     try:
         perform_http_request(method=HTTPMethodEnum.POST, url=url, json=data)
     except (HttpRequestException, HttpMaxAttemptsRequestException) as error:
@@ -344,6 +265,7 @@ def run_function(engine: FunctionEngineTypeEnum, host: str, port: int, payload: 
         label=label_value,
         language=info_project.language,
         runtime=info_project.runtime,
+        method=project_metadata.function.method,
         payload=payload_obj,
     )
 
@@ -381,7 +303,7 @@ def run_function(engine: FunctionEngineTypeEnum, host: str, port: int, payload: 
 
     _, output = argo_container.exec_run(command)
     try:
-        print_json(output.decode("utf8"), indent=3)
+        print_json(output.decode("utf8"))
     except JSONDecodeError as error:
         show_error_and_exit(error=error)
 

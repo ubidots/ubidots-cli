@@ -4,18 +4,30 @@ import secrets
 import socket
 import string
 import zipfile
+from contextlib import suppress
 from pathlib import Path
 from typing import IO
 
+import requests
+import typer
 import yaml
+from docker.errors import NotFound
 
+from cli.commons.enums import MessageColorEnum
 from cli.functions.engines.docker.client import FunctionDockerClient
+from cli.functions.engines.docker.container import \
+    FunctionDockerContainerManager
+from cli.functions.engines.enums import ContainerStatusEnum
 from cli.functions.engines.enums import FunctionEngineTypeEnum
+from cli.functions.engines.enums import TargetTypeEnum
+from cli.functions.engines.exceptions import ContainerNotFoundException
 from cli.functions.engines.exceptions import EngineNotInstalledException
 from cli.functions.engines.exceptions import ImageFetchException
 from cli.functions.engines.exceptions import ImageNotAvailableLocallyException
 from cli.functions.engines.exceptions import ImageNotFoundException
 from cli.functions.engines.podman.client import FunctionPodmanClient
+from cli.functions.engines.podman.container import \
+    FunctionPodmanContainerManager
 from cli.functions.engines.settings import engine_settings
 from cli.functions.enums import FunctionLanguageEnum
 from cli.functions.enums import FunctionNodejsRuntimeLayerTypeEnum
@@ -172,8 +184,8 @@ def is_port_available(port: int) -> bool:
 
 def find_available_ports(
     ports: list[int],
-    start_range: int = engine_settings.DEFAULT_FROM_PORT,
-    end_range: int = engine_settings.DEFAULT_TO_PORT,
+    start_range: int = engine_settings.DEFAULT_START_PORT_RANGE,
+    end_range: int = engine_settings.DEFAULT_END_PORT_RANGE,
 ) -> list[int]:
     available_ports = []
     fallback_needed = len(ports)
@@ -192,3 +204,157 @@ def find_available_ports(
                 available_ports.append(port)
 
     return available_ports
+
+
+def get_external_container_port(container: object, internal_port: int) -> int:
+    next(iter(container.ports.get(internal_port, [])), {}).get("HostPort")
+
+
+def frie_container_manager(
+    container_manager: FunctionDockerContainerManager | FunctionPodmanContainerManager,
+    current_path: Path,
+    network: object,
+    image_name: str,
+    name: str,
+    label: str,
+    port: int,
+) -> tuple[object, str]:
+    def check_container_status() -> object | None:
+        if not label:
+            return None
+
+        rie_container = None
+        with suppress(ContainerNotFoundException):
+            rie_container = container_manager.get(label=label)
+
+        if rie_container is None:
+            return None
+
+        if rie_container.status == ContainerStatusEnum.RUNNING:
+            message = f"* The function with label '{label}' is already running.\n"
+            styled_message = typer.style(
+                message, fg=MessageColorEnum.WARNING, bold=True
+            )
+            typer.echo(styled_message)
+            raise typer.Exit(1)
+
+        return rie_container
+
+    container = check_container_status()
+    label_value = label if label else generate_local_function_label(name=name)
+    if container is None:
+        container = container_manager.start(
+            image_name=image_name,
+            labels={engine_settings.CONTAINER.KEY: label_value},
+            ports={
+                engine_settings.CONTAINER.FRIE.INTERNAL_PORT: (
+                    engine_settings.HOST,
+                    port,
+                )
+            },
+            volumes={str(current_path): engine_settings.CONTAINER.FRIE.VOLUME_MAPPING},
+            network_name=network.name,
+        )
+    return container, label_value
+
+
+def argo_container_manager(
+    container_manager: FunctionDockerContainerManager | FunctionPodmanContainerManager,
+    client: FunctionDockerClient | FunctionPodmanClient,
+    network: object,
+    image_name: str,
+    label_value: str,
+) -> tuple[object, int]:
+    def check_container_status() -> object | None:
+        argo_container = None
+        with suppress(NotFound):
+            argo_container = client.client.containers.get(
+                engine_settings.CONTAINER.ARGO.NAME
+            )
+        if argo_container is None:
+            return None
+
+        if argo_container.status in [
+            ContainerStatusEnum.PAUSED,
+            ContainerStatusEnum.EXITED,
+        ]:
+            argo_container.restart()
+            return argo_container
+
+        if argo_container.status == ContainerStatusEnum.RUNNING:
+            argo_adapter_port = get_external_container_port(
+                container=argo_container,
+                internal_port=engine_settings.CONTAINER.ARGO.INTERNAL_ADAPTER_PORT,
+            )
+            url = f"http://{engine_settings.HOST}:{argo_adapter_port}/{engine_settings.CONTAINER.ARGO.API_ADAPTER_BASE_PATH}/~{label_value}"
+            response = requests.get(url)
+            if response.status_code == 200:
+                requests.delete(url)
+
+        return argo_container
+
+    container = check_container_status()
+    if container is None:
+        argo_adapter_port, argo_taget_port = find_available_ports(
+            ports=[
+                engine_settings.CONTAINER.ARGO.EXTERNAL_ADAPTER_PORT,
+                engine_settings.CONTAINER.ARGO.EXTERNAL_TARGET_PORT,
+            ]
+        )
+        container = container_manager.start(
+            image_name=image_name,
+            container_name=engine_settings.CONTAINER.ARGO.NAME,
+            labels={engine_settings.CONTAINER.KEY: engine_settings.CONTAINER.ARGO.NAME},
+            ports={
+                engine_settings.CONTAINER.ARGO.INTERNAL_ADAPTER_PORT: (
+                    engine_settings.HOST,
+                    argo_adapter_port,
+                ),
+                engine_settings.CONTAINER.ARGO.INTERNAL_TARGET_PORT: (
+                    engine_settings.HOST,
+                    argo_taget_port,
+                ),
+            },
+            network_name=network.name,
+        )
+    else:
+        argo_adapter_port = get_external_container_port(
+            container=container,
+            internal_port=engine_settings.CONTAINER.ARGO.INTERNAL_ADAPTER_PORT,
+        )
+    return container, argo_adapter_port
+
+
+def get_argo_input_adapter(
+    client: FunctionDockerClient | FunctionPodmanClient,
+    network: object,
+    label_value: str,
+    frie_container_id: str,
+    argo_adapter_port: int,
+    raw: bool,
+    token: str | None,
+):
+    network_manager = client.get_network_manager()
+    network = network_manager.get(network.id)
+
+    frie_ip_address = network.attrs["Containers"][frie_container_id][
+        "IPv4Address"
+    ].split("/")[0]
+    frie_port = engine_settings.CONTAINER.FRIE.INTERNAL_PORT.split("/")[0]
+    url = f"http://{engine_settings.HOST}:{argo_adapter_port}/{engine_settings.CONTAINER.ARGO.API_ADAPTER_BASE_PATH}"
+    data = {
+        "label": label_value,
+        "path": label_value,
+        "is_strict": True,
+        "middlewares": [],
+        "target": {
+            "type": (
+                TargetTypeEnum.RIE_FUNCTION_RAW.value
+                if raw
+                else TargetTypeEnum.RIE_FUNCTION.value
+            ),
+            "url": f"http://{frie_ip_address}:{frie_port}{engine_settings.CONTAINER.FRIE.API_INVOKE_BASE_PATH}",
+            "auth_token": token,
+        },
+    }
+    return url, data
