@@ -29,10 +29,6 @@ def start(
         FunctionEngineTypeEnum,
         typer.Option(help="The engine used to serve the function.", show_default=False),
     ] = FunctionEngineTypeEnum.DOCKER,
-    host: Annotated[
-        str,
-        typer.Option(help="The hostname/IP address for the function."),
-    ] = engine_settings.HOST,
     port: Annotated[
         int,
         typer.Option(help="The host port to bind the function."),
@@ -69,7 +65,6 @@ def start(
 ):
     handlers.start_function(
         engine=engine,
-        host=host,
         port=port,
         raw=raw,
         method=method,
@@ -134,14 +129,6 @@ def run(
         FunctionEngineTypeEnum,
         typer.Option(help="The engine used to serve the function."),
     ] = FunctionEngineTypeEnum.DOCKER,
-    host: Annotated[
-        str,
-        typer.Option(help="The hostname/IP address for the function."),
-    ] = engine_settings.HOST,
-    port: Annotated[
-        int,
-        typer.Option(help="The host port to bind the function."),
-    ] = engine_settings.CONTAINER.FRIE.EXTERNAL_PORT,
     payload: Annotated[
         str,
         typer.Option(
@@ -150,7 +137,7 @@ def run(
         ),
     ] = "{}",
 ):
-    handlers.run_function(engine=engine, host=host, port=port, payload=payload)
+    handlers.run_function(engine=engine, payload=payload)
 
 
 @app.command(

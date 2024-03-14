@@ -14,11 +14,7 @@ class DockerContainerStatusModel(ContainerStatusBaseModel):
 
     @model_validator(mode="after")
     def get_ip_and_port_for_bind(self):
-        self.bind = (
-            f"{self.ports[0]['HostIp']}:{self.ports[0]['HostPort']}"
-            if self.ports
-            else ""
-        )
+        self.port = f"{self.ports[0]['HostPort']}" if self.ports else ""
         return self
 
 
@@ -31,7 +27,7 @@ class DockerContainerStatusListModel(ContainerStatusListBaseModel):
         for container in containers:
             container_model = DockerContainerStatusModel(
                 engine=FunctionEngineTypeEnum.DOCKER,
-                label=container.labels.get(engine_settings.CONTAINER.KEY, ""),
+                label=container.labels.get(engine_settings.CONTAINER.FRIE.KEY, ""),
                 ports=container.ports.get(
                     engine_settings.CONTAINER.FRIE.INTERNAL_PORT, []
                 ),

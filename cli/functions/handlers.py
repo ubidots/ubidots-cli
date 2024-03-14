@@ -73,7 +73,6 @@ def create_function(
 
 def start_function(
     engine: FunctionEngineTypeEnum,
-    host: str,
     port: int,
     raw: bool,
     method: FunctionMethodEnum,
@@ -181,7 +180,7 @@ def start_function(
     ) as error:
         show_error_and_exit(error=error)
 
-    url, data = get_argo_input_adapter(
+    adapter_url, data = get_argo_input_adapter(
         client=client,
         network=network,
         label_value=label_value,
@@ -191,13 +190,15 @@ def start_function(
         token=token,
     )
     try:
-        perform_http_request(method=HTTPMethodEnum.POST, url=url, json=data)
+        perform_http_request(method=HTTPMethodEnum.POST, url=adapter_url, json=data)
     except (HttpRequestException, HttpMaxAttemptsRequestException) as error:
         show_error_and_exit(error=error)
 
+    argo_target_port = engine_settings.CONTAINER.ARGO.INTERNAL_TARGET_PORT.split("/")[0]
+    target_url = f"http://{engine_settings.HOST}:{argo_target_port}/{label_value}"
     typer.echo(
         typer.style(
-            f"* Function '{label_value}' started successfully!\n",
+            f"> Function '{label_value}' started successfully!\n[URL]: {target_url}",
             fg=MessageColorEnum.SUCCESS,
             bold=True,
         )
@@ -240,7 +241,7 @@ def logs_function(engine: FunctionEngineTypeEnum, label: str, tail: str, follow:
     typer.echo(container_logs)
 
 
-def run_function(engine: FunctionEngineTypeEnum, host: str, port: int, payload: str):
+def run_function(engine: FunctionEngineTypeEnum, payload: str):
     try:
         payload_obj = json.loads(payload)
     except (TypeError, JSONDecodeError) as error:
@@ -292,8 +293,8 @@ def run_function(engine: FunctionEngineTypeEnum, host: str, port: int, payload: 
     install_command = ["/bin/sh", "-c", "apt-get update && apt-get install -y curl"]
     _, output = argo_container.exec_run(install_command, user="root")
 
-    argo_port = engine_settings.CONTAINER.ARGO.INTERNAL_TARGET_PORT.split("/")[0]
-    url = f"http://{host}:{argo_port}/{label_value}"
+    argo_target_port = engine_settings.CONTAINER.ARGO.INTERNAL_TARGET_PORT.split("/")[0]
+    url = f"http://{engine_settings.HOST}:{argo_target_port}/{label_value}"
     method = project_metadata.function.method
     command = (
         f"curl '{url}' -d '{payload}'"

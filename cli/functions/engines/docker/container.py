@@ -28,14 +28,14 @@ class FunctionDockerContainerManager(AbstractContainerManager):
         return status_model.containers
 
     def get(self, label: str) -> Container:
-        label_pair = f"{engine_settings.CONTAINER.KEY}={label}"
+        label_pair = f"{engine_settings.CONTAINER.FRIE.KEY}={label}"
         containers = self.list(label=label_pair)
         container = next(iter(containers), None)
         if container is None:
             raise ContainerNotFoundException(label=label)
         return container
 
-    def list(self, label: str = engine_settings.CONTAINER.KEY) -> list[Container]:
+    def list(self, label: str = engine_settings.CONTAINER.FRIE.KEY) -> list[Container]:
         return self.client.containers.list(filters={"label": label})
 
     def logs(

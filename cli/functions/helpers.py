@@ -25,6 +25,8 @@ from cli.functions.engines.exceptions import EngineNotInstalledException
 from cli.functions.engines.exceptions import ImageFetchException
 from cli.functions.engines.exceptions import ImageNotAvailableLocallyException
 from cli.functions.engines.exceptions import ImageNotFoundException
+from cli.functions.engines.models import ArgoAdapterBaseModel
+from cli.functions.engines.models import ArgoAdapterTargetBaseModel
 from cli.functions.engines.podman.client import FunctionPodmanClient
 from cli.functions.engines.podman.container import \
     FunctionPodmanContainerManager
@@ -207,7 +209,7 @@ def find_available_ports(
 
 
 def get_external_container_port(container: object, internal_port: int) -> int:
-    next(iter(container.ports.get(internal_port, [])), {}).get("HostPort")
+    return next(iter(container.ports.get(internal_port, [])), {}).get("HostPort")
 
 
 def frie_container_manager(
@@ -245,7 +247,7 @@ def frie_container_manager(
     if container is None:
         container = container_manager.start(
             image_name=image_name,
-            labels={engine_settings.CONTAINER.KEY: label_value},
+            labels={engine_settings.CONTAINER.FRIE.KEY: label_value},
             ports={
                 engine_settings.CONTAINER.FRIE.INTERNAL_PORT: (
                     engine_settings.HOST,
@@ -304,7 +306,9 @@ def argo_container_manager(
         container = container_manager.start(
             image_name=image_name,
             container_name=engine_settings.CONTAINER.ARGO.NAME,
-            labels={engine_settings.CONTAINER.KEY: engine_settings.CONTAINER.ARGO.NAME},
+            labels={
+                engine_settings.CONTAINER.ARGO.KEY: engine_settings.CONTAINER.ARGO.NAME
+            },
             ports={
                 engine_settings.CONTAINER.ARGO.INTERNAL_ADAPTER_PORT: (
                     engine_settings.HOST,
@@ -333,7 +337,7 @@ def get_argo_input_adapter(
     argo_adapter_port: int,
     raw: bool,
     token: str | None,
-):
+) -> tuple[str, dict]:
     network_manager = client.get_network_manager()
     network = network_manager.get(network.id)
 
@@ -342,19 +346,15 @@ def get_argo_input_adapter(
     ].split("/")[0]
     frie_port = engine_settings.CONTAINER.FRIE.INTERNAL_PORT.split("/")[0]
     url = f"http://{engine_settings.HOST}:{argo_adapter_port}/{engine_settings.CONTAINER.ARGO.API_ADAPTER_BASE_PATH}"
-    data = {
-        "label": label_value,
-        "path": label_value,
-        "is_strict": True,
-        "middlewares": [],
-        "target": {
-            "type": (
-                TargetTypeEnum.RIE_FUNCTION_RAW.value
-                if raw
-                else TargetTypeEnum.RIE_FUNCTION.value
+    data = ArgoAdapterBaseModel(
+        label=label_value,
+        path=label_value,
+        target=ArgoAdapterTargetBaseModel(
+            type=(
+                TargetTypeEnum.RIE_FUNCTION_RAW if raw else TargetTypeEnum.RIE_FUNCTION
             ),
-            "url": f"http://{frie_ip_address}:{frie_port}{engine_settings.CONTAINER.FRIE.API_INVOKE_BASE_PATH}",
-            "auth_token": token,
-        },
-    }
-    return url, data
+            url=f"http://{frie_ip_address}:{frie_port}{engine_settings.CONTAINER.FRIE.API_INVOKE_BASE_PATH}",
+            auth_token=token,
+        ),
+    )
+    return url, data.model_dump()

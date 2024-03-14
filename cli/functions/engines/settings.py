@@ -8,6 +8,7 @@ from cli.functions.engines.enums import ContainerNetworkModeEnum
 
 class ArgoContainerSettings(BaseModel):
     NAME: str = "argo"
+    KEY: str = "ubidots_cli_argo"
     API_ADAPTER_BASE_PATH: str = "api/v2/adapter"
     INTERNAL_ADAPTER_PORT: str = "8040/tcp"
     INTERNAL_TARGET_PORT: str = "8042/tcp"
@@ -17,6 +18,7 @@ class ArgoContainerSettings(BaseModel):
 
 class FunctionRIEContainerSettings(BaseModel):
     PREFIX_NAME: str = "frie"
+    KEY: str = "ubidots_cli_function"
     API_INVOKE_BASE_PATH: str = "/2015-03-31/functions/function/invocations"
     INTERNAL_PORT: str = "8080/tcp"
     EXTERNAL_PORT: int = 9000
@@ -28,7 +30,6 @@ class FunctionRIEContainerSettings(BaseModel):
 class ContainerSettings(BaseModel):
     ARGO: ArgoContainerSettings = ArgoContainerSettings()
     FRIE: FunctionRIEContainerSettings = FunctionRIEContainerSettings()
-    KEY: str = "ubidots_cli_container"
     LABEL_PREFIX: str = "lambda_dev"
     IS_DETACH: bool = True
     NETWORK_NAME: str = "ubidots_cli_function_rie"

@@ -4,14 +4,38 @@ from pydantic import field_validator
 
 from cli.functions.engines.enums import ContainerStatusEnum
 from cli.functions.engines.enums import FunctionEngineTypeEnum
+from cli.functions.engines.enums import TargetTypeEnum
+from cli.functions.enums import FunctionMethodEnum
 
 
 class ContainerStatusBaseModel(BaseModel):
     engine: FunctionEngineTypeEnum | str = ""
     label: str = ""
-    bind: str = ""
+    port: str = ""
     status: ContainerStatusEnum | str = ""
     raw: bool = Field(default=True)
+    url: str = ""
+
+
+class ArgoAdapterMiddlewareBaseModel(BaseModel):
+    type: str = "allowed_methods"
+    methods: list[str] = [FunctionMethodEnum.GET, FunctionMethodEnum.POST]
+
+
+class ArgoAdapterTargetBaseModel(BaseModel):
+    type: TargetTypeEnum
+    url: str
+    auth_token: str = ""
+
+
+class ArgoAdapterBaseModel(BaseModel):
+    label: str
+    path: str
+    is_strict: bool = Field(default=True)
+    middlewares: list[ArgoAdapterMiddlewareBaseModel] = Field(
+        default=[ArgoAdapterMiddlewareBaseModel()]
+    )
+    target: ArgoAdapterTargetBaseModel
 
 
 class ContainerStatusListBaseModel(BaseModel):
