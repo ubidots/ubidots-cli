@@ -11,8 +11,7 @@ from cli.commons.validators import is_valid_object_id
 from cli.functions.engines.enums import FunctionEngineTypeEnum
 from cli.functions.enums import FunctionLanguageEnum
 from cli.functions.enums import FunctionMethodEnum
-from cli.functions.enums import FunctionNodejsRuntimeLayerTypeEnum
-from cli.functions.enums import FunctionPythonRuntimeLayerTypeEnum
+from cli.functions.enums import FunctionRuntimeLayerTypeEnum
 from cli.settings import settings
 
 
@@ -25,7 +24,7 @@ class FunctionProjectInfo(BaseModel):
     label: str = ""
     name: str = settings.FUNCTIONS.DEFAULT_PROJECT_NAME
     language: FunctionLanguageEnum
-    runtime: FunctionPythonRuntimeLayerTypeEnum | FunctionNodejsRuntimeLayerTypeEnum
+    runtime: FunctionRuntimeLayerTypeEnum
     main_file: str = ""
     created: datetime = Field(default_factory=datetime.now)
 

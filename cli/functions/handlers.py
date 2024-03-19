@@ -28,9 +28,8 @@ from cli.functions.engines.manager import FunctionEngineClientManager
 from cli.functions.engines.settings import engine_settings
 from cli.functions.enums import FunctionLanguageEnum
 from cli.functions.enums import FunctionMethodEnum
-from cli.functions.enums import FunctionNodejsRuntimeLayerTypeEnum
 from cli.functions.enums import FunctionProjectValidationTypeEnum
-from cli.functions.enums import FunctionPythonRuntimeLayerTypeEnum
+from cli.functions.enums import FunctionRuntimeLayerTypeEnum
 from cli.functions.helpers import argo_container_manager
 from cli.functions.helpers import compress_project_to_zip
 from cli.functions.helpers import ensure_project_integrity
@@ -45,17 +44,16 @@ from cli.settings import settings
 def create_function(
     name: str,
     language: FunctionLanguageEnum,
-    runtime: FunctionPythonRuntimeLayerTypeEnum | FunctionNodejsRuntimeLayerTypeEnum,
+    runtime: FunctionRuntimeLayerTypeEnum,
 ):
     project_path = Path.cwd() / name if not Path(name).is_absolute() else Path(name)
     if project_path.exists():
         typer.echo(f"A folder named '{name}' already exists.")
         raise typer.Exit(1)
 
-    language_str = language
-    template_file = settings.FUNCTIONS.TEMPLATES_PATH / f"{language_str}.zip"
+    template_file = settings.FUNCTIONS.TEMPLATES_PATH / f"{language}.zip"
     if not template_file.exists():
-        typer.echo(f"Template for '{language_str}' not found at '{template_file}'.")
+        typer.echo(f"Template for '{language}' not found at '{template_file}'.")
         raise typer.Exit(1)
 
     try:
@@ -63,7 +61,11 @@ def create_function(
         with zipfile.ZipFile(template_file, "r") as zip_ref:
             zip_ref.extractall(project_path)
         save_manifest_project_file(
-            project_path=project_path, label="", language=language, runtime=runtime
+            project_path=project_path,
+            engine=FunctionEngineTypeEnum.DOCKER,
+            label="",
+            language=language,
+            runtime=runtime,
         )
         typer.echo(f"Project {name} created in '{project_path}'.")
     except PermissionError as error:
