@@ -22,14 +22,15 @@ class FunctionDockerContainerManager(AbstractContainerManager):
         default_factory=FunctionEngineTypeEnum.DOCKER
     )
 
-    def status(self) -> list[dict[str, Any]]:
+    def status(self, label_key: str) -> list[dict[str, Any]]:
         containers = self.list()
-        status_model = DockerContainerStatusListModel.from_containers_list(containers)
+        status_model = DockerContainerStatusListModel.from_containers_list(
+            containers, label_key
+        )
         return status_model.containers
 
     def get(self, label: str) -> Container:
-        label_pair = f"{engine_settings.CONTAINER.FRIE.KEY}={label}"
-        containers = self.list(label=label_pair)
+        containers = self.list(label=label)
         container = next(iter(containers), None)
         if container is None:
             raise ContainerNotFoundException(label=label)

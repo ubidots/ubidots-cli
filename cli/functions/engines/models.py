@@ -9,10 +9,9 @@ from cli.functions.enums import FunctionMethodEnum
 
 
 class ContainerStatusBaseModel(BaseModel):
-    engine: FunctionEngineTypeEnum | str = ""
-    label: str = ""
-    port: str = ""
-    status: ContainerStatusEnum | str = ""
+    engine: FunctionEngineTypeEnum
+    label: str
+    status: ContainerStatusEnum
     raw: bool = Field(default=True)
     url: str = ""
 

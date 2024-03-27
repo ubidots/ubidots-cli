@@ -78,7 +78,13 @@ def start(
 @app.command(help="Stop the function.")
 def stop(
     label: Annotated[
-        str, typer.Argument(help="The label of function.", show_default=False)
+        str,
+        typer.Argument(
+            help=(
+                "The label of the function to stop. "
+                "Use '.' to refer to the function associated with the current directory.",
+            )
+        ),
     ],
     engine: Annotated[
         FunctionEngineTypeEnum,

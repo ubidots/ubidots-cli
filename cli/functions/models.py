@@ -46,6 +46,7 @@ class FunctionInfo(BaseModel):
     timeout: int = 10  # Seconds
     memory_size: int = 128  # MB
     payload: dict = {}
+    url: str = ""
 
     @field_validator("id")
     @classmethod

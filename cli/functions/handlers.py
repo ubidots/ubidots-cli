@@ -37,6 +37,7 @@ from cli.functions.helpers import ensure_project_integrity
 from cli.functions.helpers import frie_container_manager
 from cli.functions.helpers import get_argo_input_adapter
 from cli.functions.helpers import get_or_create_network
+from cli.functions.helpers import read_manifest_project_file
 from cli.functions.helpers import save_manifest_project_file
 from cli.functions.helpers import verify_and_fetch_images
 from cli.settings import settings
@@ -130,20 +131,6 @@ def start_function(
     ) as error:
         show_error_and_exit(error=error)
 
-    save_manifest_project_file(
-        project_path=current_path,
-        engine=engine,
-        label=label_value,
-        language=info_project.language,
-        runtime=info_project.runtime,
-        raw=raw,
-        method=method,
-        token=token,
-        cors=cors,
-        cron=cron,
-        timeout=timeout,
-    )
-
     typer.echo("")
     typer.echo("  ------------------")
     typer.echo("  Starting Function:")
@@ -204,13 +191,38 @@ def start_function(
         )
     )
 
+    save_manifest_project_file(
+        project_path=current_path,
+        engine=engine,
+        label=label_value,
+        language=info_project.language,
+        runtime=info_project.runtime,
+        raw=raw,
+        method=method,
+        token=token,
+        cors=cors,
+        cron=cron,
+        timeout=timeout,
+        url=target_url,
+    )
+
 
 def stop_function(engine: FunctionEngineTypeEnum, label: str):
+    if label == ".":
+        current_path = Path.cwd()
+        try:
+            project_metadata = read_manifest_project_file(project_path=current_path)
+        except (FileNotFoundError, ValueError) as error:
+            show_error_and_exit(error=error)
+
+        label = project_metadata.project.label
+
     engine_manager = FunctionEngineClientManager(engine=engine)
     client = engine_manager.get_client()
     container_manager = client.get_container_manager()
+    label_pair = f"{engine_settings.CONTAINER.FRIE.KEY}={label}"
     try:
-        container_manager.stop(label=label)
+        container_manager.stop(label=label_pair)
         typer.echo(
             typer.style(
                 f"* Function '{label}' stoped successfully\n",
@@ -226,7 +238,9 @@ def status_function(engine: FunctionEngineTypeEnum):
     engine_manager = FunctionEngineClientManager(engine=engine)
     client = engine_manager.get_client()
     container_manager = client.get_container_manager()
-    container_status = container_manager.status()
+    container_status = container_manager.status(
+        label_key=engine_settings.CONTAINER.FRIE.KEY
+    )
     print_colored_table(results=container_status)
 
 
@@ -234,8 +248,11 @@ def logs_function(engine: FunctionEngineTypeEnum, label: str, tail: str, follow:
     engine_manager = FunctionEngineClientManager(engine=engine)
     client = engine_manager.get_client()
     container_manager = client.get_container_manager()
+    label_pair = f"{engine_settings.CONTAINER.FRIE.KEY}={label}"
     try:
-        container_logs = container_manager.logs(label=label, tail=tail, follow=follow)
+        container_logs = container_manager.logs(
+            label=label_pair, tail=tail, follow=follow
+        )
     except ContainerNotFoundException as error:
         show_error_and_exit(error=error)
     typer.echo(container_logs)
@@ -285,8 +302,9 @@ def run_function(engine: FunctionEngineTypeEnum, payload: str):
         )
 
     container_manager = client.get_container_manager()
+    label_pair = f"{engine_settings.CONTAINER.FRIE.KEY}={label_value}"
     try:
-        container_manager.reload(label=label_value)
+        container_manager.reload(label=label_pair)
     except ContainerNotFoundException as error:
         show_error_and_exit(error=error)
 

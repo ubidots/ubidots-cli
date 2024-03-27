@@ -1,3 +1,8 @@
+import re
+
+from cli.functions.engines.settings import engine_settings
+
+
 class EngineException(Exception):
     """Base class for container engine-related errors."""
 
@@ -63,6 +68,17 @@ class ContainerExecutionException(ContainerException):
 
 class ContainerNotFoundException(ContainerException):
     def __init__(self, label: str):
+        container_keys = [
+            engine_settings.CONTAINER.FRIE.KEY,
+            engine_settings.CONTAINER.ARGO.KEY,
+        ]
+
+        regex_pattern = "|".join(container_keys)
+        match = re.search(regex_pattern, label)
+        if match:
+            extracted_label = label.split(match.group(0))[-1]
+            label = extracted_label.strip("=_")
+
         message = f"Function with label '{label}' does not exist."
         super().__init__(message)
 

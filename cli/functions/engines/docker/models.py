@@ -1,36 +1,21 @@
 from docker.models.containers import Container
-from pydantic import Field
-from pydantic import model_validator
 
 from cli.functions.engines.enums import ContainerStatusEnum
 from cli.functions.engines.enums import FunctionEngineTypeEnum
 from cli.functions.engines.models import ContainerStatusBaseModel
 from cli.functions.engines.models import ContainerStatusListBaseModel
-from cli.functions.engines.settings import engine_settings
-
-
-class DockerContainerStatusModel(ContainerStatusBaseModel):
-    ports: list[dict] = Field(exclude=True)
-
-    @model_validator(mode="after")
-    def get_ip_and_port_for_bind(self):
-        self.port = f"{self.ports[0]['HostPort']}" if self.ports else ""
-        return self
 
 
 class DockerContainerStatusListModel(ContainerStatusListBaseModel):
     @classmethod
     def from_containers_list(
-        cls, containers: list[Container]
+        cls, containers: list[Container], label_key: str
     ) -> "DockerContainerStatusListModel":
         container_models = []
         for container in containers:
-            container_model = DockerContainerStatusModel(
+            container_model = ContainerStatusBaseModel(
                 engine=FunctionEngineTypeEnum.DOCKER,
-                label=container.labels.get(engine_settings.CONTAINER.FRIE.KEY, ""),
-                ports=container.ports.get(
-                    engine_settings.CONTAINER.FRIE.INTERNAL_PORT, []
-                ),
+                label=container.labels.get(label_key, ""),
                 status=ContainerStatusEnum(container.status),
                 raw=True,
             )
