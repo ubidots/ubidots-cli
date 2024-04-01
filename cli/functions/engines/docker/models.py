@@ -9,15 +9,20 @@ from cli.functions.engines.models import ContainerStatusListBaseModel
 class DockerContainerStatusListModel(ContainerStatusListBaseModel):
     @classmethod
     def from_containers_list(
-        cls, containers: list[Container], label_key: str
+        cls,
+        containers: list[Container],
+        container_label_key: str,
+        is_raw_label_key: str,
+        target_url_label_key: str,
     ) -> "DockerContainerStatusListModel":
         container_models = []
         for container in containers:
             container_model = ContainerStatusBaseModel(
                 engine=FunctionEngineTypeEnum.DOCKER,
-                label=container.labels.get(label_key, ""),
+                label=container.labels.get(container_label_key, ""),
                 status=ContainerStatusEnum(container.status),
-                raw=True,
+                raw=container.labels.get(is_raw_label_key, ""),
+                url=container.labels.get(target_url_label_key, ""),
             )
             container_models.append(container_model)
         return cls(containers=container_models)

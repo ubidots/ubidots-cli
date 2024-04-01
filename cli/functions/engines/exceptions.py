@@ -69,13 +69,12 @@ class ContainerExecutionException(ContainerException):
 class ContainerNotFoundException(ContainerException):
     def __init__(self, label: str):
         container_keys = [
-            engine_settings.CONTAINER.FRIE.KEY,
-            engine_settings.CONTAINER.ARGO.KEY,
+            engine_settings.CONTAINER.FRIE.LABEL_KEY,
+            engine_settings.CONTAINER.ARGO.LABEL_KEY,
         ]
 
         regex_pattern = "|".join(container_keys)
-        match = re.search(regex_pattern, label)
-        if match:
+        if match := re.search(regex_pattern, label):
             extracted_label = label.split(match.group(0))[-1]
             label = extracted_label.strip("=_")
 

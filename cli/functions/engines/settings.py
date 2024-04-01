@@ -8,7 +8,7 @@ from cli.functions.engines.enums import ContainerNetworkModeEnum
 
 class ArgoContainerSettings(BaseModel):
     NAME: str = "argo"
-    KEY: str = "ubidots_cli_argo"
+    LABEL_KEY: str = "ubidots_cli_argo"
     API_ADAPTER_BASE_PATH: str = "api/v2/adapter"
     INTERNAL_ADAPTER_PORT: str = "8040/tcp"
     INTERNAL_TARGET_PORT: str = "8042/tcp"
@@ -18,13 +18,15 @@ class ArgoContainerSettings(BaseModel):
 
 class FunctionRIEContainerSettings(BaseModel):
     PREFIX_NAME: str = "frie"
-    KEY: str = "ubidots_cli_function"
+    LABEL_KEY: str = "ubidots_cli_function"
     API_INVOKE_BASE_PATH: str = "/2015-03-31/functions/function/invocations"
     INTERNAL_PORT: str = "8080/tcp"
     EXTERNAL_PORT: int = 9000
     VOLUME_PATH: str = "/var/task"
     VOLUME_MODE: str = "rw"
     VOLUME_MAPPING: dict = {"bind": VOLUME_PATH, "mode": VOLUME_MODE}
+    IS_RAW_LABEL_KEY: str = "is_raw"
+    URL_LABEL_KEY: str = "target_url"
 
 
 class ContainerSettings(BaseModel):

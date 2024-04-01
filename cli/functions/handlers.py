@@ -124,6 +124,7 @@ def start_function(
             name=info_project.name,
             label=info_project.label,
             port=port,
+            is_raw=raw,
         )
     except (
         ContainerAlreadyRunningException,
@@ -220,7 +221,7 @@ def stop_function(engine: FunctionEngineTypeEnum, label: str):
     engine_manager = FunctionEngineClientManager(engine=engine)
     client = engine_manager.get_client()
     container_manager = client.get_container_manager()
-    label_pair = f"{engine_settings.CONTAINER.FRIE.KEY}={label}"
+    label_pair = f"{engine_settings.CONTAINER.FRIE.LABEL_KEY}={label}"
     try:
         container_manager.stop(label=label_pair)
         typer.echo(
@@ -239,7 +240,9 @@ def status_function(engine: FunctionEngineTypeEnum):
     client = engine_manager.get_client()
     container_manager = client.get_container_manager()
     container_status = container_manager.status(
-        label_key=engine_settings.CONTAINER.FRIE.KEY
+        container_label_key=engine_settings.CONTAINER.FRIE.LABEL_KEY,
+        is_raw_label_key=engine_settings.CONTAINER.FRIE.IS_RAW_LABEL_KEY,
+        target_url_label_key=engine_settings.CONTAINER.FRIE.URL_LABEL_KEY,
     )
     print_colored_table(results=container_status)
 
@@ -248,7 +251,7 @@ def logs_function(engine: FunctionEngineTypeEnum, label: str, tail: str, follow:
     engine_manager = FunctionEngineClientManager(engine=engine)
     client = engine_manager.get_client()
     container_manager = client.get_container_manager()
-    label_pair = f"{engine_settings.CONTAINER.FRIE.KEY}={label}"
+    label_pair = f"{engine_settings.CONTAINER.FRIE.LABEL_KEY}={label}"
     try:
         container_logs = container_manager.logs(
             label=label_pair, tail=tail, follow=follow
@@ -302,7 +305,7 @@ def run_function(engine: FunctionEngineTypeEnum, payload: str):
         )
 
     container_manager = client.get_container_manager()
-    label_pair = f"{engine_settings.CONTAINER.FRIE.KEY}={label_value}"
+    label_pair = f"{engine_settings.CONTAINER.FRIE.LABEL_KEY}={label_value}"
     try:
         container_manager.reload(label=label_pair)
     except ContainerNotFoundException as error:

@@ -7,6 +7,7 @@ import requests
 import typer
 from requests.exceptions import RequestException
 
+from cli.commons.enums import BoolValuesEnum
 from cli.commons.enums import HTTPMethodEnum
 from cli.commons.enums import MessageColorEnum
 from cli.commons.enums import RequestErrorEnum
@@ -131,3 +132,12 @@ def show_error_and_exit(error: Exception):
         )
     )
     raise typer.Exit(1) from error
+
+
+def str_to_bool(value: str) -> bool:
+    val_lower = value.lower()
+    for bool_value in BoolValuesEnum:
+        if val_lower in bool_value.value:
+            return bool_value == BoolValuesEnum.TRUE
+    error_message = f"The value '{value}' cannot be interpreted as a boolean."
+    raise ValueError(error_message)

@@ -220,6 +220,7 @@ def frie_container_manager(
     name: str,
     label: str,
     port: int,
+    is_raw: bool,
 ) -> tuple[object, str]:
     def check_container_status() -> object | None:
         if not label:
@@ -247,7 +248,11 @@ def frie_container_manager(
     if container is None:
         container = container_manager.start(
             image_name=image_name,
-            labels={engine_settings.CONTAINER.FRIE.KEY: label_value},
+            labels={
+                engine_settings.CONTAINER.FRIE.LABEL_KEY: label_value,
+                engine_settings.CONTAINER.FRIE.IS_RAW_LABEL_KEY: str(is_raw),
+                engine_settings.CONTAINER.FRIE.URL_LABEL_KEY: "",
+            },
             ports={
                 engine_settings.CONTAINER.FRIE.INTERNAL_PORT: (
                     engine_settings.HOST,
@@ -307,7 +312,7 @@ def argo_container_manager(
             image_name=image_name,
             container_name=engine_settings.CONTAINER.ARGO.NAME,
             labels={
-                engine_settings.CONTAINER.ARGO.KEY: engine_settings.CONTAINER.ARGO.NAME
+                engine_settings.CONTAINER.ARGO.LABEL_KEY: engine_settings.CONTAINER.ARGO.NAME
             },
             ports={
                 engine_settings.CONTAINER.ARGO.INTERNAL_ADAPTER_PORT: (

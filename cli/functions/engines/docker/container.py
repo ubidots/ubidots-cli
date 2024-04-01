@@ -22,10 +22,12 @@ class FunctionDockerContainerManager(AbstractContainerManager):
         default_factory=FunctionEngineTypeEnum.DOCKER
     )
 
-    def status(self, label_key: str) -> list[dict[str, Any]]:
+    def status(
+        self, container_label_key: str, is_raw_label_key: str, target_url_label_key: str
+    ) -> list[dict[str, Any]]:
         containers = self.list()
         status_model = DockerContainerStatusListModel.from_containers_list(
-            containers, label_key
+            containers, container_label_key, is_raw_label_key, target_url_label_key
         )
         return status_model.containers
 
@@ -36,7 +38,9 @@ class FunctionDockerContainerManager(AbstractContainerManager):
             raise ContainerNotFoundException(label=label)
         return container
 
-    def list(self, label: str = engine_settings.CONTAINER.FRIE.KEY) -> list[Container]:
+    def list(
+        self, label: str = engine_settings.CONTAINER.FRIE.LABEL_KEY
+    ) -> list[Container]:
         return self.client.containers.list(filters={"label": label})
 
     def logs(
