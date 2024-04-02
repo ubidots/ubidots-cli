@@ -217,11 +217,11 @@ def frie_container_manager(
     current_path: Path,
     network: object,
     image_name: str,
-    name: str,
     label: str,
     port: int,
     is_raw: bool,
-) -> tuple[object, str]:
+    target_url: str,
+) -> object:
     def check_container_status() -> object | None:
         if not label:
             return None
@@ -244,14 +244,14 @@ def frie_container_manager(
         return rie_container
 
     container = check_container_status()
-    label_value = label if label else generate_local_function_label(name=name)
     if container is None:
         container = container_manager.start(
             image_name=image_name,
+            container_name=label,
             labels={
-                engine_settings.CONTAINER.FRIE.LABEL_KEY: label_value,
+                engine_settings.CONTAINER.FRIE.LABEL_KEY: label,
                 engine_settings.CONTAINER.FRIE.IS_RAW_LABEL_KEY: str(is_raw),
-                engine_settings.CONTAINER.FRIE.URL_LABEL_KEY: "",
+                engine_settings.CONTAINER.FRIE.URL_LABEL_KEY: target_url,
             },
             ports={
                 engine_settings.CONTAINER.FRIE.INTERNAL_PORT: (
@@ -262,7 +262,7 @@ def frie_container_manager(
             volumes={str(current_path): engine_settings.CONTAINER.FRIE.VOLUME_MAPPING},
             network_name=network.name,
         )
-    return container, label_value
+    return container
 
 
 def argo_container_manager(
@@ -338,7 +338,7 @@ def get_argo_input_adapter(
     client: FunctionDockerClient | FunctionPodmanClient,
     network: object,
     label_value: str,
-    frie_container_id: str,
+    frie_container_name: str,
     argo_adapter_port: int,
     raw: bool,
     token: str | None,
@@ -346,9 +346,6 @@ def get_argo_input_adapter(
     network_manager = client.get_network_manager()
     network = network_manager.get(network.id)
 
-    frie_ip_address = network.attrs["Containers"][frie_container_id][
-        "IPv4Address"
-    ].split("/")[0]
     frie_port = engine_settings.CONTAINER.FRIE.INTERNAL_PORT.split("/")[0]
     url = f"http://{engine_settings.HOST}:{argo_adapter_port}/{engine_settings.CONTAINER.ARGO.API_ADAPTER_BASE_PATH}"
     data = ArgoAdapterBaseModel(
@@ -358,7 +355,7 @@ def get_argo_input_adapter(
             type=(
                 TargetTypeEnum.RIE_FUNCTION_RAW if raw else TargetTypeEnum.RIE_FUNCTION
             ),
-            url=f"http://{frie_ip_address}:{frie_port}{engine_settings.CONTAINER.FRIE.API_INVOKE_BASE_PATH}",
+            url=f"http://{frie_container_name}:{frie_port}{engine_settings.CONTAINER.FRIE.API_INVOKE_BASE_PATH}",
             auth_token=token,
         ),
     )

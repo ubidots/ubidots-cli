@@ -35,6 +35,7 @@ from cli.functions.helpers import argo_container_manager
 from cli.functions.helpers import compress_project_to_zip
 from cli.functions.helpers import ensure_project_integrity
 from cli.functions.helpers import frie_container_manager
+from cli.functions.helpers import generate_local_function_label
 from cli.functions.helpers import get_argo_input_adapter
 from cli.functions.helpers import get_or_create_network
 from cli.functions.helpers import read_manifest_project_file
@@ -114,23 +115,11 @@ def start_function(
     network = get_or_create_network(client=client)
     container_manager = client.get_container_manager()
     info_project = project_metadata.project
-
-    try:
-        frie_container, label_value = frie_container_manager(
-            container_manager=container_manager,
-            current_path=current_path,
-            network=network,
-            image_name=function_image_name,
-            name=info_project.name,
-            label=info_project.label,
-            port=port,
-            is_raw=raw,
-        )
-    except (
-        ContainerAlreadyRunningException,
-        ContainerExecutionException,
-    ) as error:
-        show_error_and_exit(error=error)
+    label_value = (
+        info_project.label
+        if info_project.label
+        else generate_local_function_label(name=info_project.name)
+    )
 
     typer.echo("")
     typer.echo("  ------------------")
@@ -140,7 +129,7 @@ def start_function(
     typer.echo(f"  Language: {info_project.language}")
     typer.echo(f"  Runtime: {info_project.runtime}")
     typer.echo(f"  Main File: {info_project.main_file}")
-    typer.echo(f"  Local Function label: {label_value}")
+    typer.echo(f"  Local label: {label_value}")
     typer.echo("")
     typer.echo("   -------")
     typer.echo("   INPUTS:")
@@ -149,9 +138,6 @@ def start_function(
     typer.echo(f"   Raw: {raw}")
     typer.echo(f"   Method: {method}")
     typer.echo(f"   Token: {token}")
-    typer.echo(f"   Cors: {cors}")
-    typer.echo(f"   Cron: {cron}")
-    typer.echo(f"   Timeout: {timeout}")
     typer.echo("")
 
     try:
@@ -172,7 +158,7 @@ def start_function(
         client=client,
         network=network,
         label_value=label_value,
-        frie_container_id=frie_container.id,
+        frie_container_name=label_value,
         argo_adapter_port=argo_adapter_port,
         raw=raw,
         token=token,
@@ -184,13 +170,22 @@ def start_function(
 
     argo_target_port = engine_settings.CONTAINER.ARGO.INTERNAL_TARGET_PORT.split("/")[0]
     target_url = f"http://{engine_settings.HOST}:{argo_target_port}/{label_value}"
-    typer.echo(
-        typer.style(
-            f"> Function '{label_value}' started successfully!\n[URL]: {target_url}",
-            fg=MessageColorEnum.SUCCESS,
-            bold=True,
+    try:
+        _ = frie_container_manager(
+            container_manager=container_manager,
+            current_path=current_path,
+            network=network,
+            image_name=function_image_name,
+            label=label_value,
+            port=port,
+            is_raw=raw,
+            target_url=target_url,
         )
-    )
+    except (
+        ContainerAlreadyRunningException,
+        ContainerExecutionException,
+    ) as error:
+        show_error_and_exit(error=error)
 
     save_manifest_project_file(
         project_path=current_path,
@@ -205,6 +200,19 @@ def start_function(
         cron=cron,
         timeout=timeout,
         url=target_url,
+    )
+
+    typer.echo("   -------")
+    typer.echo("   OUTPUT:")
+    typer.echo("   -------")
+    typer.echo(f"   Url: {target_url}")
+    typer.echo("")
+    typer.echo(
+        typer.style(
+            f"> Function '{label_value}' started successfully!\n",
+            fg=MessageColorEnum.SUCCESS,
+            bold=True,
+        )
     )
 
 
@@ -226,7 +234,7 @@ def stop_function(engine: FunctionEngineTypeEnum, label: str):
         container_manager.stop(label=label_pair)
         typer.echo(
             typer.style(
-                f"* Function '{label}' stoped successfully\n",
+                f"> Function '{label}' stoped successfully\n",
                 fg=MessageColorEnum.SUCCESS,
                 bold=True,
             )
