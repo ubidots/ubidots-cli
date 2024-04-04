@@ -4,17 +4,14 @@ from io import BytesIO
 from json import JSONDecodeError
 from pathlib import Path
 
+import httpx
 import typer
 from docker.errors import NotFound
 from rich import print_json
 
-from cli.commons.enums import HTTPMethodEnum
 from cli.commons.enums import MessageColorEnum
-from cli.commons.exceptions import HttpMaxAttemptsRequestException
-from cli.commons.exceptions import HttpRequestException
 from cli.commons.styles import print_colored_table
 from cli.commons.utils import build_endpoint
-from cli.commons.utils import perform_http_request
 from cli.commons.utils import show_error_and_exit
 from cli.functions.engines.enums import FunctionEngineTypeEnum
 from cli.functions.engines.exceptions import ContainerAlreadyRunningException
@@ -115,7 +112,7 @@ def start_function(
     network = get_or_create_network(client=client)
     container_manager = client.get_container_manager()
     info_project = project_metadata.project
-    label_value = (
+    label = (
         info_project.label
         if info_project.label
         else generate_local_function_label(name=info_project.name)
@@ -129,7 +126,7 @@ def start_function(
     typer.echo(f"  Language: {info_project.language}")
     typer.echo(f"  Runtime: {info_project.runtime}")
     typer.echo(f"  Main File: {info_project.main_file}")
-    typer.echo(f"  Local label: {label_value}")
+    typer.echo(f"  Local label: {label}")
     typer.echo("")
     typer.echo("   -------")
     typer.echo("   INPUTS:")
@@ -146,7 +143,7 @@ def start_function(
             client=client,
             network=network,
             image_name=argo_image_name,
-            label_value=label_value,
+            label=label,
         )
     except (
         ContainerAlreadyRunningException,
@@ -157,26 +154,25 @@ def start_function(
     adapter_url, data = get_argo_input_adapter(
         client=client,
         network=network,
-        label_value=label_value,
-        frie_container_name=label_value,
+        label=label,
+        frie_container_name=label,
         argo_adapter_port=argo_adapter_port,
         raw=raw,
         token=token,
     )
-    try:
-        perform_http_request(method=HTTPMethodEnum.POST, url=adapter_url, json=data)
-    except (HttpRequestException, HttpMaxAttemptsRequestException) as error:
-        show_error_and_exit(error=error)
+
+    client = httpx.Client(follow_redirects=True)
+    client.post(adapter_url, json=data)
 
     argo_target_port = engine_settings.CONTAINER.ARGO.INTERNAL_TARGET_PORT.split("/")[0]
-    target_url = f"http://{engine_settings.HOST}:{argo_target_port}/{label_value}"
+    target_url = f"http://{engine_settings.HOST}:{argo_target_port}/{label}"
     try:
         _ = frie_container_manager(
             container_manager=container_manager,
             current_path=current_path,
             network=network,
             image_name=function_image_name,
-            label=label_value,
+            label=label,
             port=port,
             is_raw=raw,
             target_url=target_url,
@@ -190,7 +186,7 @@ def start_function(
     save_manifest_project_file(
         project_path=current_path,
         engine=engine,
-        label=label_value,
+        label=label,
         language=info_project.language,
         runtime=info_project.runtime,
         raw=raw,
@@ -209,7 +205,7 @@ def start_function(
     typer.echo("")
     typer.echo(
         typer.style(
-            f"> Function '{label_value}' started successfully!\n",
+            f"> Function '{label}' started successfully!\n",
             fg=MessageColorEnum.SUCCESS,
             bold=True,
         )
@@ -372,13 +368,9 @@ def push_function(confirm: bool):
             "application/zip",
         )
     }
-    try:
-        response = perform_http_request(
-            method=HTTPMethodEnum.POST, url=url, headers=headers, files=files
-        )
-        typer.echo(response.json()["message"])
-    except HttpRequestException as error:
-        show_error_and_exit(error=error)
+
+    client = httpx.Client(follow_redirects=True)
+    client.post(url=url, headers=headers, files=files)
 
 
 def pull_function(confirm: bool):
@@ -404,12 +396,7 @@ def pull_function(confirm: bool):
         route="/api/-/functions/{function_key}/zip-file/",
         function_key=project_metadata.function.id,
     )
-    try:
-        response = perform_http_request(
-            method=HTTPMethodEnum.GET, url=url, headers=headers
-        )
-    except HttpRequestException as error:
-        show_error_and_exit(error=error)
+    response = httpx.get(url, headers=headers)
 
     with zipfile.ZipFile(BytesIO(response.content), "r") as zip_ref:
         zip_ref.extractall(current_path)

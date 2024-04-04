@@ -1,9 +1,8 @@
+import httpx
 import typer
 
-from cli.commons.enums import HTTPMethodEnum
 from cli.commons.styles import print_colored_table
 from cli.commons.utils import build_endpoint
-from cli.commons.utils import perform_http_request
 
 
 def list_variable():
@@ -11,7 +10,7 @@ def list_variable():
         route="/api/v2.0/variables/",
         query_params={"fields": "id,label,type,unit,syntheticExpression,device"},
     )
-    response = perform_http_request(method=HTTPMethodEnum.GET, url=url, headers=headers)
+    response = httpx.get(url, headers=headers)
     print_colored_table(
         results=response.json()["results"],
         sub_keys_to_show={"device": ["id", "label"]},
@@ -24,7 +23,7 @@ def retrieve_variable(variable_key: str):
         variable_key=variable_key,
         query_params={"fields": "id,label,type,unit,syntheticExpression,device"},
     )
-    response = perform_http_request(method=HTTPMethodEnum.GET, url=url, headers=headers)
+    response = httpx.get(url, headers=headers)
     print_colored_table(
         results=[response.json()], sub_keys_to_show={"device": ["id", "label"]}
     )
@@ -46,9 +45,8 @@ def add_variable(**kwargs):
     url, headers = build_endpoint(
         route="/api/v2.0/variables/",
     )
-    response = perform_http_request(
-        method=HTTPMethodEnum.POST, url=url, headers=headers, data=data
-    )
+    client = httpx.Client(follow_redirects=True)
+    response = client.post(url, headers=headers, data=data)
     typer.echo(
         f"The variable with 'id={response.json()['id']}' and 'label={data['label']}' was created successfully "
         f"on device with 'device.id={response.json()['device']['id']}' "
@@ -61,5 +59,5 @@ def delete_variable(variable_key: str):
         route="/api/v2.0/variables/{variable_key}/",
         variable_key=variable_key,
     )
-    perform_http_request(method=HTTPMethodEnum.DELETE, url=url, headers=headers)
+    httpx.delete(url, headers=headers)
     typer.echo(f"The variable '{variable_key}' was removed successfully.")

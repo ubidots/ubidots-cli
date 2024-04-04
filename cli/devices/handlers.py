@@ -1,9 +1,8 @@
+import httpx
 import typer
 
-from cli.commons.enums import HTTPMethodEnum
 from cli.commons.styles import print_colored_table
 from cli.commons.utils import build_endpoint
-from cli.commons.utils import perform_http_request
 
 
 def list_devices():
@@ -11,7 +10,7 @@ def list_devices():
         route="/api/v2.0/devices/",
         query_params={"fields": "id,label,variablesCount"},
     )
-    response = perform_http_request(method=HTTPMethodEnum.GET, url=url, headers=headers)
+    response = httpx.get(url, headers=headers)
     print_colored_table(results=response.json()["results"])
 
 
@@ -21,7 +20,7 @@ def retrieve_device(device_key: str):
         device_key=device_key,
         query_params={"fields": "id,label,variablesCount"},
     )
-    response = perform_http_request(method=HTTPMethodEnum.GET, url=url, headers=headers)
+    response = httpx.get(url, headers=headers)
     print_colored_table(results=[response.json()])
 
 
@@ -37,9 +36,8 @@ def add_device(**kwargs):
     url, headers = build_endpoint(
         route="/api/v2.0/devices/",
     )
-    response = perform_http_request(
-        method=HTTPMethodEnum.POST, url=url, headers=headers, data=data
-    )
+    client = httpx.Client(follow_redirects=True)
+    response = client.post(url, headers=headers, data=data)
     typer.echo(
         f"The device with 'id={response.json()['id']}' and 'label={data['label']}' was created successfully."
     )
@@ -50,5 +48,5 @@ def delete_device(device_key: str):
         route="/api/v2.0/devices/{device_key}/",
         device_key=device_key,
     )
-    perform_http_request(method=HTTPMethodEnum.DELETE, url=url, headers=headers)
+    httpx.delete(url, headers=headers)
     typer.echo(f"The device '{device_key}' was removed successfully.")

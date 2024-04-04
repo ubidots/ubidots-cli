@@ -1,21 +1,12 @@
-import time
 from functools import wraps
 from typing import Annotated
-from typing import Any
 
-import requests
 import typer
-from requests.exceptions import RequestException
 
 from cli.commons.enums import BoolValuesEnum
-from cli.commons.enums import HTTPMethodEnum
 from cli.commons.enums import MessageColorEnum
-from cli.commons.enums import RequestErrorEnum
-from cli.commons.exceptions import HttpMaxAttemptsRequestException
-from cli.commons.exceptions import HttpRequestException
 from cli.commons.validators import is_valid_object_id
 from cli.config.helpers import read_cli_configuration
-from cli.settings import settings
 
 
 def build_endpoint(route: str, query_params: dict | None = None, **kwargs) -> str:
@@ -62,64 +53,6 @@ def simple_lookup_key(entity_name: str):
         return wrapper
 
     return decorator
-
-
-def retry_on_failure(
-    max_retries=settings.REQUESTS.RETRY_MAX_ATTEMPTS,
-    initial_wait=settings.REQUESTS.RETRY_DELAY,
-    backoff_factor=settings.REQUESTS.RETRY_BACKOFF_MULTIPLIER,
-):
-    def decorator(func):
-        @wraps(func)
-        def wrapper(*args, **kwargs):
-            retries = 0
-            wait = initial_wait
-            last_exception = None
-            while retries < max_retries:
-                try:
-                    return func(*args, **kwargs)
-                except HttpRequestException as error:
-                    last_exception = error
-                    time.sleep(wait)
-                    retries += 1
-                    wait *= backoff_factor
-            raise HttpMaxAttemptsRequestException(attemps=retries) from last_exception
-
-        return wrapper
-
-    return decorator
-
-
-@retry_on_failure()
-def perform_http_request(
-    method: HTTPMethodEnum, url: str, **kwargs: Any
-) -> requests.Response:
-    supported_methods = {
-        HTTPMethodEnum.GET: requests.get,
-        HTTPMethodEnum.POST: requests.post,
-        HTTPMethodEnum.PATCH: requests.patch,
-        HTTPMethodEnum.PUT: requests.put,
-        HTTPMethodEnum.DELETE: requests.delete,
-    }
-    error_messages = {
-        RequestErrorEnum.HTTP_ERROR: "HTTP error occurred.",
-        RequestErrorEnum.CONNECTION_ERROR: "Connection error occurred.",
-        RequestErrorEnum.TIMEOUT: "Timeout error occurred.",
-        RequestErrorEnum.REQUEST_EXCEPTION: "Error during request.",
-        RequestErrorEnum.UNKNOWN_ERROR: "Unknown error occurred.",
-    }
-    try:
-        response = supported_methods[method](url, **kwargs)
-        response.raise_for_status()
-        return response
-    except RequestException as error:
-        error_type = type(error).__name__
-        if not error_type:
-            error_type = RequestErrorEnum.UNKNOWN_ERROR
-        error_message = error_messages.get(RequestErrorEnum(error_type))
-        if hasattr(error.response, "content"):
-            typer.echo(f"{error_message} {error.response.content}")
-        raise HttpRequestException(message=error_message) from error
 
 
 def show_error_and_exit(error: Exception):

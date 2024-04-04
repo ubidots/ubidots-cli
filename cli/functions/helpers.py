@@ -8,7 +8,7 @@ from contextlib import suppress
 from pathlib import Path
 from typing import IO
 
-import requests
+import httpx
 import typer
 import yaml
 from docker.errors import NotFound
@@ -270,7 +270,7 @@ def argo_container_manager(
     client: FunctionDockerClient | FunctionPodmanClient,
     network: object,
     image_name: str,
-    label_value: str,
+    label: str,
 ) -> tuple[object, int]:
     def check_container_status() -> object | None:
         argo_container = None
@@ -293,10 +293,10 @@ def argo_container_manager(
                 container=argo_container,
                 internal_port=engine_settings.CONTAINER.ARGO.INTERNAL_ADAPTER_PORT,
             )
-            url = f"http://{engine_settings.HOST}:{argo_adapter_port}/{engine_settings.CONTAINER.ARGO.API_ADAPTER_BASE_PATH}/~{label_value}"
-            response = requests.get(url)
-            if response.status_code == 200:
-                requests.delete(url)
+            url = f"http://{engine_settings.HOST}:{argo_adapter_port}/{engine_settings.CONTAINER.ARGO.API_ADAPTER_BASE_PATH}/~{label}"
+            response = httpx.get(url)
+            if response.status_code == httpx.codes.OK:
+                httpx.delete(url)
 
         return argo_container
 
@@ -337,7 +337,7 @@ def argo_container_manager(
 def get_argo_input_adapter(
     client: FunctionDockerClient | FunctionPodmanClient,
     network: object,
-    label_value: str,
+    label: str,
     frie_container_name: str,
     argo_adapter_port: int,
     raw: bool,
@@ -349,8 +349,8 @@ def get_argo_input_adapter(
     frie_port = engine_settings.CONTAINER.FRIE.INTERNAL_PORT.split("/")[0]
     url = f"http://{engine_settings.HOST}:{argo_adapter_port}/{engine_settings.CONTAINER.ARGO.API_ADAPTER_BASE_PATH}"
     data = ArgoAdapterBaseModel(
-        label=label_value,
-        path=label_value,
+        label=label,
+        path=label,
         target=ArgoAdapterTargetBaseModel(
             type=(
                 TargetTypeEnum.RIE_FUNCTION_RAW if raw else TargetTypeEnum.RIE_FUNCTION

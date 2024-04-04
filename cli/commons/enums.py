@@ -20,22 +20,6 @@ class TableColorEnum(StrEnum):
     BRIGHT_MAGENTA = "bright_magenta"
 
 
-class HTTPMethodEnum(StrEnum):
-    GET = "GET"
-    POST = "POST"
-    PATCH = "PATCH"
-    PUT = "PUT"
-    DELETE = "DELETE"
-
-
-class RequestErrorEnum(StrEnum):
-    HTTP_ERROR = "HTTPError"
-    CONNECTION_ERROR = "ConnectionError"
-    TIMEOUT = "Timeout"
-    REQUEST_EXCEPTION = "RequestException"
-    UNKNOWN_ERROR = "UnknownError"
-
-
 class BoolValuesEnum(Enum):
     TRUE = ("yes", "y", "true", "t", "1")
     FALSE = ("no", "n", "false", "f", "0")
