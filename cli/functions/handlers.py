@@ -18,6 +18,7 @@ from cli.functions.engines.exceptions import ContainerAlreadyRunningException
 from cli.functions.engines.exceptions import ContainerExecutionException
 from cli.functions.engines.exceptions import ContainerNotFoundException
 from cli.functions.engines.exceptions import ContainerNotInitializedException
+from cli.functions.engines.exceptions import ContainerPortInUseException
 from cli.functions.engines.exceptions import EngineNotInstalledException
 from cli.functions.engines.exceptions import ImageFetchException
 from cli.functions.engines.exceptions import ImageNotFoundException
@@ -147,6 +148,7 @@ def start_function(
         )
     except (
         ContainerAlreadyRunningException,
+        ContainerPortInUseException,
         ContainerExecutionException,
     ) as error:
         show_error_and_exit(error=error)
@@ -179,6 +181,7 @@ def start_function(
         )
     except (
         ContainerAlreadyRunningException,
+        ContainerPortInUseException,
         ContainerExecutionException,
     ) as error:
         show_error_and_exit(error=error)
@@ -283,14 +286,20 @@ def run_function(engine: FunctionEngineTypeEnum, payload: str):
         show_error_and_exit(error=error)
 
     info_project = project_metadata.project
-    label_value = info_project.label
+    label = info_project.label
     save_manifest_project_file(
         project_path=current_path,
         engine=engine,
-        label=label_value,
+        label=label,
         language=info_project.language,
         runtime=info_project.runtime,
+        raw=project_metadata.function.is_raw,
         method=project_metadata.function.method,
+        token=project_metadata.function.token,
+        cors=project_metadata.function.has_cors,
+        cron=project_metadata.function.cron,
+        timeout=project_metadata.function.timeout,
+        url=project_metadata.function.url,
         payload=payload_obj,
     )
 
@@ -309,7 +318,7 @@ def run_function(engine: FunctionEngineTypeEnum, payload: str):
         )
 
     container_manager = client.get_container_manager()
-    label_pair = f"{engine_settings.CONTAINER.FRIE.LABEL_KEY}={label_value}"
+    label_pair = f"{engine_settings.CONTAINER.FRIE.LABEL_KEY}={label}"
     try:
         container_manager.reload(label=label_pair)
     except ContainerNotFoundException as error:
@@ -319,7 +328,7 @@ def run_function(engine: FunctionEngineTypeEnum, payload: str):
     _, output = argo_container.exec_run(install_command, user="root")
 
     argo_target_port = engine_settings.CONTAINER.ARGO.INTERNAL_TARGET_PORT.split("/")[0]
-    url = f"http://{engine_settings.HOST}:{argo_target_port}/{label_value}"
+    url = f"http://{engine_settings.HOST}:{argo_target_port}/{label}"
     method = project_metadata.function.method
     command = (
         f"curl '{url}' -d '{payload}'"

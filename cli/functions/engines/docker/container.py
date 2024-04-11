@@ -1,10 +1,11 @@
 from collections.abc import Generator
+from contextlib import suppress
 from dataclasses import field
 from typing import Any
 
 from docker import DockerClient
-from docker.errors import APIError
 from docker.errors import ContainerError
+from docker.errors import NotFound
 from docker.models.containers import Container
 
 from cli.functions.engines.abstracts.client import AbstractContainerManager
@@ -61,25 +62,22 @@ class FunctionDockerContainerManager(AbstractContainerManager):
     ) -> Container:
         kwargs = {
             "image": image_name,
+            "name": container_name,
             "labels": labels,
             "ports": ports,
             "network": network_name,
             "detach": detach,
         }
-        if container_name is not None:
-            kwargs["name"] = container_name
 
         if volumes is not None:
             kwargs["volumes"] = volumes
 
+        with suppress(NotFound):
+            if self.client.containers.get(container_name):
+                raise ContainerAlreadyRunningException(container_name=container_name)
+
         try:
             return self.client.containers.run(**kwargs)
-        except APIError as error:
-            _, port = next(
-                (ports[key] for key in engine_settings.CONTAINER.PORTS if key in ports),
-                (None, None),
-            )
-            raise ContainerAlreadyRunningException(port=port) from error
         except ContainerError as error:
             raise ContainerExecutionException from error
 

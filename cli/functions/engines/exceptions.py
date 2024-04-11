@@ -52,6 +52,15 @@ class ImageFetchException(ImageException):
 
 
 class ContainerAlreadyRunningException(ContainerException):
+    def __init__(self, container_name: str):
+        message = (
+            f"Container '{container_name}' is already running. "
+            "Please stop/remove the existing container, or use a different name."
+        )
+        super().__init__(message)
+
+
+class ContainerPortInUseException(ContainerException):
     def __init__(self, port: int):
         message = (
             f"The port {port} is already in use. "

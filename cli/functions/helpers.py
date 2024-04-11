@@ -21,6 +21,7 @@ from cli.functions.engines.enums import ContainerStatusEnum
 from cli.functions.engines.enums import FunctionEngineTypeEnum
 from cli.functions.engines.enums import TargetTypeEnum
 from cli.functions.engines.exceptions import ContainerNotFoundException
+from cli.functions.engines.exceptions import ContainerPortInUseException
 from cli.functions.engines.exceptions import EngineNotInstalledException
 from cli.functions.engines.exceptions import ImageFetchException
 from cli.functions.engines.exceptions import ImageNotAvailableLocallyException
@@ -245,6 +246,9 @@ def frie_container_manager(
 
     container = check_container_status()
     if container is None:
+        if not is_port_available(port=port):
+            raise ContainerPortInUseException(port=port)
+
         container = container_manager.start(
             image_name=image_name,
             container_name=label,
@@ -254,10 +258,7 @@ def frie_container_manager(
                 engine_settings.CONTAINER.FRIE.URL_LABEL_KEY: target_url,
             },
             ports={
-                engine_settings.CONTAINER.FRIE.INTERNAL_PORT: (
-                    engine_settings.HOST,
-                    port,
-                )
+                engine_settings.CONTAINER.FRIE.INTERNAL_PORT: port,
             },
             volumes={str(current_path): engine_settings.CONTAINER.FRIE.VOLUME_MAPPING},
             network_name=network.name,
@@ -272,12 +273,12 @@ def argo_container_manager(
     image_name: str,
     label: str,
 ) -> tuple[object, int]:
+    container_name = engine_settings.CONTAINER.ARGO.NAME
+
     def check_container_status() -> object | None:
         argo_container = None
         with suppress(NotFound):
-            argo_container = client.client.containers.get(
-                engine_settings.CONTAINER.ARGO.NAME
-            )
+            argo_container = client.client.containers.get(container_name)
         if argo_container is None:
             return None
 
@@ -310,19 +311,11 @@ def argo_container_manager(
         )
         container = container_manager.start(
             image_name=image_name,
-            container_name=engine_settings.CONTAINER.ARGO.NAME,
-            labels={
-                engine_settings.CONTAINER.ARGO.LABEL_KEY: engine_settings.CONTAINER.ARGO.NAME
-            },
+            container_name=container_name,
+            labels={engine_settings.CONTAINER.ARGO.LABEL_KEY: container_name},
             ports={
-                engine_settings.CONTAINER.ARGO.INTERNAL_ADAPTER_PORT: (
-                    engine_settings.HOST,
-                    argo_adapter_port,
-                ),
-                engine_settings.CONTAINER.ARGO.INTERNAL_TARGET_PORT: (
-                    engine_settings.HOST,
-                    argo_taget_port,
-                ),
+                engine_settings.CONTAINER.ARGO.INTERNAL_ADAPTER_PORT: argo_adapter_port,
+                engine_settings.CONTAINER.ARGO.INTERNAL_TARGET_PORT: argo_taget_port,
             },
             network_name=network.name,
         )
