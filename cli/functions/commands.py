@@ -129,23 +129,6 @@ def logs(
     handlers.logs_function(engine=engine, label=label, tail=tail, follow=follow)
 
 
-@app.command(help="Test the lambda function locally in a Docker container environment.")
-def run(
-    engine: Annotated[
-        FunctionEngineTypeEnum,
-        typer.Option(help="The engine used to serve the function."),
-    ] = FunctionEngineTypeEnum.DOCKER,
-    payload: Annotated[
-        str,
-        typer.Option(
-            help='Payload as JSON string for function testing. e.g. \'{"key": "value"}\'',
-            show_default=False,
-        ),
-    ] = "{}",
-):
-    handlers.run_function(engine=engine, payload=payload)
-
-
 @app.command(
     help="Update and synchronize your local function code with the remote server."
 )

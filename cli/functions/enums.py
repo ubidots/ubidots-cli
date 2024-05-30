@@ -31,20 +31,16 @@ class FunctionLayerTypeEnum(StrEnum):
 
 
 class FunctionPythonVersionEnum(ChoosableEnum):
-    # PYTHON_3_6 = deprecated("python:3.6")
-    # PYTHON_3_7 = deprecated("python:3.7")
     PYTHON_3_9 = "python3.9"
     PYTHON_3_11 = "python3.11"
 
 
 class FunctionNodejsVersionEnum(ChoosableEnum):
-    # NODEJS_10 = deprecated("nodejs:10")
     NODEJS_16 = "nodejs16.x"
+    NODEJS_20 = "nodejs20.x"
 
 
 class FunctionPythonRuntimeLayerTypeEnum(ChoosableEnum):
-    # PYTHON_3_6 = FunctionPythonVersionEnum.PYTHON_3_6
-    # PYTHON_3_7 = FunctionPythonVersionEnum.PYTHON_3_7
     PYTHON_3_9_LITE = (
         f"{FunctionPythonVersionEnum.PYTHON_3_9}:{FunctionLayerTypeEnum.LITE}"
     )
@@ -66,12 +62,17 @@ class FunctionPythonRuntimeLayerTypeEnum(ChoosableEnum):
 
 
 class FunctionNodejsRuntimeLayerTypeEnum(ChoosableEnum):
-    # NODEJS_10 = FunctionNodejsVersionEnum.NODEJS_10
     NODEJS_16_LITE = (
         f"{FunctionNodejsVersionEnum.NODEJS_16}:{FunctionLayerTypeEnum.LITE}"
     )
     NODEJS_16_BASE = (
         f"{FunctionNodejsVersionEnum.NODEJS_16}:{FunctionLayerTypeEnum.BASE}"
+    )
+    NODEJS_20_LITE = (
+        f"{FunctionNodejsVersionEnum.NODEJS_20}:{FunctionLayerTypeEnum.LITE}"
+    )
+    NODEJS_20_BASE = (
+        f"{FunctionNodejsVersionEnum.NODEJS_20}:{FunctionLayerTypeEnum.BASE}"
     )
 
 

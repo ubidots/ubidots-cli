@@ -55,16 +55,27 @@ def simple_lookup_key(entity_name: str):
     return decorator
 
 
-def show_error_and_exit(error: Exception):
-    message = f"* {error}\n"
+def exit_with_error_message(exception: Exception, message: str = ""):
+    message = message if message else exception
     typer.echo(
         typer.style(
-            text=message,
+            text=f"\n> {message}\n",
             fg=MessageColorEnum.ERROR,
             bold=True,
         )
     )
-    raise typer.Exit(1) from error
+    raise typer.Exit(1) from exception
+
+
+def exit_with_success_message(message: str = "Operation completed successfully."):
+    typer.echo(
+        typer.style(
+            text=f"\n> {message}\n",
+            fg=MessageColorEnum.SUCCESS,
+            bold=True,
+        )
+    )
+    raise typer.Exit(0)
 
 
 def str_to_bool(value: str) -> bool:

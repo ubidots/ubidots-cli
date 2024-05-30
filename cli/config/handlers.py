@@ -1,5 +1,5 @@
-import typer
-
+from cli.commons.utils import exit_with_error_message
+from cli.commons.utils import exit_with_success_message
 from cli.config.helpers import mask_token
 from cli.config.helpers import read_cli_configuration
 from cli.config.helpers import save_cli_configuration
@@ -12,14 +12,14 @@ def set_configuration(
 ):
     try:
         auth_method_value = AuthHeaderType[auth_method_key]
-    except KeyError as error:
+    except KeyError as exception:
         auth_method_options = [method.name for method in AuthHeaderType]
         valid_options = ", ".join(auth_method_options)
-        typer.echo(
+        error_message = (
             f"Error: '{auth_method_key}' is not a valid Authentication Method. "
             f"Valid options are: {valid_options}"
         )
-        raise typer.Exit(1) from error
+        exit_with_error_message(exception=exception, error_message=error_message)
 
     save_cli_configuration(
         APIConfigModel(
@@ -28,14 +28,15 @@ def set_configuration(
             access_token=access_token,
         )
     )
-    typer.echo("Configuration saved successfully.")
+    exit_with_success_message(message="Configuration saved successfully.")
 
 
 def get_access_token_configuration() -> tuple[str, str]:
     try:
-        access_config = read_cli_configuration()
-        original_token = access_config.access_token
-        masked_token = mask_token(token=original_token)
-        return original_token, masked_token
+        config_data = read_cli_configuration()
     except FileNotFoundError:
-        return "", ""
+        return str(None), str(None)
+
+    original_token = config_data.access_token
+    masked_token = mask_token(token=original_token)
+    return original_token, masked_token
