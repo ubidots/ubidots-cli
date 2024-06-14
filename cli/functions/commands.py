@@ -7,6 +7,7 @@ from cli.functions.engines.enums import FunctionEngineTypeEnum
 from cli.functions.engines.settings import engine_settings
 from cli.functions.enums import FunctionLanguageEnum
 from cli.functions.enums import FunctionMethodEnum
+from cli.functions.enums import FunctionRuntimeLayerTypeEnum
 from cli.settings import settings
 
 app = typer.Typer(help="Tool for managing and deploying functions via API.")
@@ -16,10 +17,39 @@ app = typer.Typer(help="Tool for managing and deploying functions via API.")
 def new(
     name: Annotated[
         str, typer.Argument(help="The name of the project folder.")
-    ] = settings.FUNCTIONS.DEFAULT_PROJECT_NAME
+    ] = settings.FUNCTIONS.DEFAULT_PROJECT_NAME,
+    runtime: Annotated[
+        FunctionRuntimeLayerTypeEnum,
+        typer.Argument(
+            help="The runtime for the function. **Required** if not in interactive mode.",
+        ),
+    ] = None,
+    interactive: Annotated[
+        bool,
+        typer.Option(
+            "--interactive",
+            "-i",
+            help=(
+                "Enable interactive mode to select language and runtime through prompts. "
+                "If not set, 'runtime' is required."
+            ),
+        ),
+    ] = False,
 ):
-    language = FunctionLanguageEnum.choose(message="Select a programming language:")
-    runtime = language.choose_runtime(message=f"Select a {language} runtime:")
+    if not interactive:
+        if runtime is None:
+            raise typer.BadParameter(
+                param_hint="RUNTIME",
+                message=[runtime.value for runtime in FunctionRuntimeLayerTypeEnum],
+            )
+        language = (
+            FunctionLanguageEnum.PYTHON
+            if runtime.value.startswith(FunctionLanguageEnum.PYTHON)
+            else FunctionLanguageEnum.NODEJS
+        )
+    else:
+        language = FunctionLanguageEnum.choose(message="Select a programming language:")
+        runtime = language.choose_runtime(message=f"Select a {language} runtime:")
     handlers.create_function(name=name, language=language, runtime=runtime)
 
 

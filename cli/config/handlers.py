@@ -5,6 +5,7 @@ from cli.config.helpers import read_cli_configuration
 from cli.config.helpers import save_cli_configuration
 from cli.config.models import APIConfigModel
 from cli.config.models import AuthHeaderType
+from cli.functions.exceptions import InvalidOptionException
 
 
 def set_configuration(
@@ -12,14 +13,14 @@ def set_configuration(
 ):
     try:
         auth_method_value = AuthHeaderType[auth_method_key]
-    except KeyError as exception:
-        auth_method_options = [method.name for method in AuthHeaderType]
-        valid_options = ", ".join(auth_method_options)
-        error_message = (
-            f"Error: '{auth_method_key}' is not a valid Authentication Method. "
-            f"Valid options are: {valid_options}"
+    except KeyError:
+        exit_with_error_message(
+            exception=InvalidOptionException(
+                invalid_option=auth_method_key,
+                valid_options=AuthHeaderType,
+                context="Authentication Method",
+            )
         )
-        exit_with_error_message(exception=exception, error_message=error_message)
 
     save_cli_configuration(
         APIConfigModel(

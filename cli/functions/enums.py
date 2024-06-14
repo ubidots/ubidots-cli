@@ -2,21 +2,8 @@ from enum import Enum
 from enum import StrEnum
 from enum import auto
 
-from InquirerPy import inquirer
-
+from cli.commons.enums import ChoosableEnum
 from cli.settings import settings
-
-
-class ChoosableEnum(StrEnum):
-    @classmethod
-    def choose(cls, message=None):
-        choices = list(cls)
-        if message is None:
-            message = f"Choose a {cls.__name__.lower()}:"
-        selected = inquirer.select(
-            message=message, choices=choices, default=choices[0]
-        ).execute()
-        return cls(selected)
 
 
 class FunctionMainFileExtensionEnum(StrEnum):
@@ -62,6 +49,43 @@ class FunctionPythonRuntimeLayerTypeEnum(ChoosableEnum):
 
 
 class FunctionNodejsRuntimeLayerTypeEnum(ChoosableEnum):
+    NODEJS_16_LITE = (
+        f"{FunctionNodejsVersionEnum.NODEJS_16}:{FunctionLayerTypeEnum.LITE}"
+    )
+    NODEJS_16_BASE = (
+        f"{FunctionNodejsVersionEnum.NODEJS_16}:{FunctionLayerTypeEnum.BASE}"
+    )
+    NODEJS_20_LITE = (
+        f"{FunctionNodejsVersionEnum.NODEJS_20}:{FunctionLayerTypeEnum.LITE}"
+    )
+    NODEJS_20_BASE = (
+        f"{FunctionNodejsVersionEnum.NODEJS_20}:{FunctionLayerTypeEnum.BASE}"
+    )
+
+
+# TODO: Ensure to update both FunctionPythonRuntimeLayerTypeEnum and FunctionNodejsRuntimeLayerTypeEnum here
+# NOTE: Changes made in FunctionPythonRuntimeLayerTypeEnum or FunctionNodejsRuntimeLayerTypeEnum should be reflected here
+class FunctionRuntimeLayerTypeEnum(StrEnum):
+    # FunctionPythonRuntimeLayerTypeEnum
+    PYTHON_3_9_LITE = (
+        f"{FunctionPythonVersionEnum.PYTHON_3_9}:{FunctionLayerTypeEnum.LITE}"
+    )
+    PYTHON_3_9_BASE = (
+        f"{FunctionPythonVersionEnum.PYTHON_3_9}:{FunctionLayerTypeEnum.BASE}"
+    )
+    PYTHON_3_9_FULL = (
+        f"{FunctionPythonVersionEnum.PYTHON_3_9}:{FunctionLayerTypeEnum.FULL}"
+    )
+    PYTHON_3_11_LITE = (
+        f"{FunctionPythonVersionEnum.PYTHON_3_11}:{FunctionLayerTypeEnum.LITE}"
+    )
+    PYTHON_3_11_BASE = (
+        f"{FunctionPythonVersionEnum.PYTHON_3_11}:{FunctionLayerTypeEnum.BASE}"
+    )
+    PYTHON_3_11_FULL = (
+        f"{FunctionPythonVersionEnum.PYTHON_3_11}:{FunctionLayerTypeEnum.FULL}"
+    )
+    # FunctionNodejsRuntimeLayerTypeEnum
     NODEJS_16_LITE = (
         f"{FunctionNodejsVersionEnum.NODEJS_16}:{FunctionLayerTypeEnum.LITE}"
     )

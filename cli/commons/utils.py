@@ -59,7 +59,7 @@ def exit_with_error_message(exception: Exception, message: str = ""):
     message = message if message else exception
     typer.echo(
         typer.style(
-            text=f"\n> {message}\n",
+            text=f"\n> [ERROR]: {message}\n",
             fg=MessageColorEnum.ERROR,
             bold=True,
         )
@@ -70,7 +70,7 @@ def exit_with_error_message(exception: Exception, message: str = ""):
 def exit_with_success_message(message: str = "Operation completed successfully."):
     typer.echo(
         typer.style(
-            text=f"\n> {message}\n",
+            text=f"\n> [DONE]: {message}\n",
             fg=MessageColorEnum.SUCCESS,
             bold=True,
         )
