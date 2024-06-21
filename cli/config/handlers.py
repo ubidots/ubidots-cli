@@ -4,22 +4,22 @@ from cli.config.helpers import mask_token
 from cli.config.helpers import read_cli_configuration
 from cli.config.helpers import save_cli_configuration
 from cli.config.models import APIConfigModel
-from cli.config.models import AuthHeaderType
+from cli.config.models import AuthHeaderTypeEnum
 from cli.functions.exceptions import InvalidOptionException
 
 
 def set_configuration(
-    api_domain: str, auth_method_key: AuthHeaderType, access_token: str
+    api_domain: str, auth_method_key: AuthHeaderTypeEnum, access_token: str
 ):
     try:
-        auth_method_value = AuthHeaderType[auth_method_key]
+        auth_method_value = AuthHeaderTypeEnum[auth_method_key]
     except KeyError:
         exit_with_error_message(
             exception=InvalidOptionException(
                 invalid_option=auth_method_key,
-                valid_options=AuthHeaderType,
+                valid_options=AuthHeaderTypeEnum,
                 context="Authentication Method",
-            )
+            ),
         )
 
     save_cli_configuration(

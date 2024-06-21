@@ -31,7 +31,7 @@ class TestFunctionNewCommandValidators:
             return_value=FunctionPythonRuntimeLayerTypeEnum.PYTHON_3_9_FULL,
         )
         # Action
-        result = self.runner.invoke(function_app, ["new", "my_function"])
+        result = self.runner.invoke(function_app, ["new", "my_function", "-i"])
         # Assert
         assert "A folder named 'my_function' already exists." in result.output
         assert result.exit_code == 1
@@ -51,7 +51,7 @@ class TestFunctionNewCommandValidators:
         )
         self.mocker.patch("pathlib.Path.exists", return_value=False)
         # Action
-        result = self.runner.invoke(function_app, ["new", "my_function"])
+        result = self.runner.invoke(function_app, ["new", "my_function", "-i"])
         # Assert
         assert (
             f"Template for '{FunctionLanguageEnum.PYTHON}' not found at"

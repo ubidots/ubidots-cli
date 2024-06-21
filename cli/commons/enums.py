@@ -9,6 +9,7 @@ class MessageColorEnum(StrEnum):
     SUCCESS = "bright_green"
     ERROR = "bright_red"
     INFO = "bright_blue"
+    HINT = "bright_magenta"
 
 
 class TableColorEnum(StrEnum):

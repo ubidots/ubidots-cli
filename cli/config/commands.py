@@ -1,6 +1,6 @@
 from cli.commons.styles import custom_prompt
 from cli.config import handlers
-from cli.config.models import AuthHeaderType
+from cli.config.models import AuthHeaderTypeEnum
 from cli.settings import settings
 
 
@@ -13,7 +13,7 @@ def config():
     auth_method_key = custom_prompt(
         "Authentication Method",
         type=str,
-        default=AuthHeaderType.TOKEN.name,
+        default=AuthHeaderTypeEnum.TOKEN.name,
     )
     original_token, masked_token = handlers.get_access_token_configuration()
     access_token_input = custom_prompt(

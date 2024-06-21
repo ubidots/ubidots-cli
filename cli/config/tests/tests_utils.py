@@ -8,7 +8,7 @@ from cli.config.helpers import mask_token
 from cli.config.helpers import read_cli_configuration
 from cli.config.helpers import save_cli_configuration
 from cli.config.models import APIConfigModel
-from cli.config.models import AuthHeaderType
+from cli.config.models import AuthHeaderTypeEnum
 from cli.settings import settings
 
 
@@ -21,7 +21,7 @@ class TestCliConfigurationUtils:
         # Setup
         config_model = APIConfigModel(
             api_domain="https://example.com",
-            auth_method=AuthHeaderType.TOKEN,
+            auth_method=AuthHeaderTypeEnum.TOKEN,
             access_token="123456",
         )
         expected_yaml = yaml.dump(config_model.to_yaml_serializable_format())
@@ -40,7 +40,7 @@ class TestCliConfigurationUtils:
         # Setup
         config_model = APIConfigModel(
             api_domain="https://example.com",
-            auth_method=AuthHeaderType.TOKEN,
+            auth_method=AuthHeaderTypeEnum.TOKEN,
             access_token="123456",
         )
         expected_yaml = yaml.dump(config_model.to_yaml_serializable_format())

@@ -1,9 +1,9 @@
 from functools import wraps
 from typing import Annotated
 
+import httpx
 import typer
 
-from cli.commons.enums import BoolValuesEnum
 from cli.commons.enums import MessageColorEnum
 from cli.commons.validators import is_valid_object_id
 from cli.config.helpers import read_cli_configuration
@@ -18,6 +18,15 @@ def build_endpoint(route: str, query_params: dict | None = None, **kwargs) -> st
 
     headers = {access_config.auth_method: access_config.access_token}
     return url, headers
+
+
+def check_response_status(response: httpx.Response):
+    if response.status_code != httpx.codes.OK:
+        response_json = response.json()
+        error_message = response_json.get("detail") or response_json.get(
+            "message", "Unknown error"
+        )
+        raise httpx.RequestError(error_message)
 
 
 def get_instance_key(id: str | None = None, label: str | None = None) -> str | None:
@@ -55,7 +64,7 @@ def simple_lookup_key(entity_name: str):
     return decorator
 
 
-def exit_with_error_message(exception: Exception, message: str = ""):
+def exit_with_error_message(exception: Exception, message: str = "", hint: str = ""):
     message = message if message else exception
     typer.echo(
         typer.style(
@@ -64,6 +73,14 @@ def exit_with_error_message(exception: Exception, message: str = ""):
             bold=True,
         )
     )
+    if hint:
+        typer.echo(
+            typer.style(
+                text=f"[HINT]: {hint}\n",
+                fg=MessageColorEnum.HINT,
+                bold=True,
+            )
+        )
     raise typer.Exit(1) from exception
 
 
@@ -76,12 +93,3 @@ def exit_with_success_message(message: str = "Operation completed successfully."
         )
     )
     raise typer.Exit(0)
-
-
-def str_to_bool(value: str) -> bool:
-    val_lower = value.lower()
-    for bool_value in BoolValuesEnum:
-        if val_lower in bool_value.value:
-            return bool_value == BoolValuesEnum.TRUE
-    error_message = f"The value '{value}' cannot be interpreted as a boolean."
-    raise ValueError(error_message)

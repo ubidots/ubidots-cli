@@ -124,8 +124,8 @@ def enumerate_project_files(project_path: Path) -> list[Path]:
 
 def ensure_project_integrity(
     project_path: Path,
-    validation_flags: dict[FunctionProjectValidationTypeEnum, bool] | None = None,
-) -> tuple[FunctionProjectMetadata, list[Path]]:
+    validation_flags: dict[FunctionProjectValidationTypeEnum, bool],
+) -> FunctionProjectMetadata:
     try:
         project_metadata = read_manifest_project_file(project_path)
         project_files = enumerate_project_files(project_path)
@@ -136,7 +136,7 @@ def ensure_project_integrity(
             validation_flags=validation_flags,
         )
         validator.run_validations()
-        return project_metadata, project_files
+        return project_metadata
     except (FileNotFoundError, ValueError) as error:
         raise error
 
