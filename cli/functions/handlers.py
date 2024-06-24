@@ -1,5 +1,4 @@
 import zipfile
-from io import BytesIO
 from pathlib import Path
 
 import httpx
@@ -7,11 +6,9 @@ import typer
 
 from cli.commons.enums import MessageColorEnum
 from cli.commons.styles import print_colored_table
-from cli.commons.utils import build_endpoint
-from cli.commons.utils import check_response_status
 from cli.commons.utils import exit_with_error_message
 from cli.commons.utils import exit_with_success_message
-from cli.functions import API_ROUTES as FUNCTION_API_ROUTES
+from cli.functions import FUNCTION_API_ROUTES
 from cli.functions.engines.enums import FunctionEngineTypeEnum
 from cli.functions.engines.exceptions import ContainerAlreadyRunningException
 from cli.functions.engines.exceptions import ContainerExecutionException
@@ -32,7 +29,6 @@ from cli.functions.exceptions import FolderAlreadyExistsException
 from cli.functions.exceptions import PermissionDeniedException
 from cli.functions.exceptions import TemplateNotFoundException
 from cli.functions.helpers import argo_container_manager
-from cli.functions.helpers import compress_project_to_zip
 from cli.functions.helpers import ensure_project_integrity
 from cli.functions.helpers import frie_container_manager
 from cli.functions.helpers import generate_local_function_label
@@ -41,6 +37,17 @@ from cli.functions.helpers import get_or_create_network
 from cli.functions.helpers import read_manifest_project_file
 from cli.functions.helpers import save_manifest_project_file
 from cli.functions.helpers import verify_and_fetch_images
+from cli.functions.pipelines import BuildEndpointStep
+from cli.functions.pipelines import CheckResponseStep
+from cli.functions.pipelines import CompressProjectStep
+from cli.functions.pipelines import ConfirmOverwriteStep
+from cli.functions.pipelines import DownloadFileStep
+from cli.functions.pipelines import ExtractProjectStep
+from cli.functions.pipelines import HttpGetRequestStep
+from cli.functions.pipelines import Pipeline
+from cli.functions.pipelines import PrintColoredTableStep
+from cli.functions.pipelines import UploadFileStep
+from cli.functions.pipelines import ValidateProjectStep
 from cli.settings import settings
 
 
@@ -76,11 +83,10 @@ def create_function(
             language=language,
             runtime=runtime,
         )
-        exit_with_success_message(
-            message=f"Project '{name}' created in '{project_path}'."
-        )
     except PermissionError as error:
         exit_with_error_message(exception=PermissionDeniedException(error=error))
+
+    exit_with_success_message(message=f"Project '{name}' created in '{project_path}'.")
 
 
 def start_function(
@@ -265,142 +271,72 @@ def status_function(engine: FunctionEngineTypeEnum):
     print_colored_table(results=container_status)
 
 
-def logs_function(engine: FunctionEngineTypeEnum, label: str, tail: str, follow: bool):
-    engine_manager = FunctionEngineClientManager(engine=engine)
-    client = engine_manager.get_client()
-    container_manager = client.get_container_manager()
-    label_pair = f"{engine_settings.CONTAINER.FRIE.LABEL_KEY}={label}"
-    try:
-        container_logs = container_manager.logs(
-            label=label_pair, tail=tail, follow=follow
-        )
-    except ContainerNotFoundException as error:
-        exit_with_error_message(exception=error)
-    typer.echo(container_logs)
+def logs_function(
+    engine: FunctionEngineTypeEnum, label: str, tail: str, follow: bool, remote: bool
+):
+    if not remote:
+        engine_manager = FunctionEngineClientManager(engine=engine)
+        client = engine_manager.get_client()
+        container_manager = client.get_container_manager()
+        label_pair = f"{engine_settings.CONTAINER.FRIE.LABEL_KEY}={label}"
+        try:
+            container_logs = container_manager.logs(
+                label=label_pair, tail=tail, follow=follow
+            )
+        except ContainerNotFoundException as error:
+            exit_with_error_message(exception=error)
+        typer.echo(container_logs)
+    else:
+        steps = [
+            ValidateProjectStep(),
+            BuildEndpointStep(FUNCTION_API_ROUTES["logs"]),
+            HttpGetRequestStep(),
+            CheckResponseStep(),
+            PrintColoredTableStep(),
+        ]
+        pipeline = Pipeline(steps)
+        pipeline.run({"project_path": Path.cwd()})
 
 
 def push_function(confirm: bool = False):
     """
-    This function pushes the current project to a remote server.
+    Pushes the current project to a remote server.
 
-    Steps:
-    1. Validate the project's integrity.
-    2. Confirm overwriting remote files if necessary.
-    3. Compress the project into a zip file.
-    4. Build the endpoint URL and headers.
-    5. Upload the zip file to the remote server.
-    6. Check the response status.
-    7. Exit with a success message.
-
-    Parameters:
-    confirm (bool) [default=False]: Indicates whether to bypass the overwrite confirmation prompt.
+    Args:
+        confirm (bool): Bypass the overwrite confirmation prompt. Default is False.
     """
-
-    # Step 1: Validate the project's integrity.
-    current_path = Path.cwd()
-    try:
-        project_metadata = ensure_project_integrity(
-            project_path=current_path,
-            validation_flags={
-                FunctionProjectValidationTypeEnum.MANIFEST_FILE: True,
-                FunctionProjectValidationTypeEnum.MAIN_FILE_PRESENCE: True,
-            },
-        )
-    except (FileNotFoundError, ValueError) as error:
-        exit_with_error_message(exception=error)
-
-    # Step 2: Confirm overwriting remote files if necessary.
-    confirm = confirm or project_metadata.globals.auto_overwrite
-    if not confirm and not typer.confirm(
-        "Are you sure you want to overwrite the remote files?"
-    ):
-        raise typer.Abort
-
-    # Step 3: Compress the project into a zip file.
-    zip_file_obj = compress_project_to_zip(current_path)
-
-    # Step 4: Build the endpoint URL and headers.
-    url, headers = build_endpoint(
-        route=FUNCTION_API_ROUTES["zip_file"],
-        function_key=project_metadata.function.id,
-    )
-    files = {
-        "zipFile": (
-            f"{project_metadata.project.name}.zip",
-            zip_file_obj,
-            "application/zip",
-        )
-    }
-
-    # Step 5: Upload the zip file to the remote server.
-    client = httpx.Client(follow_redirects=True)
-    response = client.post(url=url, headers=headers, files=files)
-
-    # Step 6: Check the response status.
-    try:
-        check_response_status(response=response)
-    except httpx.RequestError as error:
-        exit_with_error_message(exception=error)
-
-    # Step 7: Exit with a success message.
-    exit_with_success_message(message="Function uploaded successfully.")
+    steps = [
+        ValidateProjectStep(),
+        ConfirmOverwriteStep(
+            confirm=confirm,
+            message="Are you sure you want to overwrite the remote files?",
+        ),
+        CompressProjectStep(),
+        BuildEndpointStep(FUNCTION_API_ROUTES["zip_file"]),
+        UploadFileStep(),
+        CheckResponseStep(),
+    ]
+    pipeline = Pipeline(steps, success_message="Function uploaded successfully.")
+    pipeline.run({"project_path": Path.cwd()})
 
 
 def pull_function(confirm: bool = False):
     """
-    This function pulls the current project from a remote server.
+    Pulls the current project from a remote server.
 
-    Steps:
-    1. Validate the project's integrity.
-    2. Confirm overwriting local files if necessary.
-    3. Build the endpoint URL and headers.
-    4. Download the zip file from the remote server.
-    5. Check the response status.
-    6. Extract the zip file contents to the current directory.
-    7. Exit with a success message.
-
-    Parameters:
-    confirm (bool) [default=False]: Indicates whether to bypass the overwrite confirmation prompt.
+    Args:
+        confirm (bool): Bypass the overwrite confirmation prompt. Default is False.
     """
-
-    # Step 1: Validate the project's integrity.
-    current_path = Path.cwd()
-    try:
-        project_metadata = ensure_project_integrity(
-            project_path=current_path,
-            validation_flags={
-                FunctionProjectValidationTypeEnum.MANIFEST_FILE: True,
-            },
-        )
-    except (FileNotFoundError, ValueError) as error:
-        exit_with_error_message(exception=error)
-
-    # Step 2: Confirm overwriting local files if necessary.
-    confirm = confirm or project_metadata.globals.auto_overwrite
-    if not confirm and not typer.confirm(
-        "Are you sure you want to overwrite the local files?"
-    ):
-        raise typer.Abort
-
-    # Step 3: Build the endpoint URL and headers.
-
-    url, headers = build_endpoint(
-        route=FUNCTION_API_ROUTES["zip_file"],
-        function_key=project_metadata.function.id,
-    )
-
-    # Step 4: Download the zip file from the remote server.
-    response = httpx.get(url, headers=headers)
-
-    # Step 5: Check the response status.
-    try:
-        check_response_status(response=response)
-    except httpx.RequestError as error:
-        exit_with_error_message(exception=error)
-
-    # Step 6: Extract the zip file contents to the current directory.
-    with zipfile.ZipFile(BytesIO(response.content), "r") as zip_ref:
-        zip_ref.extractall(current_path)
-
-    # Step 7: Exit with a success message.
-    exit_with_success_message(message="Function downloaded successfully.")
+    steps = [
+        ValidateProjectStep(),
+        ConfirmOverwriteStep(
+            confirm=confirm,
+            message="Are you sure you want to overwrite the local files?",
+        ),
+        BuildEndpointStep(FUNCTION_API_ROUTES["zip_file"]),
+        DownloadFileStep(),
+        CheckResponseStep(),
+        ExtractProjectStep(),
+    ]
+    pipeline = Pipeline(steps, success_message="Function downloaded successfully.")
+    pipeline.run({"project_path": Path.cwd()})

@@ -155,8 +155,14 @@ def logs(
         bool,
         typer.Option("--follow/", "-f/", help="Follow log output."),
     ] = False,
+    remote: Annotated[
+        bool,
+        typer.Option("--remote/", "-r/", help="Fetch logs from the remote server."),
+    ] = False,
 ):
-    handlers.logs_function(engine=engine, label=label, tail=tail, follow=follow)
+    handlers.logs_function(
+        engine=engine, label=label, tail=tail, follow=follow, remote=remote
+    )
 
 
 @app.command(
