@@ -1,7 +1,9 @@
 from dataclasses import dataclass
 
 from docker import DockerClient
+from docker.errors import DockerException
 
+from cli.commons.utils import exit_with_error_message
 from cli.functions.engines.docker.client import FunctionDockerClient
 from cli.functions.engines.enums import FunctionEngineTypeEnum
 from cli.functions.engines.podman.client import FunctionPodmanClient
@@ -13,7 +15,11 @@ class FunctionEngineClientManager:
 
     def get_client(self) -> FunctionDockerClient | FunctionPodmanClient:
         if self.engine == FunctionEngineTypeEnum.DOCKER:
-            docker_client = DockerClient()
+            try:
+                docker_client = DockerClient()
+            except (DockerException, PermissionError) as error:
+                exit_with_error_message(exception=error)
+
             return FunctionDockerClient(client=docker_client, engine=self.engine)
 
         # if self.engine == FunctionEngineTypeEnum.PODMAN:

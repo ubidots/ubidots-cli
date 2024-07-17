@@ -4,7 +4,6 @@ import typer
 
 from cli.functions import handlers
 from cli.functions.engines.enums import FunctionEngineTypeEnum
-from cli.functions.engines.settings import engine_settings
 from cli.functions.enums import FunctionLanguageEnum
 from cli.functions.enums import FunctionMethodEnum
 from cli.functions.enums import FunctionRuntimeLayerTypeEnum
@@ -59,10 +58,6 @@ def start(
         FunctionEngineTypeEnum,
         typer.Option(help="The engine used to serve the function.", show_default=False),
     ] = FunctionEngineTypeEnum.DOCKER,
-    port: Annotated[
-        int,
-        typer.Option(help="The host port to bind the function."),
-    ] = engine_settings.CONTAINER.FRIE.EXTERNAL_PORT,
     raw: Annotated[
         bool,
         typer.Option(help="Flag to determine if the output should be in raw format."),
@@ -95,7 +90,6 @@ def start(
 ):
     handlers.start_function(
         engine=engine,
-        port=port,
         raw=raw,
         method=method,
         token=token,

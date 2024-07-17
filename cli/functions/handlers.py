@@ -91,7 +91,6 @@ def create_function(
 
 def start_function(
     engine: FunctionEngineTypeEnum,
-    port: int,
     raw: bool,
     method: FunctionMethodEnum,
     token: str,
@@ -149,14 +148,13 @@ def start_function(
     typer.echo("   -------")
     typer.echo("   INPUTS:")
     typer.echo("   -------")
-    typer.echo(f"   Port: {port}")
     typer.echo(f"   Raw: {raw}")
     typer.echo(f"   Method: {method}")
     typer.echo(f"   Token: {token}")
     typer.echo("")
 
     try:
-        _, argo_adapter_port = argo_container_manager(
+        container, argo_adapter_port = argo_container_manager(
             container_manager=container_manager,
             client=client,
             network=network,
@@ -170,6 +168,9 @@ def start_function(
     ) as error:
         exit_with_error_message(exception=error)
 
+    ip_address = container.attrs["NetworkSettings"]["Networks"][
+        engine_settings.CONTAINER.NETWORK_NAME
+    ]["IPAddress"]
     adapter_url, data = get_argo_input_adapter(
         client=client,
         network=network,
@@ -177,6 +178,7 @@ def start_function(
         frie_container_name=label,
         argo_adapter_port=argo_adapter_port,
         raw=raw,
+        ip_address=ip_address,
         token=token,
     )
 
@@ -184,7 +186,7 @@ def start_function(
     client.post(adapter_url, json=data)
 
     argo_target_port = engine_settings.CONTAINER.ARGO.INTERNAL_TARGET_PORT.split("/")[0]
-    target_url = f"http://{engine_settings.HOST}:{argo_target_port}/{label}"
+    target_url = f"http://{ip_address}:{argo_target_port}/{label}"
     try:
         frie_container_manager(
             container_manager=container_manager,
@@ -192,7 +194,6 @@ def start_function(
             network=network,
             image_name=function_image_name,
             label=label,
-            port=port,
             is_raw=raw,
             target_url=target_url,
         )

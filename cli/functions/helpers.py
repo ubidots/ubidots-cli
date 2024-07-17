@@ -11,6 +11,7 @@ from typing import IO
 import httpx
 import typer
 import yaml
+from docker.errors import APIError
 from docker.errors import NotFound
 
 from cli.commons.enums import MessageColorEnum
@@ -21,7 +22,6 @@ from cli.functions.engines.enums import ContainerStatusEnum
 from cli.functions.engines.enums import FunctionEngineTypeEnum
 from cli.functions.engines.enums import TargetTypeEnum
 from cli.functions.engines.exceptions import ContainerNotFoundException
-from cli.functions.engines.exceptions import ContainerPortInUseException
 from cli.functions.engines.exceptions import EngineNotInstalledException
 from cli.functions.engines.exceptions import ImageFetchException
 from cli.functions.engines.exceptions import ImageNotAvailableLocallyException
@@ -219,22 +219,21 @@ def frie_container_manager(
     network: object,
     image_name: str,
     label: str,
-    port: int,
     is_raw: bool,
     target_url: str,
-) -> object:
+):
     def check_container_status() -> object | None:
         if not label:
             return None
 
-        rie_container = None
+        container = None
         with suppress(ContainerNotFoundException):
-            rie_container = container_manager.get(label=label)
+            container = container_manager.get(label=label)
 
-        if rie_container is None:
+        if container is None:
             return None
 
-        if rie_container.status == ContainerStatusEnum.RUNNING:
+        if container.status == ContainerStatusEnum.RUNNING:
             message = f"* The function with label '{label}' is already running.\n"
             styled_message = typer.style(
                 message, fg=MessageColorEnum.WARNING, bold=True
@@ -242,12 +241,13 @@ def frie_container_manager(
             typer.echo(styled_message)
             raise typer.Exit(1)
 
-        return rie_container
+        return container
 
     container = check_container_status()
     if container is None:
+        port = engine_settings.CONTAINER.FRIE.EXTERNAL_PORT
         if not is_port_available(port=port):
-            raise ContainerPortInUseException(port=port)
+            port = find_available_ports(ports=[port])
 
         container = container_manager.start(
             image_name=image_name,
@@ -263,7 +263,6 @@ def frie_container_manager(
             volumes={str(current_path): engine_settings.CONTAINER.FRIE.VOLUME_MAPPING},
             network_name=network.name,
         )
-    return container
 
 
 def argo_container_manager(
@@ -272,38 +271,44 @@ def argo_container_manager(
     network: object,
     image_name: str,
     label: str,
-) -> tuple[object, int]:
+):
     container_name = engine_settings.CONTAINER.ARGO.NAME
 
     def check_container_status() -> object | None:
-        argo_container = None
+        container = None
         with suppress(NotFound):
-            argo_container = client.client.containers.get(container_name)
-        if argo_container is None:
+            container = client.client.containers.get(container_name)
+
+        if container is None:
             return None
 
-        if argo_container.status in [
-            ContainerStatusEnum.PAUSED,
-            ContainerStatusEnum.EXITED,
-        ]:
-            argo_container.restart()
-            return argo_container
+        if container.status in [ContainerStatusEnum.PAUSED, ContainerStatusEnum.EXITED]:
+            try:
+                container.restart()
+            except APIError:
+                container.remove()
+                return None
 
-        if argo_container.status == ContainerStatusEnum.RUNNING:
+            return container
+
+        if container.status == ContainerStatusEnum.RUNNING:
             argo_adapter_port = get_external_container_port(
-                container=argo_container,
+                container=container,
                 internal_port=engine_settings.CONTAINER.ARGO.INTERNAL_ADAPTER_PORT,
             )
-            url = f"http://{engine_settings.HOST}:{argo_adapter_port}/{engine_settings.CONTAINER.ARGO.API_ADAPTER_BASE_PATH}/~{label}"
+            ip_address = container.attrs["NetworkSettings"]["Networks"][
+                engine_settings.CONTAINER.NETWORK_NAME
+            ]["IPAddress"]
+            url = f"http://{ip_address}:{argo_adapter_port}/{engine_settings.CONTAINER.ARGO.API_ADAPTER_BASE_PATH}/~{label}"
             response = httpx.get(url)
             if response.status_code == httpx.codes.OK:
                 httpx.delete(url)
 
-        return argo_container
+        return container
 
     container = check_container_status()
     if container is None:
-        argo_adapter_port, argo_taget_port = find_available_ports(
+        argo_adapter_port, argo_target_port = find_available_ports(
             ports=[
                 engine_settings.CONTAINER.ARGO.EXTERNAL_ADAPTER_PORT,
                 engine_settings.CONTAINER.ARGO.EXTERNAL_TARGET_PORT,
@@ -315,7 +320,7 @@ def argo_container_manager(
             labels={engine_settings.CONTAINER.ARGO.LABEL_KEY: container_name},
             ports={
                 engine_settings.CONTAINER.ARGO.INTERNAL_ADAPTER_PORT: argo_adapter_port,
-                engine_settings.CONTAINER.ARGO.INTERNAL_TARGET_PORT: argo_taget_port,
+                engine_settings.CONTAINER.ARGO.INTERNAL_TARGET_PORT: argo_target_port,
             },
             network_name=network.name,
         )
@@ -334,13 +339,14 @@ def get_argo_input_adapter(
     frie_container_name: str,
     argo_adapter_port: int,
     raw: bool,
+    ip_address: str,
     token: str | None,
 ) -> tuple[str, dict]:
     network_manager = client.get_network_manager()
     network = network_manager.get(network.id)
 
     frie_port = engine_settings.CONTAINER.FRIE.INTERNAL_PORT.split("/")[0]
-    url = f"http://{engine_settings.HOST}:{argo_adapter_port}/{engine_settings.CONTAINER.ARGO.API_ADAPTER_BASE_PATH}"
+    url = f"http://{ip_address}:{argo_adapter_port}/{engine_settings.CONTAINER.ARGO.API_ADAPTER_BASE_PATH}"
     data = ArgoAdapterBaseModel(
         label=label,
         path=label,
