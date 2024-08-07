@@ -5,7 +5,6 @@ import httpx
 import typer
 
 from cli.commons.enums import MessageColorEnum
-from cli.commons.styles import print_colored_table
 from cli.commons.utils import exit_with_error_message
 from cli.commons.utils import exit_with_success_message
 from cli.functions import FUNCTION_API_ROUTES
@@ -43,9 +42,14 @@ from cli.functions.pipelines import CompressProjectStep
 from cli.functions.pipelines import ConfirmOverwriteStep
 from cli.functions.pipelines import DownloadFileStep
 from cli.functions.pipelines import ExtractProjectStep
+from cli.functions.pipelines import GetClientStep
+from cli.functions.pipelines import GetContainerManagerStep
+from cli.functions.pipelines import GetFunctionLogsStep
+from cli.functions.pipelines import GetFunctionStatusStep
 from cli.functions.pipelines import HttpGetRequestStep
 from cli.functions.pipelines import Pipeline
 from cli.functions.pipelines import PrintColoredTableStep
+from cli.functions.pipelines import PrintkeyStep
 from cli.functions.pipelines import UploadFileStep
 from cli.functions.pipelines import ValidateProjectStep
 from cli.settings import settings
@@ -131,7 +135,7 @@ def start_function(
     info_project = project_metadata.project
     label = (
         info_project.label
-        if info_project.label
+        if hasattr(info_project, "label")
         else generate_local_function_label(name=info_project.name)
     )
 
@@ -150,7 +154,7 @@ def start_function(
     typer.echo("   -------")
     typer.echo(f"   Raw: {raw}")
     typer.echo(f"   Method: {method}")
-    typer.echo(f"   Token: {token}")
+    typer.echo(f"   Token: {token if token else None}")
     typer.echo("")
 
     try:
@@ -261,39 +265,51 @@ def stop_function(engine: FunctionEngineTypeEnum, label: str):
 
 
 def status_function(engine: FunctionEngineTypeEnum):
-    engine_manager = FunctionEngineClientManager(engine=engine)
-    client = engine_manager.get_client()
-    container_manager = client.get_container_manager()
-    container_status = container_manager.status(
-        container_label_key=engine_settings.CONTAINER.FRIE.LABEL_KEY,
-        is_raw_label_key=engine_settings.CONTAINER.FRIE.IS_RAW_LABEL_KEY,
-        target_url_label_key=engine_settings.CONTAINER.FRIE.URL_LABEL_KEY,
-    )
-    print_colored_table(results=container_status)
+    """
+    Retrieves and displays the status of the function execution environment.
+
+    Args:
+        engine (FunctionEngineTypeEnum): The type of function engine being used.
+    """
+    steps = [
+        GetClientStep(engine=engine),
+        GetContainerManagerStep(),
+        GetFunctionStatusStep(),
+        PrintColoredTableStep(key="status"),
+    ]
+    pipeline = Pipeline(steps)
+    pipeline.run({})
 
 
 def logs_function(
     engine: FunctionEngineTypeEnum, label: str, tail: str, follow: bool, remote: bool
 ):
+    """
+    Retrieves and displays the logs of the function execution environment.
+
+    Args:
+        engine (FunctionEngineTypeEnum): The type of function engine being used.
+        label (str): The label to identify the container.
+        tail (str): The number of lines to display from the end of the logs.
+        follow (bool): Whether to continuously follow the log output.
+        remote (bool): Whether to retrieve logs from a remote server.
+    """
     if not remote:
-        engine_manager = FunctionEngineClientManager(engine=engine)
-        client = engine_manager.get_client()
-        container_manager = client.get_container_manager()
-        label_pair = f"{engine_settings.CONTAINER.FRIE.LABEL_KEY}={label}"
-        try:
-            container_logs = container_manager.logs(
-                label=label_pair, tail=tail, follow=follow
-            )
-        except ContainerNotFoundException as error:
-            exit_with_error_message(exception=error)
-        typer.echo(container_logs)
+        steps = [
+            GetClientStep(engine=engine),
+            GetContainerManagerStep(),
+            GetFunctionLogsStep(tail=tail, follow=follow),
+            PrintkeyStep(key="logs"),
+        ]
+        pipeline = Pipeline(steps)
+        pipeline.run({"container_key": label})
     else:
         steps = [
             ValidateProjectStep(),
             BuildEndpointStep(FUNCTION_API_ROUTES["logs"]),
             HttpGetRequestStep(),
             CheckResponseStep(),
-            PrintColoredTableStep(),
+            PrintColoredTableStep(key="results"),
         ]
         pipeline = Pipeline(steps)
         pipeline.run({"project_path": Path.cwd()})

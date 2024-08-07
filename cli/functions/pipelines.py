@@ -10,6 +10,9 @@ from cli.commons.utils import build_endpoint
 from cli.commons.utils import check_response_status
 from cli.commons.utils import exit_with_error_message
 from cli.commons.utils import exit_with_success_message
+from cli.functions.engines.enums import FunctionEngineTypeEnum
+from cli.functions.engines.manager import FunctionEngineClientManager
+from cli.functions.engines.settings import engine_settings
 from cli.functions.enums import FunctionProjectValidationTypeEnum
 from cli.functions.helpers import compress_project_to_zip
 from cli.functions.helpers import ensure_project_integrity
@@ -132,7 +135,7 @@ class HttpGetRequestStep(PipelineStep):
         url = data["url"]
         headers = data["headers"]
         response = httpx.get(url, headers=headers)
-        data["response"] = response
+        data["results"] = response.json()["results"]
         return data
 
 
@@ -147,8 +150,64 @@ class CheckResponseStep(PipelineStep):
 
 
 class PrintColoredTableStep(PipelineStep):
+    def __init__(self, key: str = ""):
+        self.key = key
+
     def execute(self, data):
-        response = data["response"]
-        results = response.json()["results"]
-        print_colored_table(results)
+        if self.key and self.key in data:
+            results = data[self.key]
+            print_colored_table(results)
+        return data
+
+
+class PrintkeyStep(PipelineStep):
+    def __init__(self, key: str = ""):
+        self.key = key
+
+    def execute(self, data):
+        if self.key and self.key in data:
+            text = data[self.key]
+            typer.echo(text)
+        return data
+
+
+class GetClientStep(PipelineStep):
+    def __init__(self, engine: FunctionEngineTypeEnum):
+        self.engine = engine
+
+    def execute(self, data):
+        engine_manager = FunctionEngineClientManager(engine=self.engine)
+        data["client"] = engine_manager.get_client()
+        return data
+
+
+class GetContainerManagerStep(PipelineStep):
+    def execute(self, data):
+        client = data["client"]
+        data["container_manager"] = client.get_container_manager()
+        return data
+
+
+class GetFunctionLogsStep(PipelineStep):
+    def __init__(self, tail: int | str = "all", follow: bool = False):
+        self.tail = tail
+        self.follow = follow
+
+    def execute(self, data):
+        container_key = data["container_key"]
+        container_manager = data["container_manager"]
+        data["logs"] = container_manager.logs(
+            key=container_key, tail=self.tail, follow=self.follow
+        )
+        return data
+
+
+class GetFunctionStatusStep(PipelineStep):
+    def execute(self, data):
+        container_manager = data["container_manager"]
+        data["status"] = container_manager.status(
+            container_label_key=engine_settings.CONTAINER.FRIE.LABEL_KEY,
+            is_raw_label_key=engine_settings.CONTAINER.FRIE.IS_RAW_LABEL_KEY,
+            target_url_label_key=engine_settings.CONTAINER.FRIE.URL_LABEL_KEY,
+        )
         return data
