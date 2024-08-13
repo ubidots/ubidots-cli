@@ -1,4 +1,5 @@
 import zipfile
+from dataclasses import dataclass
 from io import BytesIO
 from typing import Any
 
@@ -18,10 +19,10 @@ from cli.functions.helpers import compress_project_to_zip
 from cli.functions.helpers import ensure_project_integrity
 
 
+@dataclass
 class Pipeline:
-    def __init__(self, steps: list["PipelineStep"], success_message: str = ""):
-        self.steps = steps
-        self.success_message = success_message
+    steps: list["PipelineStep"]
+    success_message: str = ""
 
     def _handle_success(self) -> None:
         if self.success_message:
@@ -66,10 +67,10 @@ class ValidateProjectStep(PipelineStep):
         return data
 
 
+@dataclass
 class ConfirmOverwriteStep(PipelineStep):
-    def __init__(self, confirm: bool, message: str):
-        self.confirm = confirm
-        self.message = message
+    confirm: bool
+    message: str
 
     def execute(self, data: dict[str, Any]) -> dict[str, Any]:
         project_metadata = data["project_metadata"]
@@ -96,9 +97,9 @@ class ExtractProjectStep(PipelineStep):
         return data
 
 
+@dataclass
 class BuildEndpointStep(PipelineStep):
-    def __init__(self, api_route: str):
-        self.api_route = api_route
+    api_route: str
 
     def execute(self, data):
         project_metadata = data["project_metadata"]
@@ -149,9 +150,9 @@ class CheckResponseStep(PipelineStep):
         return data
 
 
+@dataclass
 class PrintColoredTableStep(PipelineStep):
-    def __init__(self, key: str = ""):
-        self.key = key
+    key: str = ""
 
     def execute(self, data):
         if self.key and self.key in data:
@@ -160,9 +161,9 @@ class PrintColoredTableStep(PipelineStep):
         return data
 
 
+@dataclass
 class PrintkeyStep(PipelineStep):
-    def __init__(self, key: str = ""):
-        self.key = key
+    key: str = ""
 
     def execute(self, data):
         if self.key and self.key in data:
@@ -171,9 +172,9 @@ class PrintkeyStep(PipelineStep):
         return data
 
 
+@dataclass
 class GetClientStep(PipelineStep):
-    def __init__(self, engine: FunctionEngineTypeEnum):
-        self.engine = engine
+    engine: FunctionEngineTypeEnum
 
     def execute(self, data):
         engine_manager = FunctionEngineClientManager(engine=self.engine)
@@ -188,10 +189,10 @@ class GetContainerManagerStep(PipelineStep):
         return data
 
 
+@dataclass
 class GetFunctionLogsStep(PipelineStep):
-    def __init__(self, tail: int | str = "all", follow: bool = False):
-        self.tail = tail
-        self.follow = follow
+    tail: int | str = "all"
+    follow: bool = False
 
     def execute(self, data):
         container_key = data["container_key"]
@@ -209,5 +210,15 @@ class GetFunctionStatusStep(PipelineStep):
             container_label_key=engine_settings.CONTAINER.FRIE.LABEL_KEY,
             is_raw_label_key=engine_settings.CONTAINER.FRIE.IS_RAW_LABEL_KEY,
             target_url_label_key=engine_settings.CONTAINER.FRIE.URL_LABEL_KEY,
+        )
+        return data
+
+
+class StopFunctionStep(PipelineStep):
+    def execute(self, data):
+        container_key = data["container_key"]
+        container_manager = data["container_manager"]
+        container_manager.stop(
+            f"{engine_settings.CONTAINER.FRIE.LABEL_KEY}={container_key}"
         )
         return data

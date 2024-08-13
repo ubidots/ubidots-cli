@@ -33,6 +33,7 @@ class ContainerSettings(BaseModel):
     ARGO: ArgoContainerSettings = ArgoContainerSettings()
     FRIE: FunctionRIEContainerSettings = FunctionRIEContainerSettings()
     LABEL_PREFIX: str = "lambda_dev"
+    DEFAULT_LABEL_LENGTH: int = 10
     IS_DETACH: bool = True
     NETWORK_NAME: str = "ubidots_cli_function_rie"
     NETWORK_DRIVER: ContainerNetworkModeEnum = ContainerNetworkModeEnum.BRIDGE

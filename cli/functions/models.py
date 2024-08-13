@@ -1,3 +1,5 @@
+import secrets
+import string
 from datetime import datetime
 
 from croniter import croniter
@@ -5,10 +7,12 @@ from pydantic import BaseModel
 from pydantic import Field
 from pydantic import field_validator
 from pydantic import model_validator
+from pydantic import root_validator
 
 from cli.commons.models import BaseYAMLDumpModel
 from cli.commons.validators import is_valid_object_id
 from cli.functions.engines.enums import FunctionEngineTypeEnum
+from cli.functions.engines.settings import engine_settings
 from cli.functions.enums import FunctionLanguageEnum
 from cli.functions.enums import FunctionMethodEnum
 from cli.functions.enums import FunctionNodejsRuntimeLayerTypeEnum
@@ -28,6 +32,18 @@ class FunctionProjectInfo(BaseModel):
     runtime: FunctionPythonRuntimeLayerTypeEnum | FunctionNodejsRuntimeLayerTypeEnum
     main_file: str = ""
     created: datetime = Field(default_factory=datetime.now)
+
+    @root_validator(pre=True)
+    def generate_label_based_on_name(cls, values):
+        if not values.get("label"):
+            suffix = "".join(
+                secrets.choice(string.ascii_letters + string.digits)
+                for _ in range(engine_settings.CONTAINER.DEFAULT_LABEL_LENGTH)
+            )
+            values["label"] = (
+                f'{engine_settings.CONTAINER.LABEL_PREFIX}_{values["name"]}_{suffix}'
+            )
+        return values
 
     @model_validator(mode="after")
     def set_main_file_based_on_language(self):

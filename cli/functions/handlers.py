@@ -11,7 +11,6 @@ from cli.functions import FUNCTION_API_ROUTES
 from cli.functions.engines.enums import FunctionEngineTypeEnum
 from cli.functions.engines.exceptions import ContainerAlreadyRunningException
 from cli.functions.engines.exceptions import ContainerExecutionException
-from cli.functions.engines.exceptions import ContainerNotFoundException
 from cli.functions.engines.exceptions import ContainerPortInUseException
 from cli.functions.engines.exceptions import EngineNotInstalledException
 from cli.functions.engines.exceptions import ImageFetchException
@@ -30,10 +29,8 @@ from cli.functions.exceptions import TemplateNotFoundException
 from cli.functions.helpers import argo_container_manager
 from cli.functions.helpers import ensure_project_integrity
 from cli.functions.helpers import frie_container_manager
-from cli.functions.helpers import generate_local_function_label
 from cli.functions.helpers import get_argo_input_adapter
 from cli.functions.helpers import get_or_create_network
-from cli.functions.helpers import read_manifest_project_file
 from cli.functions.helpers import save_manifest_project_file
 from cli.functions.helpers import verify_and_fetch_images
 from cli.functions.pipelines import BuildEndpointStep
@@ -50,6 +47,7 @@ from cli.functions.pipelines import HttpGetRequestStep
 from cli.functions.pipelines import Pipeline
 from cli.functions.pipelines import PrintColoredTableStep
 from cli.functions.pipelines import PrintkeyStep
+from cli.functions.pipelines import StopFunctionStep
 from cli.functions.pipelines import UploadFileStep
 from cli.functions.pipelines import ValidateProjectStep
 from cli.settings import settings
@@ -112,6 +110,7 @@ def start_function(
         )
     except (FileNotFoundError, ValueError) as error:
         exit_with_error_message(exception=error)
+
     engine_manager = FunctionEngineClientManager(engine=engine)
     client = engine_manager.get_client()
     # function_image_name = (
@@ -133,11 +132,7 @@ def start_function(
     network = get_or_create_network(client=client)
     container_manager = client.get_container_manager()
     info_project = project_metadata.project
-    label = (
-        info_project.label
-        if hasattr(info_project, "label")
-        else generate_local_function_label(name=info_project.name)
-    )
+    label = info_project.label
 
     typer.echo("")
     typer.echo("  ------------------")
@@ -185,7 +180,6 @@ def start_function(
         ip_address=ip_address,
         token=token,
     )
-
     client = httpx.Client(follow_redirects=True)
     client.post(adapter_url, json=data)
 
@@ -238,39 +232,18 @@ def start_function(
 
 
 def stop_function(engine: FunctionEngineTypeEnum, label: str):
-    if label == ".":
-        current_path = Path.cwd()
-        try:
-            project_metadata = read_manifest_project_file(project_path=current_path)
-        except (FileNotFoundError, ValueError) as error:
-            exit_with_error_message(exception=error)
-
-        label = project_metadata.project.label
-
-    engine_manager = FunctionEngineClientManager(engine=engine)
-    client = engine_manager.get_client()
-    container_manager = client.get_container_manager()
-    label_pair = f"{engine_settings.CONTAINER.FRIE.LABEL_KEY}={label}"
-    try:
-        container_manager.stop(label=label_pair)
-        typer.echo(
-            typer.style(
-                f"> Function '{label}' stoped successfully\n",
-                fg=MessageColorEnum.SUCCESS,
-                bold=True,
-            )
-        )
-    except ContainerNotFoundException as error:
-        exit_with_error_message(exception=error)
+    steps = [
+        GetClientStep(engine=engine),
+        GetContainerManagerStep(),
+        StopFunctionStep(),
+    ]
+    pipeline = Pipeline(
+        steps, success_message=f"Function '{label}' stoped successfully."
+    )
+    pipeline.run({"project_path": Path.cwd(), "container_key": label})
 
 
 def status_function(engine: FunctionEngineTypeEnum):
-    """
-    Retrieves and displays the status of the function execution environment.
-
-    Args:
-        engine (FunctionEngineTypeEnum): The type of function engine being used.
-    """
     steps = [
         GetClientStep(engine=engine),
         GetContainerManagerStep(),
@@ -284,26 +257,7 @@ def status_function(engine: FunctionEngineTypeEnum):
 def logs_function(
     engine: FunctionEngineTypeEnum, label: str, tail: str, follow: bool, remote: bool
 ):
-    """
-    Retrieves and displays the logs of the function execution environment.
-
-    Args:
-        engine (FunctionEngineTypeEnum): The type of function engine being used.
-        label (str): The label to identify the container.
-        tail (str): The number of lines to display from the end of the logs.
-        follow (bool): Whether to continuously follow the log output.
-        remote (bool): Whether to retrieve logs from a remote server.
-    """
-    if not remote:
-        steps = [
-            GetClientStep(engine=engine),
-            GetContainerManagerStep(),
-            GetFunctionLogsStep(tail=tail, follow=follow),
-            PrintkeyStep(key="logs"),
-        ]
-        pipeline = Pipeline(steps)
-        pipeline.run({"container_key": label})
-    else:
+    if remote:
         steps = [
             ValidateProjectStep(),
             BuildEndpointStep(FUNCTION_API_ROUTES["logs"]),
@@ -313,15 +267,18 @@ def logs_function(
         ]
         pipeline = Pipeline(steps)
         pipeline.run({"project_path": Path.cwd()})
+    else:
+        steps = [
+            GetClientStep(engine=engine),
+            GetContainerManagerStep(),
+            GetFunctionLogsStep(tail=tail, follow=follow),
+            PrintkeyStep(key="logs"),
+        ]
+        pipeline = Pipeline(steps)
+        pipeline.run({"container_key": label})
 
 
 def push_function(confirm: bool = False):
-    """
-    Pushes the current project to a remote server.
-
-    Args:
-        confirm (bool): Bypass the overwrite confirmation prompt. Default is False.
-    """
     steps = [
         ValidateProjectStep(),
         ConfirmOverwriteStep(
@@ -338,12 +295,6 @@ def push_function(confirm: bool = False):
 
 
 def pull_function(confirm: bool = False):
-    """
-    Pulls the current project from a remote server.
-
-    Args:
-        confirm (bool): Bypass the overwrite confirmation prompt. Default is False.
-    """
     steps = [
         ValidateProjectStep(),
         ConfirmOverwriteStep(

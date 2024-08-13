@@ -1,8 +1,6 @@
 import io
 import os
-import secrets
 import socket
-import string
 import zipfile
 from contextlib import suppress
 from pathlib import Path
@@ -168,16 +166,6 @@ def get_or_create_network(
     if not network:
         network = network_manager.create()
     return network
-
-
-def generate_random_suffix(length: int = 10) -> str:
-    characters = string.ascii_letters + string.digits
-    return "".join(secrets.choice(characters) for _ in range(length))
-
-
-def generate_local_function_label(name: str) -> str:
-    suffix = generate_random_suffix()
-    return f"{engine_settings.CONTAINER.LABEL_PREFIX}_{name}_{suffix}"
 
 
 def is_port_available(port: int) -> bool:
