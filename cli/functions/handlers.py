@@ -1,4 +1,3 @@
-import zipfile
 from pathlib import Path
 
 import httpx
@@ -6,7 +5,6 @@ import typer
 
 from cli.commons.enums import MessageColorEnum
 from cli.commons.utils import exit_with_error_message
-from cli.commons.utils import exit_with_success_message
 from cli.functions import FUNCTION_API_ROUTES
 from cli.functions.engines.enums import FunctionEngineTypeEnum
 from cli.functions.engines.exceptions import ContainerAlreadyRunningException
@@ -23,9 +21,6 @@ from cli.functions.enums import FunctionNodejsRuntimeLayerTypeEnum
 from cli.functions.enums import FunctionProjectValidationTypeEnum
 from cli.functions.enums import FunctionPythonRuntimeLayerTypeEnum
 from cli.functions.enums import FunctionRuntimeLayerTypeEnum
-from cli.functions.exceptions import FolderAlreadyExistsException
-from cli.functions.exceptions import PermissionDeniedException
-from cli.functions.exceptions import TemplateNotFoundException
 from cli.functions.helpers import argo_container_manager
 from cli.functions.helpers import ensure_project_integrity
 from cli.functions.helpers import frie_container_manager
@@ -37,8 +32,10 @@ from cli.functions.pipelines import BuildEndpointStep
 from cli.functions.pipelines import CheckResponseStep
 from cli.functions.pipelines import CompressProjectStep
 from cli.functions.pipelines import ConfirmOverwriteStep
+from cli.functions.pipelines import CreateProjectFolderStep
 from cli.functions.pipelines import DownloadFileStep
 from cli.functions.pipelines import ExtractProjectStep
+from cli.functions.pipelines import ExtractTemplateStep
 from cli.functions.pipelines import GetClientStep
 from cli.functions.pipelines import GetContainerManagerStep
 from cli.functions.pipelines import GetFunctionLogsStep
@@ -47,10 +44,11 @@ from cli.functions.pipelines import HttpGetRequestStep
 from cli.functions.pipelines import Pipeline
 from cli.functions.pipelines import PrintColoredTableStep
 from cli.functions.pipelines import PrintkeyStep
+from cli.functions.pipelines import SaveManifestStep
 from cli.functions.pipelines import StopFunctionStep
 from cli.functions.pipelines import UploadFileStep
 from cli.functions.pipelines import ValidateProjectStep
-from cli.settings import settings
+from cli.functions.pipelines import ValidateTemplateStep
 
 
 def create_function(
@@ -63,32 +61,22 @@ def create_function(
     ),
 ):
     project_path = Path.cwd() / name if not Path(name).is_absolute() else Path(name)
-    if project_path.exists():
-        exit_with_error_message(exception=FolderAlreadyExistsException(name=name))
-
-    template_file = settings.FUNCTIONS.TEMPLATES_PATH / f"{language}.zip"
-    if not template_file.exists():
-        exit_with_error_message(
-            exception=TemplateNotFoundException(
-                language=language, template_file=template_file
-            )
-        )
-
-    try:
-        project_path.mkdir(parents=True, exist_ok=False)
-        with zipfile.ZipFile(template_file, "r") as zip_ref:
-            zip_ref.extractall(project_path)
-        save_manifest_project_file(
-            project_path=project_path,
-            engine=FunctionEngineTypeEnum.DOCKER,
-            label="",
-            language=language,
-            runtime=runtime,
-        )
-    except PermissionError as error:
-        exit_with_error_message(exception=PermissionDeniedException(error=error))
-
-    exit_with_success_message(message=f"Project '{name}' created in '{project_path}'.")
+    steps = [
+        ValidateTemplateStep(),
+        CreateProjectFolderStep(),
+        ExtractTemplateStep(),
+        SaveManifestStep(),
+    ]
+    pipeline = Pipeline(
+        steps, success_message=f"Project '{name}' created in '{project_path}'."
+    )
+    pipeline.run(
+        {
+            "project_path": project_path,
+            "language": language,
+            "runtime": runtime,
+        }
+    )
 
 
 def start_function(

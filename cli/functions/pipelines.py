@@ -15,8 +15,13 @@ from cli.functions.engines.enums import FunctionEngineTypeEnum
 from cli.functions.engines.manager import FunctionEngineClientManager
 from cli.functions.engines.settings import engine_settings
 from cli.functions.enums import FunctionProjectValidationTypeEnum
+from cli.functions.exceptions import FolderAlreadyExistsException
+from cli.functions.exceptions import PermissionDeniedException
+from cli.functions.exceptions import TemplateNotFoundException
 from cli.functions.helpers import compress_project_to_zip
 from cli.functions.helpers import ensure_project_integrity
+from cli.functions.helpers import save_manifest_project_file
+from cli.settings import settings
 
 
 @dataclass
@@ -51,6 +56,54 @@ class PipelineStep:
         _ = data
         error_message = "Each step must implement the execute method."
         raise NotImplementedError(error_message)
+
+
+class ValidateTemplateStep(PipelineStep):
+    def execute(self, data: dict[str, Any]) -> dict[str, Any]:
+        language = data["language"]
+        template_file = settings.FUNCTIONS.TEMPLATES_PATH / f"{language}.zip"
+        if not template_file.exists():
+            raise TemplateNotFoundException(
+                language=language, template_file=template_file
+            )
+        data["template_file"] = template_file
+        return data
+
+
+class CreateProjectFolderStep(PipelineStep):
+    def execute(self, data: dict[str, Any]) -> dict[str, Any]:
+        project_path = data["project_path"]
+        if project_path.exists():
+            raise FolderAlreadyExistsException(name=project_path.name)
+        try:
+            project_path.mkdir(parents=True, exist_ok=False)
+        except PermissionError as error:
+            raise PermissionDeniedException(error=error) from error
+        return data
+
+
+class ExtractTemplateStep(PipelineStep):
+    def execute(self, data: dict[str, Any]) -> dict[str, Any]:
+        project_path = data["project_path"]
+        template_file = data["template_file"]
+        with zipfile.ZipFile(template_file, "r") as zip_ref:
+            zip_ref.extractall(project_path)
+        return data
+
+
+class SaveManifestStep(PipelineStep):
+    def execute(self, data: dict[str, Any]) -> dict[str, Any]:
+        project_path = data["project_path"]
+        language = data["language"]
+        runtime = data["runtime"]
+        save_manifest_project_file(
+            project_path=project_path,
+            engine=FunctionEngineTypeEnum.DOCKER,
+            label="",
+            language=language,
+            runtime=runtime,
+        )
+        return data
 
 
 class ValidateProjectStep(PipelineStep):
