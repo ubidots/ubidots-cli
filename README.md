@@ -3,6 +3,7 @@ This is the main repository for **Ubidots CLI**, a command-line interface for in
 
 ## Requirements
 - **[Poetry](https://python-poetry.org/)** >=1.7.1 (Project started with version 1.7.1)
+- **[Pyenv](https://github.com/pyenv/pyenv)** (For managing multiple Python versions)
 - **[Python](https://www.python.org/)** >=3.12.2 (Project started with version 3.12.2)
 - **[Docker](https://www.docker.com/)** (Currently required to execute functions)
 - **[Argo](https://bitbucket.org/ubidots/argo/src/master/)** (Use the `master_v2` branch from the Argo repository, necessary for executing functions)
@@ -16,6 +17,26 @@ git clone git@bitbucket.org:ubidots/ubidots-cli.git
 
 ### Poetry Installation
 Install Poetry using the official instructions found at [Poetry Installation Guide](https://python-poetry.org/docs/#installation).
+
+### Python Version Management with `pyenv`
+To manage multiple Python versions or ensure you're using the correct Python version for this project, `pyenv` is a recommended tool.
+
+1. **Install `pyenv`**:
+   Follow the official installation instructions found at [pyenv Installation Guide](https://github.com/pyenv/pyenv#installation).
+
+2. **Install the required Python version**:
+   Once `pyenv` is installed, you can install the specific Python version required for this project (as specified in the `.python-version` file):
+   ```bash
+   pyenv install 3.12.2
+   ```
+
+3. **Set the local Python version**:
+   To use the installed Python version for this project, set it locally:
+   ```bash
+   pyenv local 3.12.2
+   ```
+
+   This ensures that whenever you are in the project directory, `pyenv` will use the specified Python version.
 
 
 ### Python Installation
@@ -41,7 +62,7 @@ Navigate to the `ubidots-cli` directory and activate the environment using:
 poetry shell
 ```
 
-According to the configuration in `[tool.poetry.scripts] ubidots = "cli.main:app"` within the `pyproject.toml` file, you can execute the CLI using the command `ubidots`
+
 
 Run `ubidots --help` to view available CLI commands. Each command may have its subcommands. Explore these in more detail using the `--help` flag.
 ```bash

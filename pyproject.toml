@@ -12,7 +12,7 @@ packages = [
 ubidots = "cli.main:app"
 
 [tool.poetry.dependencies]
-python = ">=3.10,<3.13"
+python = ">=3.9,<3.13"
 typer = "^0.9.0"
 pyyaml = "^6.0.1"
 pydantic = "^2.5.3"
@@ -41,6 +41,7 @@ pytest-mock = "^3.12.0"
 autoflake = "^2.2.1"
 isort = "^5.13.2"
 ruff = "^0.1.14"
+tox = "^4.18"
 
 [tool.isort]
 force_single_line = true

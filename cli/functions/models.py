@@ -7,7 +7,6 @@ from pydantic import BaseModel
 from pydantic import Field
 from pydantic import field_validator
 from pydantic import model_validator
-from pydantic import root_validator
 
 from cli.commons.models import BaseYAMLDumpModel
 from cli.commons.validators import is_valid_object_id
@@ -33,7 +32,7 @@ class FunctionProjectInfo(BaseModel):
     main_file: str = ""
     created: datetime = Field(default_factory=datetime.now)
 
-    @root_validator(pre=True)
+    @model_validator(mode="before")
     def generate_label_based_on_name(cls, values):
         if not values.get("label"):
             suffix = "".join(
