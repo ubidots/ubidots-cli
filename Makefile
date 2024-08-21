@@ -12,7 +12,7 @@ help:
 	@echo "black: run black to format code."
 	@echo "isort: run isort to sort imports."
 	@echo "ruff: run ruff for linting."
-	@echo "setup-dev: setup the development environment based on .python-version."
+	@echo "setup-dev: setup the development environment."
 	@echo "validate_code: run black, isort, ruff, and tests."
 	@echo "setup-tox-env: install specified Python versions for tox compatibility using pyenv."
 	@echo "run-tox: run tests with tox for multiple Python versions."
@@ -37,23 +37,18 @@ validate_code: black isort ruff test
 update:
 	poetry update
 
-# Setup development environment based on .python-version
+# Setup development environment
 setup-dev:
-	@if [ -f .python-version ]; then \
-		PYTHON_VERSION=$(PYTHON_VERSION); \
-		if ! pyenv versions --bare | grep -q "$$PYTHON_VERSION"; then \
-			echo "Installing Python $$PYTHON_VERSION..."; \
-			pyenv install "$$PYTHON_VERSION"; \
-			echo ""; \
-		else \
-			echo "Python $$PYTHON_VERSION is already installed"; \
-		fi; \
-		pyenv local "$$PYTHON_VERSION"; \
-		poetry env use "$$PYTHON_VERSION"; \
+	@PYTHON_VERSION=$(PYTHON_VERSION); \
+	if ! pyenv versions --bare | grep -q "$$PYTHON_VERSION"; then \
+		echo "Installing Python $$PYTHON_VERSION..."; \
+		pyenv install "$$PYTHON_VERSION"; \
+		echo ""; \
 	else \
-		echo ".python-version file not found! Please ensure it exists."; \
-		exit 1; \
+		echo "Python $$PYTHON_VERSION is already installed"; \
 	fi; \
+	pyenv local "$$PYTHON_VERSION"; \
+	poetry env use "$$PYTHON_VERSION"; \
 	poetry install --with dev
 
 # Install specified Python versions for tox compatibility with pyenv
@@ -68,7 +63,7 @@ setup-tox-env:
 	done
 
 # Run tox for multiple Python versions
-run-tox:
+run-tox: setup-tox-env
 	@pyenv local $(PYTHON_VERSIONS)
 	PYTHON_VERSION=$(PYTHON_VERSION); \
 	pyenv local "$$PYTHON_VERSION"; \
