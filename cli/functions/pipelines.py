@@ -1,5 +1,6 @@
 import zipfile
 from dataclasses import dataclass
+from dataclasses import field
 from io import BytesIO
 from typing import Any
 
@@ -129,14 +130,22 @@ class ConfirmOverwriteStep(PipelineStep):
         project_metadata = data["project_metadata"]
         confirm = self.confirm or project_metadata.globals.auto_overwrite
         if not confirm and not typer.confirm(self.message):
-            raise typer.Abort
+            error_message = (
+                "Operation cancelled: The overwrite process was aborted by the user."
+            )
+            raise typer.Abort(error_message)
         return data
 
 
+@dataclass
 class CompressProjectStep(PipelineStep):
+    exclude_files: list[str] = field(
+        default_factory=lambda: [settings.FUNCTIONS.PROJECT_METADATA_FILE]
+    )
+
     def execute(self, data: dict[str, Any]) -> dict[str, Any]:
         project_path = data["project_path"]
-        zip_file = compress_project_to_zip(project_path)
+        zip_file = compress_project_to_zip(project_path, self.exclude_files)
         data["zip_file"] = zip_file
         return data
 
@@ -193,7 +202,13 @@ class HttpGetRequestStep(PipelineStep):
         return data
 
 
-class DownloadFileStep(HttpGetRequestStep): ...
+class DownloadFileStep(PipelineStep):
+    def execute(self, data):
+        url = data["url"]
+        headers = data["headers"]
+        response = httpx.get(url, headers=headers)
+        data["response"] = response
+        return data
 
 
 class CheckResponseStep(PipelineStep):

@@ -82,17 +82,17 @@ class FunctionDockerContainerManager(AbstractContainerManager):
             raise ContainerExecutionException from error
 
     def stop(self, label: str) -> None:
-        if len(self.list()) <= 1:
+        container = self.get(label=label)
+        container.stop()
+        container.remove()
+
+        if not self.list():
             with suppress(NotFound):
                 argo_container = self.client.containers.get(
                     engine_settings.CONTAINER.ARGO.NAME
                 )
                 argo_container.stop()
                 argo_container.remove()
-
-        container = self.get(label=label)
-        container.stop()
-        container.remove()
 
     def reload(self, label: str) -> None:
         container = self.get(label=label)

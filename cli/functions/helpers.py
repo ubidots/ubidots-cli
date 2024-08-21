@@ -97,19 +97,29 @@ def read_manifest_project_file(project_path: Path) -> FunctionProjectMetadata:
         raise ValueError(error_message) from error
 
 
-def compress_project_to_zip(actual_path: Path) -> IO[bytes]:
+def compress_project_to_zip(
+    actual_path: Path, exclude_files: list[str] | None = None
+) -> IO[bytes]:
+    exclude_files = [] if exclude_files is None else exclude_files
     zip_buffer = io.BytesIO()
     with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zipf:
         for root, _, files in os.walk(actual_path):
             for file in files:
                 file_path = os.path.join(root, file)
                 arcname = os.path.relpath(file_path, actual_path)
-                zipf.write(file_path, arcname)
+
+                if not any(Path(arcname).match(pattern) for pattern in exclude_files):
+                    zipf.write(file_path, arcname)
+
             for folder in os.listdir(root):
                 folder_path = os.path.join(root, folder)
                 if os.path.isdir(folder_path):
                     arcname = os.path.relpath(folder_path, actual_path)
-                    zipf.write(folder_path, arcname=arcname)
+
+                    if not any(
+                        Path(arcname).match(pattern) for pattern in exclude_files
+                    ):
+                        zipf.write(folder_path, arcname=arcname)
     zip_buffer.seek(0)
     return zip_buffer
 

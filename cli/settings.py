@@ -14,7 +14,7 @@ class ConfigSettings(BaseModel):
 class FunctionSettings(BaseModel):
     DEFAULT_PROJECT_NAME: str = "my_function"
     DEFAULT_MAIN_FILE_NAME: str = "main"
-    PROJECT_METADATA_FILE: str = "local_deployment.yaml"
+    PROJECT_METADATA_FILE: str = ".local_deployment.yaml"
     TEMPLATES_PATH: Path = (
         Path(__file__).resolve().parent.parent / "cli" / "functions" / "templates"
     )
