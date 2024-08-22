@@ -11,6 +11,11 @@ class FunctionMainFileExtensionEnum(StrEnum):
     NODEJS_EXTENSION = "js"
 
 
+class FunctionHandlerFileExtensionEnum(StrEnum):
+    PYTHON_EXTENSION = "py"
+    NODEJS_EXTENSION = "mjs"
+
+
 class FunctionLayerTypeEnum(StrEnum):
     LITE = "lite"
     BASE = "base"
@@ -23,7 +28,6 @@ class FunctionPythonVersionEnum(ChoosableEnum):
 
 
 class FunctionNodejsVersionEnum(ChoosableEnum):
-    NODEJS_16 = "nodejs16.x"
     NODEJS_20 = "nodejs20.x"
 
 
@@ -49,12 +53,6 @@ class FunctionPythonRuntimeLayerTypeEnum(ChoosableEnum):
 
 
 class FunctionNodejsRuntimeLayerTypeEnum(ChoosableEnum):
-    NODEJS_16_LITE = (
-        f"{FunctionNodejsVersionEnum.NODEJS_16}:{FunctionLayerTypeEnum.LITE}"
-    )
-    NODEJS_16_BASE = (
-        f"{FunctionNodejsVersionEnum.NODEJS_16}:{FunctionLayerTypeEnum.BASE}"
-    )
     NODEJS_20_LITE = (
         f"{FunctionNodejsVersionEnum.NODEJS_20}:{FunctionLayerTypeEnum.LITE}"
     )
@@ -86,12 +84,6 @@ class FunctionRuntimeLayerTypeEnum(StrEnum):
         f"{FunctionPythonVersionEnum.PYTHON_3_11}:{FunctionLayerTypeEnum.FULL}"
     )
     # FunctionNodejsRuntimeLayerTypeEnum
-    NODEJS_16_LITE = (
-        f"{FunctionNodejsVersionEnum.NODEJS_16}:{FunctionLayerTypeEnum.LITE}"
-    )
-    NODEJS_16_BASE = (
-        f"{FunctionNodejsVersionEnum.NODEJS_16}:{FunctionLayerTypeEnum.BASE}"
-    )
     NODEJS_20_LITE = (
         f"{FunctionNodejsVersionEnum.NODEJS_20}:{FunctionLayerTypeEnum.LITE}"
     )
@@ -103,6 +95,14 @@ class FunctionRuntimeLayerTypeEnum(StrEnum):
 class FunctionLanguageEnum(ChoosableEnum):
     PYTHON = "python"
     NODEJS = "nodejs"
+
+    @property
+    def handler_extension(cls):
+        handler_extension_map = {
+            cls.PYTHON: FunctionHandlerFileExtensionEnum.PYTHON_EXTENSION,
+            cls.NODEJS: FunctionHandlerFileExtensionEnum.NODEJS_EXTENSION,
+        }
+        return handler_extension_map[cls]
 
     @property
     def extension(self):

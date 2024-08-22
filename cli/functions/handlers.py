@@ -26,6 +26,7 @@ from cli.functions.helpers import ensure_project_integrity
 from cli.functions.helpers import frie_container_manager
 from cli.functions.helpers import get_argo_input_adapter
 from cli.functions.helpers import get_or_create_network
+from cli.functions.helpers import prepare_handler_file
 from cli.functions.helpers import save_manifest_project_file
 from cli.functions.helpers import verify_and_fetch_images
 from cli.functions.pipelines import BuildEndpointStep
@@ -169,6 +170,7 @@ def start_function(
     client = httpx.Client(follow_redirects=True)
     client.post(adapter_url, json=data)
 
+    prepare_handler_file(current_path, info_project.language)
     argo_target_port = engine_settings.CONTAINER.ARGO.INTERNAL_TARGET_PORT.split("/")[0]
     target_url = f"http://{ip_address}:{argo_target_port}/{label}"
     try:

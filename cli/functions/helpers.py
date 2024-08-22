@@ -1,5 +1,6 @@
 import io
 import os
+import shutil
 import socket
 import zipfile
 from contextlib import suppress
@@ -165,6 +166,14 @@ def verify_and_fetch_images(
                 downloader.pull_image(image_name=image_name)
             except (ImageNotFoundException, ImageFetchException) as error:
                 raise error
+
+
+def prepare_handler_file(destination_directory: Path, language: FunctionLanguageEnum):
+    extension = FunctionLanguageEnum(language).handler_extension
+    handler_file = f"{settings.FUNCTIONS.DEFAULT_HANLDER_FILE_NAME}.{extension}"
+    template_path = settings.FUNCTIONS.HANDLERS_PATH / handler_file
+    handler_path = destination_directory / handler_file
+    shutil.copy(template_path, handler_path)
 
 
 def get_or_create_network(
