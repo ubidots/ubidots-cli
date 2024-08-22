@@ -9,7 +9,7 @@ from cli.functions.enums import FunctionMethodEnum
 from cli.functions.enums import FunctionRuntimeLayerTypeEnum
 from cli.settings import settings
 
-app = typer.Typer(help="Tool for managing and deploying functions via API.")
+app = typer.Typer(help="Tool for managing and deploying functions.")
 
 
 @app.command(help="Create a new local function.")
@@ -22,7 +22,7 @@ def new(
         typer.Argument(
             help="The runtime for the function. **Required** if not in interactive mode.",
         ),
-    ] = None,
+    ] = FunctionRuntimeLayerTypeEnum.NODEJS_20_LITE,
     interactive: Annotated[
         bool,
         typer.Option(
@@ -35,20 +35,24 @@ def new(
         ),
     ] = False,
 ):
-    if not interactive:
-        if runtime is None:
+    if interactive:
+        language = FunctionLanguageEnum.choose(message="Select a programming language:")
+        runtime = language.choose_runtime(message=f"Select a {language} runtime:")
+    else:
+        if not runtime:
+            available_runtimes = [
+                runtime.value for runtime in FunctionRuntimeLayerTypeEnum
+            ]
             raise typer.BadParameter(
-                param_hint="RUNTIME",
-                message=[runtime.value for runtime in FunctionRuntimeLayerTypeEnum],
+                param_hint="RUNTIME", message=", ".join(available_runtimes)
             )
+
         language = (
             FunctionLanguageEnum.PYTHON
             if runtime.value.startswith(FunctionLanguageEnum.PYTHON)
             else FunctionLanguageEnum.NODEJS
         )
-    else:
-        language = FunctionLanguageEnum.choose(message="Select a programming language:")
-        runtime = language.choose_runtime(message=f"Select a {language} runtime:")
+
     handlers.create_function(name=name, language=language, runtime=runtime)
 
 
@@ -103,12 +107,7 @@ def start(
 def stop(
     label: Annotated[
         str,
-        typer.Argument(
-            help=(
-                "The label of the function to stop. "
-                "Use '.' to refer to the function associated with the current directory.",
-            )
-        ),
+        typer.Argument(help="The label of the function to stop."),
     ],
     engine: Annotated[
         FunctionEngineTypeEnum,

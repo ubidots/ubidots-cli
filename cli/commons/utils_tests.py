@@ -4,7 +4,6 @@ from typing import Any
 import pytest
 from pydantic import BaseModel
 
-# from cli import settings
 from cli.settings import settings
 
 

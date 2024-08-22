@@ -1,7 +1,5 @@
-from collections.abc import Generator
 from contextlib import suppress
 from dataclasses import field
-from typing import Any
 
 from docker import DockerClient
 from docker.errors import ContainerError
@@ -19,16 +17,20 @@ from cli.functions.engines.settings import engine_settings
 
 class FunctionDockerContainerManager(AbstractContainerManager):
     client: DockerClient = field(default_factory=DockerClient)
-    engine: FunctionEngineTypeEnum = field(
-        default_factory=FunctionEngineTypeEnum.DOCKER
-    )
+    engine: FunctionEngineTypeEnum = field(default=FunctionEngineTypeEnum.DOCKER)
 
     def status(
-        self, container_label_key: str, is_raw_label_key: str, target_url_label_key: str
-    ) -> list[dict[str, Any]]:
+        self,
+        container_label_key: str,
+        is_raw_label_key: str,
+        target_url_label_key: str,
+    ):
         containers = self.list()
         status_model = DockerContainerStatusListModel.from_containers_list(
-            containers, container_label_key, is_raw_label_key, target_url_label_key
+            containers,
+            container_label_key,
+            is_raw_label_key,
+            target_url_label_key,
         )
         return status_model.containers
 
@@ -40,13 +42,17 @@ class FunctionDockerContainerManager(AbstractContainerManager):
         return container
 
     def list(
-        self, label: str = engine_settings.CONTAINER.FRIE.LABEL_KEY
-    ) -> list[Container]:
+        self,
+        label: str = engine_settings.CONTAINER.FRIE.LABEL_KEY,
+    ):
         return self.client.containers.list(filters={"label": label})
 
     def logs(
-        self, label: str, tail: int | str = "all", follow: bool = False
-    ) -> Generator | str:
+        self,
+        label: str,
+        tail: int | str = "all",
+        follow: bool = False,
+    ):
         container = self.get(label=label)
         return container.logs(tail=tail, follow=follow)
 
@@ -56,10 +62,10 @@ class FunctionDockerContainerManager(AbstractContainerManager):
         image_name: str,
         labels: dict,
         ports: dict[str, tuple[str, int]],
-        container_name: str | None = None,
+        container_name: str,
         volumes: dict | None = None,
         detach: bool = engine_settings.CONTAINER.IS_DETACH,
-    ) -> Container:
+    ):
         kwargs = {
             "image": image_name,
             "name": container_name,
@@ -81,7 +87,10 @@ class FunctionDockerContainerManager(AbstractContainerManager):
         except ContainerError as error:
             raise ContainerExecutionException from error
 
-    def stop(self, label: str) -> None:
+    def stop(
+        self,
+        label: str,
+    ):
         container = self.get(label=label)
         container.stop()
         container.remove()
@@ -93,7 +102,3 @@ class FunctionDockerContainerManager(AbstractContainerManager):
                 )
                 argo_container.stop()
                 argo_container.remove()
-
-    def reload(self, label: str) -> None:
-        container = self.get(label=label)
-        container.restart()

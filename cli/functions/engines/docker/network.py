@@ -19,11 +19,17 @@ class FunctionDockerNetworkManager(AbstractNetworkManager):
     ):
         return self.client.networks.create(name=name, driver=driver)
 
-    def get(self, id: str):
+    def get(
+        self,
+        network_id: str,
+    ):
         try:
-            return self.client.networks.get(id)
+            return self.client.networks.get(network_id)
         except NotFound as error:
-            raise NetworkNotFoundException from error
+            raise NetworkNotFoundException(network_id) from error
 
-    def list(self, names: list[str] = (engine_settings.CONTAINER.NETWORK_NAME)):
+    def list(
+        self,
+        names: list[str] = (engine_settings.CONTAINER.NETWORK_NAME),
+    ):
         return self.client.networks.list(names=names)

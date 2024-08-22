@@ -12,7 +12,7 @@ from cli.functions.engines.exceptions import ImageNotFoundException
 class FunctionDockerImageDownloader(AbstractImageDownloader):
     client: DockerClient = field(default_factory=DockerClient)
 
-    def pull_image(self, image_name: str) -> None:
+    def pull_image(self, image_name):
         try:
             self.client.images.pull(image_name)
         except NotFound as error:

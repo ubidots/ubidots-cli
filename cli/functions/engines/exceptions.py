@@ -92,6 +92,6 @@ class ContainerNotFoundException(ContainerException):
 
 
 class NetworkNotFoundException(NetworkException):
-    def __init__(self, id: str):
-        message = f"Network with id '{id}' does not exist."
+    def __init__(self, network_id: str):
+        message = f"Network with id '{network_id}' does not exist."
         super().__init__(message)

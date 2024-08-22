@@ -2,16 +2,14 @@ import zipfile
 from dataclasses import dataclass
 from dataclasses import field
 from io import BytesIO
-from typing import Any
 
 import httpx
 import typer
 
+from cli.commons.pipelines import PipelineStep
 from cli.commons.styles import print_colored_table
 from cli.commons.utils import build_endpoint
 from cli.commons.utils import check_response_status
-from cli.commons.utils import exit_with_error_message
-from cli.commons.utils import exit_with_success_message
 from cli.functions.engines.enums import FunctionEngineTypeEnum
 from cli.functions.engines.manager import FunctionEngineClientManager
 from cli.functions.engines.settings import engine_settings
@@ -25,42 +23,8 @@ from cli.functions.helpers import save_manifest_project_file
 from cli.settings import settings
 
 
-@dataclass
-class Pipeline:
-    steps: list["PipelineStep"]
-    success_message: str = ""
-
-    def _handle_success(self) -> None:
-        if self.success_message:
-            exit_with_success_message(self.success_message)
-
-    def _handle_failure(self, step: "PipelineStep", exception: Exception) -> None:
-        _ = step
-        exit_with_error_message(exception=exception)
-
-    def run(self, initial_data: dict[str, Any]) -> dict[str, Any]:
-        data = initial_data
-        for step in self.steps:
-            try:
-                data = step.execute(data)
-            except Exception as error:
-                self._handle_failure(step, error)
-                break
-
-        else:
-            self._handle_success()
-        return data
-
-
-class PipelineStep:
-    def execute(self, data: dict[str, Any]) -> dict[str, Any]:
-        _ = data
-        error_message = "Each step must implement the execute method."
-        raise NotImplementedError(error_message)
-
-
 class ValidateTemplateStep(PipelineStep):
-    def execute(self, data: dict[str, Any]) -> dict[str, Any]:
+    def execute(self, data):
         language = data["language"]
         template_file = settings.FUNCTIONS.TEMPLATES_PATH / f"{language}.zip"
         if not template_file.exists():
@@ -72,7 +36,7 @@ class ValidateTemplateStep(PipelineStep):
 
 
 class CreateProjectFolderStep(PipelineStep):
-    def execute(self, data: dict[str, Any]) -> dict[str, Any]:
+    def execute(self, data):
         project_path = data["project_path"]
         if project_path.exists():
             raise FolderAlreadyExistsException(name=project_path.name)
@@ -84,7 +48,7 @@ class CreateProjectFolderStep(PipelineStep):
 
 
 class ExtractTemplateStep(PipelineStep):
-    def execute(self, data: dict[str, Any]) -> dict[str, Any]:
+    def execute(self, data):
         project_path = data["project_path"]
         template_file = data["template_file"]
         with zipfile.ZipFile(template_file, "r") as zip_ref:
@@ -93,7 +57,7 @@ class ExtractTemplateStep(PipelineStep):
 
 
 class SaveManifestStep(PipelineStep):
-    def execute(self, data: dict[str, Any]) -> dict[str, Any]:
+    def execute(self, data):
         project_path = data["project_path"]
         language = data["language"]
         runtime = data["runtime"]
@@ -108,7 +72,7 @@ class SaveManifestStep(PipelineStep):
 
 
 class ValidateProjectStep(PipelineStep):
-    def execute(self, data: dict[str, Any]) -> dict[str, Any]:
+    def execute(self, data):
         project_path = data["project_path"]
         project_metadata = ensure_project_integrity(
             project_path=project_path,
@@ -126,7 +90,7 @@ class ConfirmOverwriteStep(PipelineStep):
     confirm: bool
     message: str
 
-    def execute(self, data: dict[str, Any]) -> dict[str, Any]:
+    def execute(self, data):
         project_metadata = data["project_metadata"]
         confirm = self.confirm or project_metadata.globals.auto_overwrite
         if not confirm and not typer.confirm(self.message):
@@ -143,7 +107,7 @@ class CompressProjectStep(PipelineStep):
         default_factory=lambda: [settings.FUNCTIONS.PROJECT_METADATA_FILE]
     )
 
-    def execute(self, data: dict[str, Any]) -> dict[str, Any]:
+    def execute(self, data):
         project_path = data["project_path"]
         zip_file = compress_project_to_zip(project_path, self.exclude_files)
         data["zip_file"] = zip_file

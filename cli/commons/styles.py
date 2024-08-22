@@ -23,11 +23,16 @@ def print_colored_table(
     color_cycle = itertools.cycle(TableColorEnum)
     table = Table(show_header=True, header_style="bold")
 
-    keys_to_show = []
+    keys_to_show: list[str] = []
+    sub_keys_to_show_dict = sub_keys_to_show if sub_keys_to_show is not None else {}
+
     for key in results[0]:
-        should_show_sub_keys = sub_keys_to_show and key in sub_keys_to_show
+        should_show_sub_keys = key in sub_keys_to_show_dict
+
         if isinstance(results[0][key], dict) and should_show_sub_keys:
-            keys_to_show.extend(f"{key}.{sub_key}" for sub_key in sub_keys_to_show[key])
+            keys_to_show.extend(
+                f"{key}.{sub_key}" for sub_key in sub_keys_to_show_dict[key]
+            )
         else:
             keys_to_show.append(key)
 
@@ -38,7 +43,7 @@ def print_colored_table(
     )
 
     for key in ordered_keys:
-        color = next(color_cycle).value
+        color = next(color_cycle)
         table.add_column(key, style=color, header_style=color)
 
     for item in results:

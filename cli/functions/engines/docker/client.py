@@ -15,9 +15,7 @@ from cli.functions.engines.enums import FunctionEngineTypeEnum
 @dataclass
 class FunctionDockerClient(AbstractEngineClient):
     client: DockerClient = field(default_factory=DockerClient)
-    engine: FunctionEngineTypeEnum = field(
-        default_factory=FunctionEngineTypeEnum.DOCKER
-    )
+    engine: FunctionEngineTypeEnum = field(default=FunctionEngineTypeEnum.DOCKER)
 
     def get_validator(self) -> FunctionDockerValidator:
         return FunctionDockerValidator(client=self.client, engine=self.engine)

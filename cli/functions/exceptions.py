@@ -21,9 +21,12 @@ class PermissionDeniedException(Exception):
 
 class InvalidOptionException(Exception):
     def __init__(
-        self, invalid_option: str, valid_options: list | Enum, context: str = "option"
+        self,
+        invalid_option: str,
+        valid_options: list | type[Enum],
+        context: str = "option",
     ):
-        if isinstance(valid_options, Enum):
+        if isinstance(valid_options, type) and issubclass(valid_options, Enum):
             valid_options = [method.name for method in valid_options]
 
         valid_options_str = ", ".join(valid_options)

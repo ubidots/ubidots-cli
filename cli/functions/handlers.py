@@ -4,6 +4,7 @@ import httpx
 import typer
 
 from cli.commons.enums import MessageColorEnum
+from cli.commons.pipelines import Pipeline
 from cli.commons.utils import exit_with_error_message
 from cli.functions import FUNCTION_API_ROUTES
 from cli.functions.engines.enums import FunctionEngineTypeEnum
@@ -42,7 +43,6 @@ from cli.functions.pipelines import GetContainerManagerStep
 from cli.functions.pipelines import GetFunctionLogsStep
 from cli.functions.pipelines import GetFunctionStatusStep
 from cli.functions.pipelines import HttpGetRequestStep
-from cli.functions.pipelines import Pipeline
 from cli.functions.pipelines import PrintColoredTableStep
 from cli.functions.pipelines import PrintkeyStep
 from cli.functions.pipelines import SaveManifestStep

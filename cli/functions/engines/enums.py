@@ -3,7 +3,7 @@ from enum import StrEnum
 
 class FunctionEngineTypeEnum(StrEnum):
     DOCKER = "DOCKER"
-    # PODMAN = "podman"
+    PODMAN = "PODMAN"
 
 
 class ContainerStatusEnum(StrEnum):

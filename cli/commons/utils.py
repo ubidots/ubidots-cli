@@ -9,7 +9,9 @@ from cli.commons.validators import is_valid_object_id
 from cli.config.helpers import read_cli_configuration
 
 
-def build_endpoint(route: str, query_params: dict | None = None, **kwargs) -> str:
+def build_endpoint(
+    route: str, query_params: dict | None = None, **kwargs
+) -> tuple[str, dict]:
     access_config = read_cli_configuration()
     url = f"{access_config.api_domain}{route.format(**kwargs)}"
     if query_params:
@@ -29,7 +31,7 @@ def check_response_status(response: httpx.Response):
         raise httpx.RequestError(error_message)
 
 
-def get_instance_key(id: str | None = None, label: str | None = None) -> str | None:
+def get_instance_key(id: str | None = None, label: str | None = None) -> str:
     if isinstance(id, str):
         if is_valid_object_id(key=id):
             return id
@@ -65,7 +67,7 @@ def simple_lookup_key(entity_name: str):
 
 
 def exit_with_error_message(exception: Exception, message: str = "", hint: str = ""):
-    message = message if message else exception
+    message = message if message else str(exception)
     typer.echo(
         typer.style(
             text=f"\n> [ERROR]: {message}\n",

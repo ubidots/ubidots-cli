@@ -12,6 +12,7 @@ help:
 	@echo "black: run black to format code."
 	@echo "isort: run isort to sort imports."
 	@echo "ruff: run ruff for linting."
+	@echo "mypy: run mypy to check type annotations."
 	@echo "setup-dev: setup the development environment."
 	@echo "validate_code: run black, isort, ruff, and tests."
 	@echo "setup-tox-env: install specified Python versions for tox compatibility using pyenv."
@@ -32,7 +33,10 @@ isort:
 ruff:
 	poetry run ruff check . --preview
 
-validate_code: black isort ruff test
+mypy:
+	poetry run mypy .
+
+validate_code: black isort ruff mypy test
 
 update:
 	poetry update
