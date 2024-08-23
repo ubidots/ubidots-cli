@@ -6,12 +6,16 @@ import zipfile
 from contextlib import suppress
 from pathlib import Path
 from typing import IO
+from typing import Any
 
 import httpx
 import typer
 import yaml
 from docker.errors import APIError
 from docker.errors import NotFound
+from docker.models.containers import Container
+from docker.models.networks import Network
+from pydantic import ValidationError
 
 from cli.commons.enums import MessageColorEnum
 from cli.functions.engines.docker.client import FunctionDockerClient
@@ -91,10 +95,10 @@ def read_manifest_project_file(project_path: Path) -> FunctionProjectMetadata:
 
     try:
         return FunctionProjectMetadata(**manifest_data)
-    except ValueError as error:
+    except ValidationError as error:
         error_message = f"Invalid input in '{manifest_file}' file for "
         for err in error.errors():
-            error_message += f"'{'.'.join(err['loc'][0:2])}' -> {err['msg']} | "
+            error_message += f"'{'.'.join([str(loc) for loc in err['loc'][0:2]])}' -> {err['msg']} | "
         raise ValueError(error_message) from error
 
 
@@ -216,14 +220,16 @@ def find_available_ports(
     return available_ports
 
 
-def get_external_container_port(container: object, internal_port: int) -> int:
-    return next(iter(container.ports.get(internal_port, [])), {}).get("HostPort")
+def get_external_container_port(container: Container, internal_port: int) -> int:
+    # return next(iter(container.ports.get(internal_port, [])), {}).get("HostPort")
+    port_info: dict[str, Any] = next(iter(container.ports.get(internal_port, [])), {})
+    return int(port_info.get("HostPort", 0))
 
 
 def frie_container_manager(
     container_manager: FunctionDockerContainerManager | FunctionPodmanContainerManager,
     current_path: Path,
-    network: object,
+    network: Network,
     image_name: str,
     label: str,
     is_raw: bool,
@@ -259,6 +265,7 @@ def frie_container_manager(
         container = container_manager.start(
             image_name=image_name,
             container_name=label,
+            network_name=network.name,
             labels={
                 engine_settings.CONTAINER.FRIE.LABEL_KEY: label,
                 engine_settings.CONTAINER.FRIE.IS_RAW_LABEL_KEY: str(is_raw),
@@ -268,14 +275,13 @@ def frie_container_manager(
                 engine_settings.CONTAINER.FRIE.INTERNAL_PORT: port,
             },
             volumes={str(current_path): engine_settings.CONTAINER.FRIE.VOLUME_MAPPING},
-            network_name=network.name,
         )
 
 
 def argo_container_manager(
     container_manager: FunctionDockerContainerManager | FunctionPodmanContainerManager,
     client: FunctionDockerClient | FunctionPodmanClient,
-    network: object,
+    network: Network,
     image_name: str,
     label: str,
 ):
@@ -324,12 +330,12 @@ def argo_container_manager(
         container = container_manager.start(
             image_name=image_name,
             container_name=container_name,
+            network_name=network.name,
             labels={engine_settings.CONTAINER.ARGO.LABEL_KEY: container_name},
             ports={
                 engine_settings.CONTAINER.ARGO.INTERNAL_ADAPTER_PORT: argo_adapter_port,
                 engine_settings.CONTAINER.ARGO.INTERNAL_TARGET_PORT: argo_target_port,
             },
-            network_name=network.name,
         )
     else:
         argo_adapter_port = get_external_container_port(
@@ -341,13 +347,13 @@ def argo_container_manager(
 
 def get_argo_input_adapter(
     client: FunctionDockerClient | FunctionPodmanClient,
-    network: object,
+    network: Network,
     label: str,
     frie_container_name: str,
     argo_adapter_port: int,
     raw: bool,
     ip_address: str,
-    token: str | None,
+    token: str,
 ) -> tuple[str, dict]:
     network_manager = client.get_network_manager()
     network = network_manager.get(network.id)

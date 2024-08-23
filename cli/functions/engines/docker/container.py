@@ -4,7 +4,6 @@ from dataclasses import field
 from docker import DockerClient
 from docker.errors import ContainerError
 from docker.errors import NotFound
-from docker.models.containers import Container
 
 from cli.functions.engines.abstracts.client import AbstractContainerManager
 from cli.functions.engines.docker.models import DockerContainerStatusListModel
@@ -34,11 +33,14 @@ class FunctionDockerContainerManager(AbstractContainerManager):
         )
         return status_model.containers
 
-    def get(self, label: str) -> Container:
-        containers = self.list(label=label)
+    def get(
+        self,
+        label: str,
+    ):
+        containers = self.list(label)
         container = next(iter(containers), None)
         if container is None:
-            raise ContainerNotFoundException(label=label)
+            raise ContainerNotFoundException(label)
         return container
 
     def list(
@@ -58,11 +60,11 @@ class FunctionDockerContainerManager(AbstractContainerManager):
 
     def start(
         self,
-        network_name: str,
         image_name: str,
-        labels: dict,
-        ports: dict[str, tuple[str, int]],
         container_name: str,
+        network_name: str,
+        labels: dict,
+        ports: dict[str, int],
         volumes: dict | None = None,
         detach: bool = engine_settings.CONTAINER.IS_DETACH,
     ):

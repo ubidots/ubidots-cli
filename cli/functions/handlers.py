@@ -167,8 +167,8 @@ def start_function(
         ip_address=ip_address,
         token=token,
     )
-    client = httpx.Client(follow_redirects=True)
-    client.post(adapter_url, json=data)
+    http_client = httpx.Client(follow_redirects=True)
+    http_client.post(adapter_url, json=data)
 
     prepare_handler_file(current_path, info_project.language)
     argo_target_port = engine_settings.CONTAINER.ARGO.INTERNAL_TARGET_PORT.split("/")[0]

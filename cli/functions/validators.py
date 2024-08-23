@@ -9,7 +9,7 @@ from cli.functions.models import FunctionProjectMetadata
 class FunctionProjectValidator:
     project_metadata: FunctionProjectMetadata
     project_files: list[Path]
-    project_path: Path | None = (None,)
+    project_path: Path | None = None
     validation_flags: dict[FunctionProjectValidationTypeEnum, bool] | None = None
 
     def run_validations(self):

@@ -230,7 +230,9 @@ class GetFunctionLogsStep(PipelineStep):
         container_key = data["container_key"]
         container_manager = data["container_manager"]
         data["logs"] = container_manager.logs(
-            key=container_key, tail=self.tail, follow=self.follow
+            label=f"{engine_settings.CONTAINER.FRIE.LABEL_KEY}={container_key}",
+            tail=self.tail,
+            follow=self.follow,
         )
         return data
 
