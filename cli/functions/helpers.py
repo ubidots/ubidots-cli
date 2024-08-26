@@ -36,6 +36,7 @@ from cli.functions.engines.podman.container import \
     FunctionPodmanContainerManager
 from cli.functions.engines.settings import engine_settings
 from cli.functions.enums import FunctionLanguageEnum
+from cli.functions.enums import FunctionLayerTypeEnum
 from cli.functions.enums import FunctionNodejsRuntimeLayerTypeEnum
 from cli.functions.enums import FunctionProjectValidationTypeEnum
 from cli.functions.enums import FunctionPythonRuntimeLayerTypeEnum
@@ -49,19 +50,32 @@ from cli.settings import settings
 
 def save_manifest_project_file(
     project_path: Path,
-    engine: FunctionEngineTypeEnum,
-    label: str,
     language: FunctionLanguageEnum,
-    runtime: FunctionPythonRuntimeLayerTypeEnum | FunctionNodejsRuntimeLayerTypeEnum,
-    function_id: str | None = None,
+    runtime: (
+        FunctionLayerTypeEnum
+        | FunctionPythonRuntimeLayerTypeEnum
+        | FunctionNodejsRuntimeLayerTypeEnum
+    ),
+    label: str = "",
+    engine: FunctionEngineTypeEnum = engine_settings.CONTAINER.DEFAULT_ENGINE,
     auto_overwrite: bool = False,
+    function_id: str = "",
     **kwargs,
 ) -> None:
-    globals_instance = FunctionGlobals(engine=engine, auto_overwrite=auto_overwrite)
-    project_instance = FunctionProjectInfo(
-        name=project_path.name, label=label, language=language, runtime=runtime
+    globals_instance = FunctionGlobals(
+        engine=engine,
+        auto_overwrite=auto_overwrite,
     )
-    function_instance = FunctionInfo(id=function_id, **kwargs)
+    project_instance = FunctionProjectInfo(
+        name=project_path.name,
+        language=language,
+        runtime=runtime,
+        label=label,
+    )
+    function_instance = FunctionInfo(
+        id=function_id,
+        **kwargs,
+    )
 
     metadata = FunctionProjectMetadata(
         globals=globals_instance,
@@ -103,15 +117,15 @@ def read_manifest_project_file(project_path: Path) -> FunctionProjectMetadata:
 
 
 def compress_project_to_zip(
-    actual_path: Path, exclude_files: list[str] | None = None
+    project_path: Path, exclude_files: list[str] | None = None
 ) -> IO[bytes]:
     exclude_files = [] if exclude_files is None else exclude_files
     zip_buffer = io.BytesIO()
     with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zipf:
-        for root, _, files in os.walk(actual_path):
+        for root, _, files in os.walk(project_path):
             for file in files:
                 file_path = os.path.join(root, file)
-                arcname = os.path.relpath(file_path, actual_path)
+                arcname = os.path.relpath(file_path, project_path)
 
                 if not any(Path(arcname).match(pattern) for pattern in exclude_files):
                     zipf.write(file_path, arcname)
@@ -119,7 +133,7 @@ def compress_project_to_zip(
             for folder in os.listdir(root):
                 folder_path = os.path.join(root, folder)
                 if os.path.isdir(folder_path):
-                    arcname = os.path.relpath(folder_path, actual_path)
+                    arcname = os.path.relpath(folder_path, project_path)
 
                     if not any(
                         Path(arcname).match(pattern) for pattern in exclude_files
@@ -182,7 +196,7 @@ def prepare_handler_file(destination_directory: Path, language: FunctionLanguage
 
 def get_or_create_network(
     client: FunctionDockerClient | FunctionPodmanClient,
-) -> object | None:
+) -> object:
     network_manager = client.get_network_manager()
     networks = network_manager.list()
     network = next(iter(networks), None)

@@ -47,7 +47,7 @@ class TestFunctionUtils:
                 language=language,
                 runtime=runtime,
             ),
-            function=FunctionInfo(id=None),
+            function=FunctionInfo(id=""),
         )
         # Action
         save_manifest_project_file(
@@ -78,7 +78,7 @@ class TestFunctionUtils:
             project=FunctionProjectInfo(
                 name=project_path.name, language=language, runtime=runtime
             ),
-            function=FunctionInfo(id=None),
+            function=FunctionInfo(id=""),
         )
         metadata_file = project_path / settings.FUNCTIONS.PROJECT_METADATA_FILE
         with open(metadata_file, "w") as file:

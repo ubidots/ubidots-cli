@@ -13,25 +13,30 @@ from cli.commons.utils import check_response_status
 from cli.functions.engines.enums import FunctionEngineTypeEnum
 from cli.functions.engines.manager import FunctionEngineClientManager
 from cli.functions.engines.settings import engine_settings
-from cli.functions.enums import FunctionProjectValidationTypeEnum
+from cli.functions.enums import FunctionMethodEnum
 from cli.functions.exceptions import FolderAlreadyExistsException
 from cli.functions.exceptions import PermissionDeniedException
 from cli.functions.exceptions import TemplateNotFoundException
 from cli.functions.helpers import compress_project_to_zip
-from cli.functions.helpers import ensure_project_integrity
+from cli.functions.helpers import enumerate_project_files
+from cli.functions.helpers import get_or_create_network
+from cli.functions.helpers import read_manifest_project_file
 from cli.functions.helpers import save_manifest_project_file
+from cli.functions.helpers import verify_and_fetch_images
+from cli.functions.validators import validate_main_file_presence
+from cli.functions.validators import validate_manifest_file
 from cli.settings import settings
 
 
 class ValidateTemplateStep(PipelineStep):
     def execute(self, data):
         language = data["language"]
-        template_file = settings.FUNCTIONS.TEMPLATES_PATH / f"{language}.zip"
+        template_file = data["template_file"]
         if not template_file.exists():
             raise TemplateNotFoundException(
-                language=language, template_file=template_file
+                language=language,
+                template_file=template_file,
             )
-        data["template_file"] = template_file
         return data
 
 
@@ -43,7 +48,7 @@ class CreateProjectFolderStep(PipelineStep):
         try:
             project_path.mkdir(parents=True, exist_ok=False)
         except PermissionError as error:
-            raise PermissionDeniedException(error=error) from error
+            raise PermissionDeniedException(error=str(error)) from error
         return data
 
 
@@ -61,27 +66,76 @@ class SaveManifestStep(PipelineStep):
         project_path = data["project_path"]
         language = data["language"]
         runtime = data["runtime"]
+        kwargs = data.get("kwargs", {})
         save_manifest_project_file(
             project_path=project_path,
-            engine=FunctionEngineTypeEnum.DOCKER,
-            label="",
             language=language,
             runtime=runtime,
+            **kwargs,
         )
         return data
 
 
-class ValidateProjectStep(PipelineStep):
+class ReadManifestStep(PipelineStep):
     def execute(self, data):
         project_path = data["project_path"]
-        project_metadata = ensure_project_integrity(
-            project_path=project_path,
-            validation_flags={
-                FunctionProjectValidationTypeEnum.MANIFEST_FILE: True,
-                FunctionProjectValidationTypeEnum.MAIN_FILE_PRESENCE: True,
-            },
+        data["project_metadata"] = read_manifest_project_file(project_path)
+        return data
+
+
+class GetProjectFilesStep(PipelineStep):
+    def execute(self, data):
+        project_path = data["project_path"]
+        data["project_files"] = enumerate_project_files(project_path)
+        return data
+
+
+@dataclass
+class ValidateProjectStep(PipelineStep):
+    validate_manifest_file: bool = True
+    validate_main_file_presence: bool = True
+
+    def execute(self, data):
+        project_path = data["project_path"]
+        project_files = data["project_files"]
+        project_metadata = data["project_metadata"]
+        if self.validate_manifest_file:
+            validate_manifest_file(project_metadata.function.id)
+        if self.validate_main_file_presence:
+            validate_main_file_presence(
+                project_path=project_path,
+                project_files=project_files,
+                main_file=project_metadata.project.language.main_file,
+            )
+        return data
+
+
+@dataclass
+class ShowStartupInfoStep(PipelineStep):
+    is_raw: bool
+    method: FunctionMethodEnum
+    token: str
+
+    def execute(self, data):
+        project_metadata = data["project_metadata"]
+        info_project = project_metadata.project
+        typer.echo(
+            f"""
+    ------------------
+    Starting Function:
+    ------------------
+    Name: {info_project.name}
+    Runtime: {info_project.runtime}
+    Local label: {info_project.label}
+
+    -------
+    INPUTS:
+    -------
+    Raw: {self.is_raw}
+    Method: {self.method}
+    Token: {self.token}
+        """
         )
-        data["project_metadata"] = project_metadata
         return data
 
 
@@ -104,12 +158,18 @@ class ConfirmOverwriteStep(PipelineStep):
 @dataclass
 class CompressProjectStep(PipelineStep):
     exclude_files: list[str] = field(
-        default_factory=lambda: [settings.FUNCTIONS.PROJECT_METADATA_FILE]
+        default_factory=lambda: [
+            settings.FUNCTIONS.PROJECT_METADATA_FILE,
+            settings.FUNCTIONS.DEFAULT_HANLDER_FILE_NAME,
+        ]
     )
 
     def execute(self, data):
         project_path = data["project_path"]
-        zip_file = compress_project_to_zip(project_path, self.exclude_files)
+        zip_file = compress_project_to_zip(
+            project_path=project_path,
+            exclude_files=self.exclude_files,
+        )
         data["zip_file"] = zip_file
         return data
 
@@ -178,7 +238,7 @@ class DownloadFileStep(PipelineStep):
 class CheckResponseStep(PipelineStep):
     def execute(self, data):
         response = data["response"]
-        check_response_status(response=response)
+        check_response_status(response)
         return data
 
 
@@ -206,10 +266,10 @@ class PrintkeyStep(PipelineStep):
 
 @dataclass
 class GetClientStep(PipelineStep):
-    engine: FunctionEngineTypeEnum
+    engine: FunctionEngineTypeEnum = engine_settings.CONTAINER.DEFAULT_ENGINE
 
     def execute(self, data):
-        engine_manager = FunctionEngineClientManager(engine=self.engine)
+        engine_manager = FunctionEngineClientManager(self.engine)
         data["client"] = engine_manager.get_client()
         return data
 
@@ -221,10 +281,37 @@ class GetContainerManagerStep(PipelineStep):
         return data
 
 
+class GetImageNamesStep(PipelineStep):
+    def execute(self, data):
+        # project_metadata = data["project_metadata"]
+        hub_username = engine_settings.HUB_USERNAME
+        data["image_names"] = [
+            # f"{hub_username}/{project_metadata.project.runtime.value}",
+            f"{hub_username}/python3.9-base:latest",
+            f"{hub_username}/argo2:2.0.1",
+        ]
+        return data
+
+
+class ValidateImageNamesStep(PipelineStep):
+    def execute(self, data):
+        client = data["client"]
+        image_names = data["image_names"]
+        verify_and_fetch_images(client=client, image_names=image_names)
+        return data
+
+
+class GetClientNetworkStep(PipelineStep):
+    def execute(self, data):
+        client = data["client"]
+        data["network"] = get_or_create_network(client)
+        return data
+
+
 @dataclass
 class GetFunctionLogsStep(PipelineStep):
-    tail: int | str = "all"
-    follow: bool = False
+    tail: int | str
+    follow: bool
 
     def execute(self, data):
         container_key = data["container_key"]

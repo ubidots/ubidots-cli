@@ -4,6 +4,7 @@ from pydantic import BaseModel
 from pydantic_settings import BaseSettings
 
 from cli.functions.engines.enums import ContainerNetworkModeEnum
+from cli.functions.engines.enums import FunctionEngineTypeEnum
 
 
 class ArgoContainerSettings(BaseModel):
@@ -37,6 +38,7 @@ class ContainerSettings(BaseModel):
     IS_DETACH: bool = True
     NETWORK_NAME: str = "ubidots_cli_function_rie"
     NETWORK_DRIVER: ContainerNetworkModeEnum = ContainerNetworkModeEnum.BRIDGE
+    DEFAULT_ENGINE: FunctionEngineTypeEnum = FunctionEngineTypeEnum.DOCKER
     PORTS: list = [
         ARGO.INTERNAL_ADAPTER_PORT,
         ARGO.INTERNAL_TARGET_PORT,

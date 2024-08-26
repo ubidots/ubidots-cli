@@ -19,6 +19,7 @@ class FunctionSettings(BaseModel):
     BASE_PATH: Path = Path(__file__).resolve().parent.parent / "cli" / "functions"
     TEMPLATES_PATH: Path = BASE_PATH / "templates"
     HANDLERS_PATH: Path = BASE_PATH / "lambda_handlers"
+    DEFAULT_TIMEOUT_SECONDS: int = 10
     MAX_TIMEOUT_SECONDS: int = 300
     DEFAULT_CRON: str = "* * * * *"
 

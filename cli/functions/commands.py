@@ -4,6 +4,7 @@ import typer
 
 from cli.functions import handlers
 from cli.functions.engines.enums import FunctionEngineTypeEnum
+from cli.functions.engines.settings import engine_settings
 from cli.functions.enums import FunctionLanguageEnum
 from cli.functions.enums import FunctionMethodEnum
 from cli.functions.enums import FunctionRuntimeLayerTypeEnum
@@ -53,30 +54,23 @@ def new(
             else FunctionLanguageEnum.NODEJS
         )
 
-    handlers.create_function(name=name, language=language, runtime=runtime)
+    handlers.create_function(
+        name=name,
+        language=language,
+        runtime=runtime,
+    )
 
 
 @app.command(help="Initialize the function container environment for execution.")
 def start(
     engine: Annotated[
         FunctionEngineTypeEnum,
-        typer.Option(help="The engine used to serve the function.", show_default=False),
-    ] = FunctionEngineTypeEnum.DOCKER,
-    raw: Annotated[
-        bool,
-        typer.Option(help="Flag to determine if the output should be in raw format."),
-    ] = False,
-    method: Annotated[
-        FunctionMethodEnum,
-        typer.Option(help="The HTTP method the function will respond to."),
-    ] = FunctionMethodEnum.GET,
-    token: Annotated[
-        str, typer.Option(help="Optional authentication token to invoke the function.")
-    ] = "",
+        typer.Option(help="The engine used to serve the function.", hidden=True),
+    ] = engine_settings.CONTAINER.DEFAULT_ENGINE,
     cors: Annotated[
         bool,
         typer.Option(
-            help="Flag to enable Cross-Origin Resource Sharing (CORS) for the function."
+            help="Flag to enable Cross-Origin Resource Sharing (CORS) for the function.",
         ),
     ] = False,
     cron: Annotated[
@@ -85,17 +79,31 @@ def start(
             help="Cron expression to schedule the function for periodic execution."
         ),
     ] = settings.FUNCTIONS.DEFAULT_CRON,
+    method: Annotated[
+        FunctionMethodEnum,
+        typer.Option(help="The HTTP method the function will respond to."),
+    ] = FunctionMethodEnum.GET,
+    raw: Annotated[
+        bool,
+        typer.Option(help="Flag to determine if the output should be in raw format."),
+    ] = False,
     timeout: Annotated[
         int,
         typer.Option(
-            help="Maximum time (in seconds) the function is allowed to run before being terminated."
+            help=(
+                "Maximum time (in seconds) the function is allowed to run before being terminated. "
+                f"[max: {settings.FUNCTIONS.MAX_TIMEOUT_SECONDS}]"
+            )
         ),
-    ] = settings.FUNCTIONS.MAX_TIMEOUT_SECONDS,
+    ] = settings.FUNCTIONS.DEFAULT_TIMEOUT_SECONDS,
+    token: Annotated[
+        str, typer.Option(help="Optional authentication token to invoke the function.")
+    ] = "",
 ):
     handlers.start_function(
         engine=engine,
-        raw=raw,
         method=method,
+        raw=raw,
         token=token,
         cors=cors,
         cron=cron,
@@ -107,22 +115,25 @@ def start(
 def stop(
     label: Annotated[
         str,
-        typer.Argument(help="The label of the function to stop."),
+        typer.Argument(help="The label of the function.", show_default=False),
     ],
     engine: Annotated[
         FunctionEngineTypeEnum,
-        typer.Option(help="The engine used to serve the function."),
-    ] = FunctionEngineTypeEnum.DOCKER,
+        typer.Option(help="The engine used to serve the function.", hidden=True),
+    ] = engine_settings.CONTAINER.DEFAULT_ENGINE,
 ):
-    handlers.stop_function(engine=engine, label=label)
+    handlers.stop_function(
+        engine=engine,
+        label=label,
+    )
 
 
 @app.command(help="Check the status of the functions.")
 def status(
     engine: Annotated[
         FunctionEngineTypeEnum,
-        typer.Option(help="The engine used to serve the function."),
-    ] = FunctionEngineTypeEnum.DOCKER,
+        typer.Option(help="The engine used to serve the function.", hidden=True),
+    ] = engine_settings.CONTAINER.DEFAULT_ENGINE,
 ):
     handlers.status_function(engine=engine)
 
@@ -134,16 +145,8 @@ def logs(
     ],
     engine: Annotated[
         FunctionEngineTypeEnum,
-        typer.Option(help="The engine used to serve the function."),
-    ] = FunctionEngineTypeEnum.DOCKER,
-    tail: Annotated[
-        str,
-        typer.Option(
-            "--tail/",
-            "-n/",
-            help="Output specified number of lines at the end of logs.",
-        ),
-    ] = "all",
+        typer.Option(help="The engine used to serve the function.", hidden=True),
+    ] = engine_settings.CONTAINER.DEFAULT_ENGINE,
     follow: Annotated[
         bool,
         typer.Option("--follow/", "-f/", help="Follow log output."),
@@ -152,9 +155,21 @@ def logs(
         bool,
         typer.Option("--remote/", "-r/", help="Fetch logs from the remote server."),
     ] = False,
+    tail: Annotated[
+        str,
+        typer.Option(
+            "--tail/",
+            "-n/",
+            help="Output specified number of lines at the end of logs.",
+        ),
+    ] = "all",
 ):
     handlers.logs_function(
-        engine=engine, label=label, tail=tail, follow=follow, remote=remote
+        engine=engine,
+        label=label,
+        tail=tail,
+        follow=follow,
+        remote=remote,
     )
 
 

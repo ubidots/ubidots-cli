@@ -22,12 +22,12 @@ class FunctionLayerTypeEnum(StrEnum):
     FULL = "full"
 
 
-class FunctionPythonVersionEnum(ChoosableEnum):
+class FunctionPythonVersionEnum(StrEnum):
     PYTHON_3_9 = "python3.9"
     PYTHON_3_11 = "python3.11"
 
 
-class FunctionNodejsVersionEnum(ChoosableEnum):
+class FunctionNodejsVersionEnum(StrEnum):
     NODEJS_20 = "nodejs20.x"
 
 
@@ -97,12 +97,12 @@ class FunctionLanguageEnum(ChoosableEnum):
     NODEJS = "nodejs"
 
     @property
-    def handler_extension(cls):
+    def handler_extension(self):
         handler_extension_map = {
-            cls.PYTHON: FunctionHandlerFileExtensionEnum.PYTHON_EXTENSION,
-            cls.NODEJS: FunctionHandlerFileExtensionEnum.NODEJS_EXTENSION,
+            self.PYTHON: FunctionHandlerFileExtensionEnum.PYTHON_EXTENSION,
+            self.NODEJS: FunctionHandlerFileExtensionEnum.NODEJS_EXTENSION,
         }
-        return handler_extension_map[cls]
+        return handler_extension_map[self]
 
     @property
     def extension(self):

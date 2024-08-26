@@ -1,7 +1,10 @@
+import time
+from contextlib import suppress
 from pathlib import Path
 
 import httpx
 import typer
+from docker.errors import NotFound
 
 from cli.commons.enums import MessageColorEnum
 from cli.commons.pipelines import Pipeline
@@ -38,18 +41,25 @@ from cli.functions.pipelines import CreateProjectFolderStep
 from cli.functions.pipelines import DownloadFileStep
 from cli.functions.pipelines import ExtractProjectStep
 from cli.functions.pipelines import ExtractTemplateStep
+from cli.functions.pipelines import GetClientNetworkStep
 from cli.functions.pipelines import GetClientStep
 from cli.functions.pipelines import GetContainerManagerStep
 from cli.functions.pipelines import GetFunctionLogsStep
 from cli.functions.pipelines import GetFunctionStatusStep
+from cli.functions.pipelines import GetImageNamesStep
+from cli.functions.pipelines import GetProjectFilesStep
 from cli.functions.pipelines import HttpGetRequestStep
 from cli.functions.pipelines import PrintColoredTableStep
 from cli.functions.pipelines import PrintkeyStep
+from cli.functions.pipelines import ReadManifestStep
 from cli.functions.pipelines import SaveManifestStep
+from cli.functions.pipelines import ShowStartupInfoStep
 from cli.functions.pipelines import StopFunctionStep
 from cli.functions.pipelines import UploadFileStep
+from cli.functions.pipelines import ValidateImageNamesStep
 from cli.functions.pipelines import ValidateProjectStep
 from cli.functions.pipelines import ValidateTemplateStep
+from cli.settings import settings
 
 
 def create_function(
@@ -74,6 +84,7 @@ def create_function(
     pipeline.run(
         {
             "project_path": project_path,
+            "template_file": settings.FUNCTIONS.TEMPLATES_PATH / f"{language}.zip",
             "language": language,
             "runtime": runtime,
         }
@@ -82,13 +93,29 @@ def create_function(
 
 def start_function(
     engine: FunctionEngineTypeEnum,
-    raw: bool,
     method: FunctionMethodEnum,
+    raw: bool,
     token: str,
     cors: bool,
     cron: str,
     timeout: int,
 ):
+    my_pipeline = False
+    if my_pipeline:
+        steps = [
+            ReadManifestStep(),
+            GetProjectFilesStep(),
+            ValidateProjectStep(validate_manifest_file=False),
+            GetClientStep(engine=engine),
+            GetImageNamesStep(),
+            ValidateImageNamesStep(),
+            ShowStartupInfoStep(is_raw=raw, method=method, token=token),
+            GetContainerManagerStep(),
+            GetClientNetworkStep(),
+        ]
+        pipeline = Pipeline(steps, success_message="Function started successfully.")
+        pipeline.run({"project_path": Path.cwd()})
+
     current_path = Path.cwd()
     try:
         project_metadata = ensure_project_integrity(
@@ -136,7 +163,7 @@ def start_function(
     typer.echo("   -------")
     typer.echo(f"   Raw: {raw}")
     typer.echo(f"   Method: {method}")
-    typer.echo(f"   Token: {token if token else None}")
+    typer.echo(f"   Token: {token}")
     typer.echo("")
 
     try:
@@ -157,6 +184,15 @@ def start_function(
     ip_address = container.attrs["NetworkSettings"]["Networks"][
         engine_settings.CONTAINER.NETWORK_NAME
     ]["IPAddress"]
+    if not ip_address:
+        with suppress(NotFound):
+            container = client.client.containers.get(
+                engine_settings.CONTAINER.ARGO.NAME
+            )
+            ip_address = container.attrs["NetworkSettings"]["Networks"][
+                engine_settings.CONTAINER.NETWORK_NAME
+            ]["IPAddress"]
+
     adapter_url, data = get_argo_input_adapter(
         client=client,
         network=network,
@@ -167,6 +203,8 @@ def start_function(
         ip_address=ip_address,
         token=token,
     )
+
+    time.sleep(0.5)
     http_client = httpx.Client(follow_redirects=True)
     http_client.post(adapter_url, json=data)
 
@@ -219,7 +257,10 @@ def start_function(
     )
 
 
-def stop_function(engine: FunctionEngineTypeEnum, label: str):
+def stop_function(
+    engine: FunctionEngineTypeEnum,
+    label: str,
+):
     steps = [
         GetClientStep(engine=engine),
         GetContainerManagerStep(),
@@ -231,7 +272,9 @@ def stop_function(engine: FunctionEngineTypeEnum, label: str):
     pipeline.run({"project_path": Path.cwd(), "container_key": label})
 
 
-def status_function(engine: FunctionEngineTypeEnum):
+def status_function(
+    engine: FunctionEngineTypeEnum,
+):
     steps = [
         GetClientStep(engine=engine),
         GetContainerManagerStep(),
@@ -243,10 +286,16 @@ def status_function(engine: FunctionEngineTypeEnum):
 
 
 def logs_function(
-    engine: FunctionEngineTypeEnum, label: str, tail: str, follow: bool, remote: bool
+    engine: FunctionEngineTypeEnum,
+    label: str,
+    tail: str,
+    follow: bool,
+    remote: bool,
 ):
     if remote:
         steps = [
+            ReadManifestStep(),
+            GetProjectFilesStep(),
             ValidateProjectStep(),
             BuildEndpointStep(FUNCTION_API_ROUTES["logs"]),
             HttpGetRequestStep(),
@@ -266,8 +315,12 @@ def logs_function(
         pipeline.run({"container_key": label})
 
 
-def push_function(confirm: bool = False):
+def push_function(
+    confirm: bool = False,
+):
     steps = [
+        ReadManifestStep(),
+        GetProjectFilesStep(),
         ValidateProjectStep(),
         ConfirmOverwriteStep(
             confirm=confirm,
@@ -282,8 +335,12 @@ def push_function(confirm: bool = False):
     pipeline.run({"project_path": Path.cwd()})
 
 
-def pull_function(confirm: bool = False):
+def pull_function(
+    confirm: bool = False,
+):
     steps = [
+        ReadManifestStep(),
+        GetProjectFilesStep(),
         ValidateProjectStep(),
         ConfirmOverwriteStep(
             confirm=confirm,

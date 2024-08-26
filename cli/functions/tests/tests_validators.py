@@ -96,15 +96,14 @@ class TestFunctionProjectValidators:
                 language=FunctionLanguageEnum.PYTHON,
                 runtime=FunctionPythonRuntimeLayerTypeEnum.PYTHON_3_9_FULL,
             ),
-            function=FunctionInfo(id=None),
+            function=FunctionInfo(id=""),
         )
         project_files = [Path("main.py")]
         validator = FunctionProjectValidator(
             project_metadata=project_metadata, project_files=project_files
         )
         # Action & Assert
-        with pytest.raises(ValueError):
-            validator.validate_manifest_file()
+        validator.validate_manifest_file()
 
     def test_main_file_presence_not_exist(self):
         # Setup
