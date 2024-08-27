@@ -38,13 +38,11 @@ from cli.functions.engines.settings import engine_settings
 from cli.functions.enums import FunctionLanguageEnum
 from cli.functions.enums import FunctionLayerTypeEnum
 from cli.functions.enums import FunctionNodejsRuntimeLayerTypeEnum
-from cli.functions.enums import FunctionProjectValidationTypeEnum
 from cli.functions.enums import FunctionPythonRuntimeLayerTypeEnum
 from cli.functions.models import FunctionGlobals
 from cli.functions.models import FunctionInfo
 from cli.functions.models import FunctionProjectInfo
 from cli.functions.models import FunctionProjectMetadata
-from cli.functions.validators import FunctionProjectValidator
 from cli.settings import settings
 
 
@@ -149,25 +147,6 @@ def enumerate_project_files(project_path: Path) -> list[Path]:
     ]
 
 
-def ensure_project_integrity(
-    project_path: Path,
-    validation_flags: dict[FunctionProjectValidationTypeEnum, bool],
-) -> FunctionProjectMetadata:
-    try:
-        project_metadata = read_manifest_project_file(project_path)
-        project_files = enumerate_project_files(project_path)
-        validator = FunctionProjectValidator(
-            project_metadata=project_metadata,
-            project_files=project_files,
-            project_path=project_path,
-            validation_flags=validation_flags,
-        )
-        validator.run_validations()
-        return project_metadata
-    except (FileNotFoundError, ValueError) as error:
-        raise error
-
-
 def verify_and_fetch_images(
     client: FunctionDockerClient | FunctionPodmanClient, image_names: list[str]
 ) -> None:
@@ -186,11 +165,11 @@ def verify_and_fetch_images(
                 raise error
 
 
-def prepare_handler_file(destination_directory: Path, language: FunctionLanguageEnum):
+def prepare_handler_file(project_path: Path, language: FunctionLanguageEnum):
     extension = FunctionLanguageEnum(language).handler_extension
     handler_file = f"{settings.FUNCTIONS.DEFAULT_HANLDER_FILE_NAME}.{extension}"
     template_path = settings.FUNCTIONS.HANDLERS_PATH / handler_file
-    handler_path = destination_directory / handler_file
+    handler_path = project_path / handler_file
     shutil.copy(template_path, handler_path)
 
 
@@ -235,14 +214,13 @@ def find_available_ports(
 
 
 def get_external_container_port(container: Container, internal_port: int) -> int:
-    # return next(iter(container.ports.get(internal_port, [])), {}).get("HostPort")
     port_info: dict[str, Any] = next(iter(container.ports.get(internal_port, [])), {})
     return int(port_info.get("HostPort", 0))
 
 
 def frie_container_manager(
     container_manager: FunctionDockerContainerManager | FunctionPodmanContainerManager,
-    current_path: Path,
+    project_path: Path,
     network: Network,
     image_name: str,
     label: str,
@@ -288,7 +266,7 @@ def frie_container_manager(
             ports={
                 engine_settings.CONTAINER.FRIE.INTERNAL_PORT: port,
             },
-            volumes={str(current_path): engine_settings.CONTAINER.FRIE.VOLUME_MAPPING},
+            volumes={str(project_path): engine_settings.CONTAINER.FRIE.VOLUME_MAPPING},
         )
 
 
@@ -297,7 +275,7 @@ def argo_container_manager(
     client: FunctionDockerClient | FunctionPodmanClient,
     network: Network,
     image_name: str,
-    label: str,
+    frie_label: str,
 ):
     container_name = engine_settings.CONTAINER.ARGO.NAME
 
@@ -323,10 +301,10 @@ def argo_container_manager(
                 container=container,
                 internal_port=engine_settings.CONTAINER.ARGO.INTERNAL_ADAPTER_PORT,
             )
-            ip_address = container.attrs["NetworkSettings"]["Networks"][
-                engine_settings.CONTAINER.NETWORK_NAME
-            ]["IPAddress"]
-            url = f"http://{ip_address}:{argo_adapter_port}/{engine_settings.CONTAINER.ARGO.API_ADAPTER_BASE_PATH}/~{label}"
+            ip_address = container.attrs["NetworkSettings"]["Networks"][network.name][
+                "IPAddress"
+            ]
+            url = f"http://{ip_address}:{argo_adapter_port}/{engine_settings.CONTAINER.ARGO.API_ADAPTER_BASE_PATH}/~{frie_label}"
             response = httpx.get(url)
             if response.status_code == httpx.codes.OK:
                 httpx.delete(url)
@@ -362,8 +340,7 @@ def argo_container_manager(
 def get_argo_input_adapter(
     client: FunctionDockerClient | FunctionPodmanClient,
     network: Network,
-    label: str,
-    frie_container_name: str,
+    frie_label: str,
     argo_adapter_port: int,
     raw: bool,
     ip_address: str,
@@ -375,13 +352,13 @@ def get_argo_input_adapter(
     frie_port = engine_settings.CONTAINER.FRIE.INTERNAL_PORT.split("/")[0]
     url = f"http://{ip_address}:{argo_adapter_port}/{engine_settings.CONTAINER.ARGO.API_ADAPTER_BASE_PATH}"
     data = ArgoAdapterBaseModel(
-        label=label,
-        path=label,
+        label=frie_label,
+        path=frie_label,
         target=ArgoAdapterTargetBaseModel(
             type=(
                 TargetTypeEnum.RIE_FUNCTION_RAW if raw else TargetTypeEnum.RIE_FUNCTION
             ),
-            url=f"http://{frie_container_name}:{frie_port}{engine_settings.CONTAINER.FRIE.API_INVOKE_BASE_PATH}",
+            url=f"http://{frie_label}:{frie_port}{engine_settings.CONTAINER.FRIE.API_INVOKE_BASE_PATH}",
             auth_token=token,
         ),
     )

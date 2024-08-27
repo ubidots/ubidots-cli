@@ -1,16 +1,9 @@
-from pathlib import Path
-
 import pytest
 from typer.testing import CliRunner
 
 from cli.functions.commands import app as function_app
 from cli.functions.enums import FunctionLanguageEnum
 from cli.functions.enums import FunctionPythonRuntimeLayerTypeEnum
-from cli.functions.models import FunctionGlobals
-from cli.functions.models import FunctionInfo
-from cli.functions.models import FunctionProjectInfo
-from cli.functions.models import FunctionProjectMetadata
-from cli.functions.validators import FunctionProjectValidator
 
 
 class TestFunctionNewCommandValidators:
@@ -58,59 +51,3 @@ class TestFunctionNewCommandValidators:
             in result.output
         )
         assert result.exit_code == 1
-
-
-class TestFunctionProjectValidators:
-    @pytest.fixture(autouse=True)
-    def setup(self, mocker):
-        self.mocker = mocker
-        self.project_path = Path("/my_function")
-        self.project_metadata = FunctionProjectMetadata(
-            globals=FunctionGlobals(auto_overwrite=False),
-            project=FunctionProjectInfo(
-                name="my_function",
-                language=FunctionLanguageEnum.PYTHON,
-                runtime=FunctionPythonRuntimeLayerTypeEnum.PYTHON_3_9_FULL,
-            ),
-            function=FunctionInfo(id="12345678"),
-        )
-        self.project_files = [Path("main.py"), Path("manifest.yaml")]
-
-    def mock_os_walk(self, project_path: str, file_names: list):
-        return [(project_path, [], file_names)]
-
-    def mock_getsize(self, oversized_files, oversized_size):
-        def getsize(path):
-            if any(oversized_file in str(path) for oversized_file in oversized_files):
-                return oversized_size
-            return 1
-
-        return getsize
-
-    def test_validate_manifest_file(self):
-        # Setup
-        project_metadata = FunctionProjectMetadata(
-            globals=FunctionGlobals(auto_overwrite=False),
-            project=FunctionProjectInfo(
-                name="my_function",
-                language=FunctionLanguageEnum.PYTHON,
-                runtime=FunctionPythonRuntimeLayerTypeEnum.PYTHON_3_9_FULL,
-            ),
-            function=FunctionInfo(id=""),
-        )
-        project_files = [Path("main.py")]
-        validator = FunctionProjectValidator(
-            project_metadata=project_metadata, project_files=project_files
-        )
-        # Action & Assert
-        validator.validate_manifest_file()
-
-    def test_main_file_presence_not_exist(self):
-        # Setup
-        project_files = [Path("hello.py")]
-        validator = FunctionProjectValidator(
-            project_metadata=self.project_metadata, project_files=project_files
-        )
-        # Action & Assert
-        with pytest.raises(FileNotFoundError):
-            validator.validate_main_file_presence()
