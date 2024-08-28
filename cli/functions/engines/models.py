@@ -18,7 +18,10 @@ class ContainerStatusBaseModel(BaseModel):
 
 class ArgoAdapterMiddlewareBaseModel(BaseModel):
     type: str = "allowed_methods"
-    methods: list[str] = [FunctionMethodEnum.GET, FunctionMethodEnum.POST]
+    methods: list[FunctionMethodEnum] = [
+        FunctionMethodEnum.GET,
+        FunctionMethodEnum.POST,
+    ]
 
 
 class ArgoAdapterTargetBaseModel(BaseModel):

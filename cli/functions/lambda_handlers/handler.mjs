@@ -13,8 +13,8 @@ const loadModule = async (modulePath) => {
     }
 };
 
-export async function handler(event, context) {
-    const modulePath = path.join(__dirname, './temp_main.js');
+export async function main(event, context) {
+    const modulePath = path.join(__dirname, './main.js');
 
     const functionModule = await loadModule(modulePath);
     if (!functionModule || !functionModule.main) {

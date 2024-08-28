@@ -2,11 +2,11 @@ import json
 import traceback
 
 
-def handler(event, context):
+def main(event, context):
     _ = context
     try:
         # ruff: noqa: PLC0415
-        import temp_main as function
+        import main as function
 
         main_function = function.main
     except (ImportError, AttributeError) as e:

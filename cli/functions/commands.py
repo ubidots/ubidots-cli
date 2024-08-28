@@ -11,6 +11,7 @@ from cli.functions.enums import FunctionRuntimeLayerTypeEnum
 from cli.settings import settings
 
 app = typer.Typer(help="Tool for managing and deploying functions.")
+DEFAULT_METHODS = FunctionMethodEnum.default()
 
 
 @app.command(help="Create a new local function.")
@@ -79,10 +80,10 @@ def start(
             help="Cron expression to schedule the function for periodic execution."
         ),
     ] = settings.FUNCTIONS.DEFAULT_CRON,
-    method: Annotated[
-        FunctionMethodEnum,
-        typer.Option(help="The HTTP method the function will respond to."),
-    ] = FunctionMethodEnum.GET,
+    methods: Annotated[
+        list[FunctionMethodEnum],
+        typer.Option(help="The HTTP methods the function will respond to."),
+    ] = DEFAULT_METHODS,
     raw: Annotated[
         bool,
         typer.Option(help="Flag to determine if the output should be in raw format."),
@@ -102,7 +103,7 @@ def start(
 ):
     handlers.start_function(
         engine=engine,
-        method=method,
+        methods=methods,
         raw=raw,
         token=token,
         cors=cors,

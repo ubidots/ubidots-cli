@@ -30,6 +30,7 @@ from cli.functions.engines.exceptions import ImageFetchException
 from cli.functions.engines.exceptions import ImageNotAvailableLocallyException
 from cli.functions.engines.exceptions import ImageNotFoundException
 from cli.functions.engines.models import ArgoAdapterBaseModel
+from cli.functions.engines.models import ArgoAdapterMiddlewareBaseModel
 from cli.functions.engines.models import ArgoAdapterTargetBaseModel
 from cli.functions.engines.podman.client import FunctionPodmanClient
 from cli.functions.engines.podman.container import \
@@ -37,6 +38,7 @@ from cli.functions.engines.podman.container import \
 from cli.functions.engines.settings import engine_settings
 from cli.functions.enums import FunctionLanguageEnum
 from cli.functions.enums import FunctionLayerTypeEnum
+from cli.functions.enums import FunctionMethodEnum
 from cli.functions.enums import FunctionNodejsRuntimeLayerTypeEnum
 from cli.functions.enums import FunctionPythonRuntimeLayerTypeEnum
 from cli.functions.models import FunctionGlobals
@@ -165,12 +167,13 @@ def verify_and_fetch_images(
                 raise error
 
 
-def prepare_handler_file(project_path: Path, language: FunctionLanguageEnum):
+def create_handler_file(project_path: Path, language: FunctionLanguageEnum):
     extension = FunctionLanguageEnum(language).handler_extension
-    handler_file = f"{settings.FUNCTIONS.DEFAULT_HANLDER_FILE_NAME}.{extension}"
+    handler_file = f"{settings.FUNCTIONS.DEFAULT_HANDLER_FILE_NAME}.{extension}"
     template_path = settings.FUNCTIONS.HANDLERS_PATH / handler_file
     handler_path = project_path / handler_file
     shutil.copy(template_path, handler_path)
+    return handler_path
 
 
 def get_or_create_network(
@@ -267,6 +270,7 @@ def frie_container_manager(
                 engine_settings.CONTAINER.FRIE.INTERNAL_PORT: port,
             },
             volumes={str(project_path): engine_settings.CONTAINER.FRIE.VOLUME_MAPPING},
+            command=f"{settings.FUNCTIONS.DEFAULT_HANDLER_FILE_NAME}.{settings.FUNCTIONS.DEFAULT_HANDLER_FUNCTION_NAME}",
         )
 
 
@@ -342,9 +346,10 @@ def get_argo_input_adapter(
     network: Network,
     frie_label: str,
     argo_adapter_port: int,
-    raw: bool,
+    is_raw: bool,
     ip_address: str,
     token: str,
+    methods: list[FunctionMethodEnum],
 ) -> tuple[str, dict]:
     network_manager = client.get_network_manager()
     network = network_manager.get(network.id)
@@ -354,9 +359,16 @@ def get_argo_input_adapter(
     data = ArgoAdapterBaseModel(
         label=frie_label,
         path=frie_label,
+        middlewares=[
+            ArgoAdapterMiddlewareBaseModel(
+                methods=methods,
+            )
+        ],
         target=ArgoAdapterTargetBaseModel(
             type=(
-                TargetTypeEnum.RIE_FUNCTION_RAW if raw else TargetTypeEnum.RIE_FUNCTION
+                TargetTypeEnum.RIE_FUNCTION_RAW
+                if is_raw
+                else TargetTypeEnum.RIE_FUNCTION
             ),
             url=f"http://{frie_label}:{frie_port}{engine_settings.CONTAINER.FRIE.API_INVOKE_BASE_PATH}",
             auth_token=token,

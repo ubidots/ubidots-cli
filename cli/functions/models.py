@@ -58,7 +58,7 @@ class FunctionProjectInfo(BaseModel):
 
 class FunctionInfo(BaseModel):
     id: str = ""
-    method: FunctionMethodEnum = FunctionMethodEnum.GET
+    methods: list[FunctionMethodEnum] = [FunctionMethodEnum.GET]
     token: str = ""
     is_raw: bool = False
     has_cors: bool = False

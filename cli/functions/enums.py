@@ -145,3 +145,7 @@ class FunctionProjectValidationTypeEnum(Enum):
 class FunctionMethodEnum(StrEnum):
     GET = "GET"
     POST = "POST"
+
+    @classmethod
+    def default(cls) -> list["FunctionMethodEnum"]:
+        return [cls.GET]

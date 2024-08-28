@@ -33,6 +33,7 @@ from cli.functions.pipelines import HttpGetRequestStep
 from cli.functions.pipelines import PrintColoredTableStep
 from cli.functions.pipelines import PrintkeyStep
 from cli.functions.pipelines import ReadManifestStep
+from cli.functions.pipelines import RemoveHandlerFRIEStep
 from cli.functions.pipelines import SaveManifestStep
 from cli.functions.pipelines import ShowStartupInfoStep
 from cli.functions.pipelines import StopFunctionStep
@@ -74,7 +75,7 @@ def create_function(
 
 def start_function(
     engine: FunctionEngineTypeEnum,
-    method: FunctionMethodEnum,
+    methods: list[FunctionMethodEnum],
     raw: bool,
     token: str,
     cors: bool,
@@ -106,7 +107,7 @@ def start_function(
             "project_path": Path.cwd(),
             "function_kwargs": {
                 "is_raw": raw,
-                "method": method,
+                "methods": methods,
                 "token": token,
                 "cors": cors,
                 "cron": cron,
@@ -123,12 +124,13 @@ def stop_function(
     steps = [
         GetClientStep(engine=engine),
         GetContainerManagerStep(),
+        RemoveHandlerFRIEStep(),
         StopFunctionStep(),
     ]
     pipeline = Pipeline(
         steps, success_message=f"Function '{label}' stoped successfully."
     )
-    pipeline.run({"project_path": Path.cwd(), "container_key": label})
+    pipeline.run({"container_key": label})
 
 
 def status_function(

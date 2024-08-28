@@ -1,9 +1,9 @@
 import time
 import zipfile
-from contextlib import suppress
 from dataclasses import dataclass
 from dataclasses import field
 from io import BytesIO
+from pathlib import Path
 
 import httpx
 import typer
@@ -15,16 +15,17 @@ from cli.commons.utils import check_response_status
 from cli.functions.engines.enums import FunctionEngineTypeEnum
 from cli.functions.engines.manager import FunctionEngineClientManager
 from cli.functions.engines.settings import engine_settings
+from cli.functions.enums import FunctionHandlerFileExtensionEnum
 from cli.functions.exceptions import FolderAlreadyExistsException
 from cli.functions.exceptions import PermissionDeniedException
 from cli.functions.exceptions import TemplateNotFoundException
 from cli.functions.helpers import argo_container_manager
 from cli.functions.helpers import compress_project_to_zip
+from cli.functions.helpers import create_handler_file
 from cli.functions.helpers import enumerate_project_files
 from cli.functions.helpers import frie_container_manager
 from cli.functions.helpers import get_argo_input_adapter
 from cli.functions.helpers import get_or_create_network
-from cli.functions.helpers import prepare_handler_file
 from cli.functions.helpers import read_manifest_project_file
 from cli.functions.helpers import save_manifest_project_file
 from cli.functions.helpers import verify_and_fetch_images
@@ -72,11 +73,17 @@ class ExtractTemplateStep(PipelineStep):
 class SaveManifestStep(PipelineStep):
     def execute(self, data):
         project_path = data["project_path"]
-        project_metadata = data["project_metadata"]
 
-        language = data.get("language", project_metadata.project.language)
-        runtime = data.get("runtime", project_metadata.project.runtime)
+        project_metadata = data.get("project_metadata")
         kwargs = data.get("function_kwargs", {})
+        language = data.get("language")
+        runtime = data.get("runtime")
+
+        if project_metadata and not language:
+            language = project_metadata.project.language
+
+        if project_metadata and not runtime:
+            runtime = project_metadata.project.runtime
 
         save_manifest_project_file(
             project_path=project_path,
@@ -130,7 +137,7 @@ class ShowStartupInfoStep(PipelineStep):
         info_project = project_metadata.project
         function_kwargs = data["function_kwargs"]
         is_raw = function_kwargs["is_raw"]
-        method = function_kwargs["method"]
+        methods = function_kwargs["methods"]
         token = function_kwargs["token"]
 
         typer.echo(
@@ -146,7 +153,7 @@ class ShowStartupInfoStep(PipelineStep):
     INPUTS:
     -------
     Raw: {is_raw}
-    Method: {method}
+    Methods: {", ".join(methods)}
     Token: {token}
         """
         )
@@ -175,7 +182,8 @@ class CompressProjectStep(PipelineStep):
     exclude_files: list[str] = field(
         default_factory=lambda: [
             settings.FUNCTIONS.PROJECT_METADATA_FILE,
-            settings.FUNCTIONS.DEFAULT_HANLDER_FILE_NAME,
+            f"{settings.FUNCTIONS.DEFAULT_HANDLER_FILE_NAME}.{FunctionHandlerFileExtensionEnum.PYTHON_EXTENSION}",
+            f"{settings.FUNCTIONS.DEFAULT_HANDLER_FILE_NAME}.{FunctionHandlerFileExtensionEnum.NODEJS_EXTENSION}",
         ]
     )
 
@@ -306,10 +314,9 @@ class GetContainerManagerStep(PipelineStep):
 
 class GetImageNamesStep(PipelineStep):
     def execute(self, data):
-        # project_metadata = data["project_metadata"]
+        project_metadata = data["project_metadata"]
         hub_username = engine_settings.HUB_USERNAME
-        # function_image_name = f"{hub_username}/{project_metadata.project.runtime.value}"
-        function_image_name = f"{hub_username}/python3.9-base:latest"
+        function_image_name = f"{hub_username}/{project_metadata.project.runtime}"
         argo_image_name = f"{hub_username}/argo2:2.0.1"
 
         data["image_names"] = [
@@ -387,15 +394,17 @@ class GetArgoContainerInputAdapterStep(PipelineStep):
         function_kwargs = data["function_kwargs"]
         is_raw = function_kwargs["is_raw"]
         token = function_kwargs["token"]
+        methods = function_kwargs["methods"]
 
         adapter_url, adapter_data = get_argo_input_adapter(
             client=client,
             network=network,
             frie_label=project_metadata.project.label,
             argo_adapter_port=argo_adapter_port,
-            raw=is_raw,
+            is_raw=is_raw,
             ip_address=ip_address,
             token=token,
+            methods=methods,
         )
         data["adapter_url"] = adapter_url
         data["adapter_data"] = adapter_data
@@ -409,8 +418,7 @@ class CreateArgoContainerAdapterStep(PipelineStep):
 
         time.sleep(settings.FUNCTIONS.CONTAINER_STARTUP_DELAY_SECONDS)
         http_client = httpx.Client(follow_redirects=True)
-        with suppress(httpx.ConnectError):
-            http_client.post(adapter_url, json=adapter_data)
+        http_client.post(adapter_url, json=adapter_data)
         return data
 
 
@@ -419,7 +427,27 @@ class CreateHandlerFRIEStep(PipelineStep):
         project_path = data["project_path"]
         project_metadata = data["project_metadata"]
 
-        prepare_handler_file(project_path, project_metadata.project.language)
+        data["handler_path"] = create_handler_file(
+            project_path, project_metadata.project.language
+        )
+        return data
+
+
+class RemoveHandlerFRIEStep(PipelineStep):
+    def execute(self, data):
+        container_key = data["container_key"]
+        container_manager = data["container_manager"]
+
+        container = container_manager.get(
+            f"{engine_settings.CONTAINER.FRIE.LABEL_KEY}={container_key}"
+        )
+        project_path = Path(container.attrs["Mounts"][0]["Source"])
+        for pattern in [
+            f"{settings.FUNCTIONS.DEFAULT_HANDLER_FILE_NAME}.{FunctionHandlerFileExtensionEnum.PYTHON_EXTENSION}",
+            f"{settings.FUNCTIONS.DEFAULT_HANDLER_FILE_NAME}.{FunctionHandlerFileExtensionEnum.NODEJS_EXTENSION}",
+        ]:
+            for handler_file in project_path.glob(pattern):
+                handler_file.unlink()
         return data
 
 

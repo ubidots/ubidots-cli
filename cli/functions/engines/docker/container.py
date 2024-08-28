@@ -67,6 +67,7 @@ class FunctionDockerContainerManager(AbstractContainerManager):
         ports: dict[str, int],
         volumes: dict | None = None,
         detach: bool = engine_settings.CONTAINER.IS_DETACH,
+        command: str = "",
     ):
         kwargs = {
             "image": image_name,
@@ -79,6 +80,9 @@ class FunctionDockerContainerManager(AbstractContainerManager):
 
         if volumes is not None:
             kwargs["volumes"] = volumes
+
+        if command:
+            kwargs["command"] = command
 
         with suppress(NotFound):
             if self.client.containers.get(container_name):
