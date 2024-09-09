@@ -5,10 +5,10 @@ from cli.commons.styles import print_colored_table
 from cli.commons.utils import build_endpoint
 
 
-def list_variable():
+def list_variable(fields: list[str]):
     url, headers = build_endpoint(
         route="/api/v2.0/variables/",
-        query_params={"fields": "id,label,type,unit,syntheticExpression,device"},
+        query_params={"fields": ",".join(fields)},
     )
     response = httpx.get(url, headers=headers)
     print_colored_table(
@@ -17,11 +17,11 @@ def list_variable():
     )
 
 
-def retrieve_variable(variable_key: str):
+def retrieve_variable(variable_key: str, fields: list[str]):
     url, headers = build_endpoint(
         route="/api/v2.0/variables/{variable_key}/",
         variable_key=variable_key,
-        query_params={"fields": "id,label,type,unit,syntheticExpression,device"},
+        query_params={"fields": ",".join(fields)},
     )
     response = httpx.get(url, headers=headers)
     print_colored_table(

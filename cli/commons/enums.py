@@ -1,4 +1,3 @@
-from enum import Enum
 from enum import StrEnum
 
 from InquirerPy import inquirer
@@ -23,9 +22,14 @@ class TableColorEnum(StrEnum):
     BRIGHT_MAGENTA = "bright_magenta"
 
 
-class BoolValuesEnum(Enum):
-    TRUE = ("yes", "y", "true", "t", "1")
-    FALSE = ("no", "n", "false", "f", "0")
+class DefaultInstanceFieldEnum(StrEnum):
+    ID = "id"
+    LABEL = "label"
+    NAME = "name"
+
+    @classmethod
+    def fields(cls) -> list["DefaultInstanceFieldEnum"]:
+        return [cls.ID, cls.LABEL, cls.NAME]
 
 
 class ChoosableEnum(StrEnum):

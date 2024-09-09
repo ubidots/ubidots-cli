@@ -1,25 +1,45 @@
 from typing import Annotated
+from typing import no_type_check
 
 import typer
 
+from cli.commons.enums import DefaultInstanceFieldEnum
 from cli.commons.utils import get_instance_key
 from cli.commons.utils import simple_lookup_key
 from cli.variables import handlers
 from cli.variables.enums import VariableTypeEnum
 
 app = typer.Typer(help="Variable management and operations.")
-
-
-@app.command(short_help="Lists all available variables.")
-def list():
-    handlers.list_variable()
+DEFAULT_FIELDS = DefaultInstanceFieldEnum.fields()
 
 
 @app.command(short_help="Retrieves a specific variable using its id.")
 @simple_lookup_key(entity_name="variable")
-def get(id: str):
+@no_type_check
+def get(
+    id: str,
+    fields: Annotated[
+        list[str],
+        typer.Option(
+            help="Comma-separated fields to process. e.g. field1,field2,field3"
+        ),
+    ] = DEFAULT_FIELDS,
+):
     variable_key = get_instance_key(id=id)
-    handlers.retrieve_variable(variable_key=variable_key)
+    handlers.retrieve_variable(variable_key=variable_key, fields=fields)
+
+
+@app.command(short_help="Lists all available variables.")
+@no_type_check
+def list(
+    fields: Annotated[
+        list[str],
+        typer.Option(
+            help="Comma-separated fields to process. e.g. field1,field2,field3"
+        ),
+    ] = DEFAULT_FIELDS,
+):
+    handlers.list_variable(fields=fields)
 
 
 @app.command(short_help="Adds a new variable.")

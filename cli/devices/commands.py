@@ -1,24 +1,45 @@
 from typing import Annotated
+from typing import no_type_check
 
 import typer
 
+from cli.commons.enums import DefaultInstanceFieldEnum
 from cli.commons.utils import get_instance_key
 from cli.commons.utils import simple_lookup_key
 from cli.devices import handlers
 
 app = typer.Typer(help="Device management and operations.")
-
-
-@app.command(short_help="Lists all available devices.")
-def list():
-    handlers.list_devices()
+DEFAULT_FIELDS = DefaultInstanceFieldEnum.fields()
 
 
 @app.command(short_help="Retrieves a specific device using its id or label.")
 @simple_lookup_key(entity_name="device")
-def get(id: str | None = None, label: str | None = None):
+@no_type_check
+def get(
+    id: str | None = None,
+    label: str | None = None,
+    fields: Annotated[
+        list[str],
+        typer.Option(
+            help="Comma-separated fields to process. e.g. field1,field2,field3"
+        ),
+    ] = DEFAULT_FIELDS,
+):
     device_key = get_instance_key(id=id, label=label)
-    handlers.retrieve_device(device_key=device_key)
+    handlers.retrieve_device(device_key=device_key, fields=fields)
+
+
+@app.command(short_help="Lists all available devices.")
+@no_type_check
+def list(
+    fields: Annotated[
+        list[str],
+        typer.Option(
+            help="Comma-separated fields to process. e.g. field1,field2,field3"
+        ),
+    ] = DEFAULT_FIELDS,
+):
+    handlers.list_devices(fields=fields)
 
 
 @app.command(short_help="Adds a new device.")
