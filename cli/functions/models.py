@@ -21,7 +21,6 @@ from cli.settings import settings
 
 
 class FunctionGlobals(BaseModel):
-    auto_overwrite: bool = False
     engine: FunctionEngineTypeEnum = engine_settings.CONTAINER.DEFAULT_ENGINE
 
 

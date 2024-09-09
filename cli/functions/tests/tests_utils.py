@@ -40,7 +40,7 @@ class TestFunctionUtils:
         language = FunctionLanguageEnum.PYTHON
         runtime = FunctionPythonRuntimeLayerTypeEnum.PYTHON_3_9_FULL
         expected_metadata = FunctionProjectMetadata(
-            globals=FunctionGlobals(auto_overwrite=False),
+            globals=FunctionGlobals(),
             project=FunctionProjectInfo(
                 name=project_path.name,
                 label="my_function",
@@ -74,7 +74,7 @@ class TestFunctionUtils:
         language = FunctionLanguageEnum.PYTHON
         runtime = FunctionPythonRuntimeLayerTypeEnum.PYTHON_3_9_FULL
         metadata = FunctionProjectMetadata(
-            globals=FunctionGlobals(auto_overwrite=False),
+            globals=FunctionGlobals(),
             project=FunctionProjectInfo(
                 name=project_path.name, language=language, runtime=runtime
             ),

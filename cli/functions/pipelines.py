@@ -166,9 +166,7 @@ class ConfirmOverwriteStep(PipelineStep):
     message: str
 
     def execute(self, data):
-        project_metadata = data["project_metadata"]
-
-        confirm = self.confirm or project_metadata.globals.auto_overwrite
+        confirm = self.confirm
         if not confirm and not typer.confirm(self.message):
             error_message = (
                 "Operation cancelled: The overwrite process was aborted by the user."
@@ -250,6 +248,7 @@ class HttpGetRequestStep(PipelineStep):
         headers = data["headers"]
 
         response = httpx.get(url, headers=headers)
+        data["response"] = response
         data["results"] = response.json()["results"]
         return data
 

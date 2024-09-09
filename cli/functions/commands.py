@@ -2,6 +2,7 @@ from typing import Annotated
 
 import typer
 
+from cli.commons.utils import verbose_option
 from cli.functions import handlers
 from cli.functions.engines.enums import FunctionEngineTypeEnum
 from cli.functions.engines.settings import engine_settings
@@ -15,6 +16,7 @@ DEFAULT_METHODS = FunctionMethodEnum.default()
 
 
 @app.command(help="Create a new local function.")
+@verbose_option()
 def new(
     name: Annotated[
         str, typer.Argument(help="The name of the project folder.")
@@ -36,6 +38,7 @@ def new(
             ),
         ),
     ] = False,
+    verbose: bool = False,
 ):
     if interactive:
         language = FunctionLanguageEnum.choose(message="Select a programming language:")
@@ -56,13 +59,12 @@ def new(
         )
 
     handlers.create_function(
-        name=name,
-        language=language,
-        runtime=runtime,
+        name=name, language=language, runtime=runtime, verbose=verbose
     )
 
 
 @app.command(help="Initialize the function container environment for execution.")
+@verbose_option()
 def start(
     engine: Annotated[
         FunctionEngineTypeEnum,
@@ -100,6 +102,7 @@ def start(
     token: Annotated[
         str, typer.Option(help="Optional authentication token to invoke the function.")
     ] = "",
+    verbose: bool = False,
 ):
     handlers.start_function(
         engine=engine,
@@ -109,10 +112,12 @@ def start(
         cors=cors,
         cron=cron,
         timeout=timeout,
+        verbose=verbose,
     )
 
 
 @app.command(help="Stop the function.")
+@verbose_option()
 def stop(
     label: Annotated[
         str,
@@ -122,24 +127,25 @@ def stop(
         FunctionEngineTypeEnum,
         typer.Option(help="The engine used to serve the function.", hidden=True),
     ] = engine_settings.CONTAINER.DEFAULT_ENGINE,
+    verbose: bool = False,
 ):
-    handlers.stop_function(
-        engine=engine,
-        label=label,
-    )
+    handlers.stop_function(engine=engine, label=label, verbose=verbose)
 
 
 @app.command(help="Check the status of the functions.")
+@verbose_option()
 def status(
     engine: Annotated[
         FunctionEngineTypeEnum,
         typer.Option(help="The engine used to serve the function.", hidden=True),
     ] = engine_settings.CONTAINER.DEFAULT_ENGINE,
+    verbose: bool = False,
 ):
-    handlers.status_function(engine=engine)
+    handlers.status_function(engine=engine, verbose=verbose)
 
 
 @app.command(help="Get logs from the function.")
+@verbose_option()
 def logs(
     label: Annotated[
         str, typer.Argument(help="The label of function.", show_default=False)
@@ -164,6 +170,7 @@ def logs(
             help="Output specified number of lines at the end of logs.",
         ),
     ] = "all",
+    verbose: bool = False,
 ):
     handlers.logs_function(
         engine=engine,
@@ -171,28 +178,33 @@ def logs(
         tail=tail,
         follow=follow,
         remote=remote,
+        verbose=verbose,
     )
 
 
 @app.command(
     help="Update and synchronize your local function code with the remote server."
 )
+@verbose_option()
 def push(
     confirm: Annotated[
         bool,
         typer.Option("--yes", "-y", help="Confirm file overwrite without prompt."),
-    ] = False
+    ] = False,
+    verbose: bool = False,
 ):
-    handlers.push_function(confirm=confirm)
+    handlers.push_function(confirm=confirm, verbose=verbose)
 
 
 @app.command(
     help="Retrieve and update your local function code with the latest changes from the remote server."
 )
+@verbose_option()
 def pull(
     confirm: Annotated[
         bool,
         typer.Option("--yes", "-y", help="Confirm file overwrite without prompt."),
-    ] = False
+    ] = False,
+    verbose: bool = False,
 ):
-    handlers.pull_function(confirm=confirm)
+    handlers.pull_function(confirm=confirm, verbose=verbose)

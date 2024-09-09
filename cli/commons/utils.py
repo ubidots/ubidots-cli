@@ -66,6 +66,20 @@ def simple_lookup_key(entity_name: str):
     return decorator
 
 
+def verbose_option():
+    def decorator(command_func):
+        @wraps(command_func)
+        def wrapper(*args, **kwargs):
+            return command_func(*args, **kwargs)
+
+        wrapper.__annotations__["verbose"] = Annotated[
+            bool, typer.Option("--verbose", "-v", help="Enable verbose output.")
+        ]
+        return wrapper
+
+    return decorator
+
+
 def exit_with_error_message(exception: Exception, message: str = "", hint: str = ""):
     message = message if message else str(exception)
     typer.echo(

@@ -58,14 +58,10 @@ def save_manifest_project_file(
     ),
     label: str = "",
     engine: FunctionEngineTypeEnum = engine_settings.CONTAINER.DEFAULT_ENGINE,
-    auto_overwrite: bool = False,
     function_id: str = "",
     **kwargs,
 ) -> None:
-    globals_instance = FunctionGlobals(
-        engine=engine,
-        auto_overwrite=auto_overwrite,
-    )
+    globals_instance = FunctionGlobals(engine=engine)
     project_instance = FunctionProjectInfo(
         name=project_path.name,
         language=language,

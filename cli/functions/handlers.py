@@ -52,6 +52,7 @@ def create_function(
         | FunctionPythonRuntimeLayerTypeEnum
         | FunctionNodejsRuntimeLayerTypeEnum
     ),
+    verbose: bool,
 ):
     project_path = Path.cwd() / name if not Path(name).is_absolute() else Path(name)
     steps = [
@@ -69,6 +70,8 @@ def create_function(
             "template_file": settings.FUNCTIONS.TEMPLATES_PATH / f"{language}.zip",
             "language": language,
             "runtime": runtime,
+            "verbose": verbose,
+            "root": create_function.__name__,
         }
     )
 
@@ -81,6 +84,7 @@ def start_function(
     cors: bool,
     cron: str,
     timeout: int,
+    verbose: bool,
 ):
     steps = [
         ReadManifestStep(),
@@ -113,6 +117,8 @@ def start_function(
                 "cron": cron,
                 "timeout": timeout,
             },
+            "verbose": verbose,
+            "root": start_function.__name__,
         }
     )
 
@@ -120,6 +126,7 @@ def start_function(
 def stop_function(
     engine: FunctionEngineTypeEnum,
     label: str,
+    verbose: bool,
 ):
     steps = [
         GetClientStep(engine=engine),
@@ -130,11 +137,14 @@ def stop_function(
     pipeline = Pipeline(
         steps, success_message=f"Function '{label}' stoped successfully."
     )
-    pipeline.run({"container_key": label})
+    pipeline.run(
+        {"container_key": label, "verbose": verbose, "root": stop_function.__name__}
+    )
 
 
 def status_function(
     engine: FunctionEngineTypeEnum,
+    verbose: bool,
 ):
     steps = [
         GetClientStep(engine=engine),
@@ -143,7 +153,7 @@ def status_function(
         PrintColoredTableStep(key="status"),
     ]
     pipeline = Pipeline(steps)
-    pipeline.run({})
+    pipeline.run({"verbose": verbose, "root": status_function.__name__})
 
 
 def logs_function(
@@ -152,6 +162,7 @@ def logs_function(
     tail: str,
     follow: bool,
     remote: bool,
+    verbose: bool,
 ):
     if remote:
         steps = [
@@ -164,7 +175,13 @@ def logs_function(
             PrintColoredTableStep(key="results"),
         ]
         pipeline = Pipeline(steps)
-        pipeline.run({"project_path": Path.cwd()})
+        pipeline.run(
+            {
+                "project_path": Path.cwd(),
+                "verbose": verbose,
+                "root": logs_function.__name__,
+            }
+        )
     else:
         steps = [
             GetClientStep(engine=engine),
@@ -173,44 +190,52 @@ def logs_function(
             PrintkeyStep(key="logs"),
         ]
         pipeline = Pipeline(steps)
-        pipeline.run({"container_key": label})
+        pipeline.run(
+            {"container_key": label, "verbose": verbose, "root": logs_function.__name__}
+        )
 
 
 def push_function(
-    confirm: bool = False,
+    confirm: bool,
+    verbose: bool,
 ):
     steps = [
-        ReadManifestStep(),
-        GetProjectFilesStep(),
-        ValidateProjectStep(),
         ConfirmOverwriteStep(
             confirm=confirm,
             message="Are you sure you want to overwrite the remote files?",
         ),
+        ReadManifestStep(),
+        GetProjectFilesStep(),
+        ValidateProjectStep(),
         CompressProjectStep(),
         BuildEndpointStep(FUNCTION_API_ROUTES["zip_file"]),
         UploadFileStep(),
         CheckResponseStep(),
     ]
     pipeline = Pipeline(steps, success_message="Function uploaded successfully.")
-    pipeline.run({"project_path": Path.cwd()})
+    pipeline.run(
+        {"project_path": Path.cwd(), "verbose": verbose, "root": push_function.__name__}
+    )
 
 
 def pull_function(
-    confirm: bool = False,
+    confirm: bool,
+    verbose: bool,
 ):
     steps = [
-        ReadManifestStep(),
-        GetProjectFilesStep(),
-        ValidateProjectStep(),
         ConfirmOverwriteStep(
             confirm=confirm,
             message="Are you sure you want to overwrite the local files?",
         ),
+        ReadManifestStep(),
+        GetProjectFilesStep(),
+        ValidateProjectStep(),
         BuildEndpointStep(FUNCTION_API_ROUTES["zip_file"]),
         DownloadFileStep(),
         CheckResponseStep(),
         ExtractProjectStep(),
     ]
     pipeline = Pipeline(steps, success_message="Function downloaded successfully.")
-    pipeline.run({"project_path": Path.cwd()})
+    pipeline.run(
+        {"project_path": Path.cwd(), "verbose": verbose, "root": pull_function.__name__}
+    )
