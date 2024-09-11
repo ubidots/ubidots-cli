@@ -52,6 +52,10 @@ def create_function(
         | FunctionPythonRuntimeLayerTypeEnum
         | FunctionNodejsRuntimeLayerTypeEnum
     ),
+    methods: list[FunctionMethodEnum],
+    is_raw: bool,
+    cron: str,
+    cors: bool,
     verbose: bool,
 ):
     project_path = Path.cwd() / name if not Path(name).is_absolute() else Path(name)
@@ -70,6 +74,12 @@ def create_function(
             "template_file": settings.FUNCTIONS.TEMPLATES_PATH / f"{language}.zip",
             "language": language,
             "runtime": runtime,
+            "function_kwargs": {
+                "is_raw": is_raw,
+                "methods": methods,
+                "cors": cors,
+                "cron": cron,
+            },
             "verbose": verbose,
             "root": create_function.__name__,
         }
@@ -79,7 +89,7 @@ def create_function(
 def start_function(
     engine: FunctionEngineTypeEnum,
     methods: list[FunctionMethodEnum],
-    raw: bool,
+    is_raw: bool,
     token: str,
     cors: bool,
     cron: str,
@@ -110,7 +120,7 @@ def start_function(
         {
             "project_path": Path.cwd(),
             "function_kwargs": {
-                "is_raw": raw,
+                "is_raw": is_raw,
                 "methods": methods,
                 "token": token,
                 "cors": cors,

@@ -27,6 +27,26 @@ def new(
             help="The runtime for the function. **Required** if not in interactive mode.",
         ),
     ] = FunctionRuntimeLayerTypeEnum.NODEJS_20_LITE,
+    cors: Annotated[
+        bool,
+        typer.Option(
+            help="Flag to enable Cross-Origin Resource Sharing (CORS) for the function.",
+        ),
+    ] = False,
+    cron: Annotated[
+        str,
+        typer.Option(
+            help="Cron expression to schedule the function for periodic execution."
+        ),
+    ] = settings.FUNCTIONS.DEFAULT_CRON,
+    methods: Annotated[
+        list[FunctionMethodEnum],
+        typer.Option(help="The HTTP methods the function will respond to."),
+    ] = DEFAULT_METHODS,
+    raw: Annotated[
+        bool,
+        typer.Option(help="Flag to determine if the output should be in raw format."),
+    ] = False,
     interactive: Annotated[
         bool,
         typer.Option(
@@ -59,7 +79,14 @@ def new(
         )
 
     handlers.create_function(
-        name=name, language=language, runtime=runtime, verbose=verbose
+        name=name,
+        language=language,
+        runtime=runtime,
+        methods=methods,
+        is_raw=raw,
+        cron=cron,
+        cors=cors,
+        verbose=verbose,
     )
 
 
@@ -107,7 +134,7 @@ def start(
     handlers.start_function(
         engine=engine,
         methods=methods,
-        raw=raw,
+        is_raw=raw,
         token=token,
         cors=cors,
         cron=cron,
