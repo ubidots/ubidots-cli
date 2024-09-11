@@ -85,6 +85,9 @@ class SaveManifestStep(PipelineStep):
         if project_metadata and not runtime:
             runtime = project_metadata.project.runtime
 
+        if methods := project_metadata.function.methods:
+            kwargs["methods"] = methods
+
         save_manifest_project_file(
             project_path=project_path,
             language=language,
@@ -137,7 +140,7 @@ class ShowStartupInfoStep(PipelineStep):
         info_project = project_metadata.project
         function_kwargs = data["function_kwargs"]
         is_raw = function_kwargs["is_raw"]
-        methods = function_kwargs["methods"]
+        methods = project_metadata.function.methods or function_kwargs["methods"]
         token = function_kwargs["token"]
 
         typer.echo(
@@ -393,7 +396,7 @@ class GetArgoContainerInputAdapterStep(PipelineStep):
         function_kwargs = data["function_kwargs"]
         is_raw = function_kwargs["is_raw"]
         token = function_kwargs["token"]
-        methods = function_kwargs["methods"]
+        methods = project_metadata.function.methods or function_kwargs["methods"]
 
         adapter_url, adapter_data = get_argo_input_adapter(
             client=client,

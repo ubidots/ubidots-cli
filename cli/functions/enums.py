@@ -147,5 +147,10 @@ class FunctionMethodEnum(StrEnum):
     POST = "POST"
 
     @classmethod
-    def default(cls) -> list["FunctionMethodEnum"]:
-        return [cls.GET]
+    def default(cls) -> "FunctionMethodEnum":
+        return cls.GET
+
+    @classmethod
+    def parse_methods_to_enum_list(cls, methods_str: str) -> list["FunctionMethodEnum"]:
+        methods = methods_str.split(",")
+        return [cls(method.strip().upper()) for method in methods]
