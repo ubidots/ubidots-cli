@@ -5,28 +5,29 @@ from cli.commons.styles import print_colored_table
 from cli.commons.utils import build_endpoint
 
 
-def list_variable(fields: list[str]):
+def list_variable(fields: str, page_size: int, page: int):
     url, headers = build_endpoint(
         route="/api/v2.0/variables/",
-        query_params={"fields": ",".join(fields)},
+        query_params={
+            "fields": fields,
+            "page_size": page_size,
+            "page": page,
+        },
     )
     response = httpx.get(url, headers=headers)
     print_colored_table(
         results=response.json()["results"],
-        sub_keys_to_show={"device": ["id", "label"]},
     )
 
 
-def retrieve_variable(variable_key: str, fields: list[str]):
+def retrieve_variable(variable_key: str, fields: str):
     url, headers = build_endpoint(
         route="/api/v2.0/variables/{variable_key}/",
         variable_key=variable_key,
-        query_params={"fields": ",".join(fields)},
+        query_params={"fields": fields},
     )
     response = httpx.get(url, headers=headers)
-    print_colored_table(
-        results=[response.json()], sub_keys_to_show={"device": ["id", "label"]}
-    )
+    print_colored_table(results=[response.json()])
 
 
 def add_variable(**kwargs):

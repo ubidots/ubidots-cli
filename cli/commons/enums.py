@@ -22,14 +22,27 @@ class TableColorEnum(StrEnum):
     BRIGHT_MAGENTA = "bright_magenta"
 
 
+class EntityNameEnum(StrEnum):
+    DEVICE = "device"
+    VARIABLE = "variable"
+    EVENT = "event"
+    DASHBOARD = "dashboard"
+    REPORT = "report"
+    APP = "app"
+    GROUP = "device_group"
+    TYPES = "device_type"
+    FUNCTION = "function"
+    PLUGIN = "plugin"
+
+
 class DefaultInstanceFieldEnum(StrEnum):
     ID = "id"
     LABEL = "label"
     NAME = "name"
 
     @classmethod
-    def fields(cls) -> list["DefaultInstanceFieldEnum"]:
-        return [cls.ID, cls.LABEL, cls.NAME]
+    def get_default_fields(cls) -> str:
+        return f"{cls.ID},{cls.LABEL},{cls.NAME}"
 
 
 class ChoosableEnum(StrEnum):

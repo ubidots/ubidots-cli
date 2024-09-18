@@ -1,6 +1,3 @@
-from functools import wraps
-from typing import Annotated
-
 import httpx
 import typer
 
@@ -15,7 +12,9 @@ def build_endpoint(
     access_config = read_cli_configuration()
     url = f"{access_config.api_domain}{route.format(**kwargs)}"
     if query_params:
-        query_string = "&".join(f"{key}={value}" for key, value in query_params.items())
+        query_string = "&".join(
+            f"{key}={value}" for key, value in query_params.items() if value is not None
+        )
         url += f"?{query_string}"
 
     headers = {access_config.auth_method: access_config.access_token}
@@ -41,43 +40,6 @@ def get_instance_key(id: str | None = None, label: str | None = None) -> str:
         return f"~{label}"
     error_message = "Providing an '--id' or '--label' is required."
     raise typer.BadParameter(error_message)
-
-
-def simple_lookup_key(entity_name: str):
-    def decorator(command_func):
-        @wraps(command_func)
-        def wrapper(*args, **kwargs):
-            return command_func(*args, **kwargs)
-
-        wrapper.__annotations__["id"] = Annotated[
-            str,
-            typer.Option(
-                help=f"Unique identifier for the {entity_name}.", show_default=False
-            ),
-        ]
-        wrapper.__annotations__["label"] = Annotated[
-            str,
-            typer.Option(
-                help=f"Descriptive label for the {entity_name}.", show_default=False
-            ),
-        ]
-        return wrapper
-
-    return decorator
-
-
-def verbose_option():
-    def decorator(command_func):
-        @wraps(command_func)
-        def wrapper(*args, **kwargs):
-            return command_func(*args, **kwargs)
-
-        wrapper.__annotations__["verbose"] = Annotated[
-            bool, typer.Option("--verbose", "-v", help="Enable verbose output.")
-        ]
-        return wrapper
-
-    return decorator
 
 
 def exit_with_error_message(exception: Exception, message: str = "", hint: str = ""):

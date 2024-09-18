@@ -1,0 +1,82 @@
+from functools import wraps
+from typing import Annotated
+
+import typer
+
+
+def simple_lookup_key(entity_name: str):
+    def decorator(command_func):
+        @wraps(command_func)
+        def wrapper(*args, **kwargs):
+            return command_func(*args, **kwargs)
+
+        wrapper.__annotations__["id"] = Annotated[
+            str,
+            typer.Option(
+                help=f"Unique identifier for the {entity_name}.", show_default=False
+            ),
+        ]
+        wrapper.__annotations__["label"] = Annotated[
+            str,
+            typer.Option(
+                help=f"Descriptive label for the {entity_name}.", show_default=False
+            ),
+        ]
+        return wrapper
+
+    return decorator
+
+
+def add_verbose_option():
+    def decorator(command_func):
+        @wraps(command_func)
+        def wrapper(*args, **kwargs):
+            return command_func(*args, **kwargs)
+
+        wrapper.__annotations__["verbose"] = Annotated[
+            bool, typer.Option("--verbose", "-v", help="Enable verbose output.")
+        ]
+        return wrapper
+
+    return decorator
+
+
+def add_fields_option():
+    def decorator(command_func):
+        @wraps(command_func)
+        def wrapper(*args, **kwargs):
+            return command_func(*args, **kwargs)
+
+        wrapper.__annotations__["fields"] = Annotated[
+            str,
+            typer.Option(
+                help="Comma-separated fields to process. e.g. field1,field2,field3"
+            ),
+        ]
+        return wrapper
+
+    return decorator
+
+
+def add_pagination_options():
+    def decorator(command_func):
+        @wraps(command_func)
+        def wrapper(*args, **kwargs):
+            return command_func(*args, **kwargs)
+
+        wrapper.__annotations__["page_size"] = Annotated[
+            int,
+            typer.Option(
+                help="Defines the page number to be retrieved.", show_default=False
+            ),
+        ]
+        wrapper.__annotations__["page"] = Annotated[
+            int,
+            typer.Option(
+                help="Defines how many items per page are retrieved.",
+                show_default=False,
+            ),
+        ]
+        return wrapper
+
+    return decorator

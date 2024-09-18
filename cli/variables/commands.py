@@ -3,43 +3,51 @@ from typing import no_type_check
 
 import typer
 
+from cli.commons.decorators import add_fields_option
+from cli.commons.decorators import add_pagination_options
+from cli.commons.decorators import simple_lookup_key
 from cli.commons.enums import DefaultInstanceFieldEnum
+from cli.commons.enums import EntityNameEnum
 from cli.commons.utils import get_instance_key
-from cli.commons.utils import simple_lookup_key
 from cli.variables import handlers
 from cli.variables.enums import VariableTypeEnum
 
 app = typer.Typer(help="Variable management and operations.")
-DEFAULT_FIELDS = DefaultInstanceFieldEnum.fields()
+
+
+@app.command(short_help="Deletes a specific variable using its id")
+@simple_lookup_key(entity_name=EntityNameEnum.VARIABLE)
+def delete(id: str):
+    variable_key = get_instance_key(id=id)
+    handlers.delete_variable(variable_key=variable_key)
 
 
 @app.command(short_help="Retrieves a specific variable using its id.")
-@simple_lookup_key(entity_name="variable")
+@simple_lookup_key(entity_name=EntityNameEnum.VARIABLE)
+@add_fields_option()
 @no_type_check
 def get(
     id: str,
-    fields: Annotated[
-        list[str],
-        typer.Option(
-            help="Comma-separated fields to process. e.g. field1,field2,field3"
-        ),
-    ] = DEFAULT_FIELDS,
+    fields: str = DefaultInstanceFieldEnum.get_default_fields(),
 ):
     variable_key = get_instance_key(id=id)
     handlers.retrieve_variable(variable_key=variable_key, fields=fields)
 
 
 @app.command(short_help="Lists all available variables.")
+@add_fields_option()
+@add_pagination_options()
 @no_type_check
 def list(
-    fields: Annotated[
-        list[str],
-        typer.Option(
-            help="Comma-separated fields to process. e.g. field1,field2,field3"
-        ),
-    ] = DEFAULT_FIELDS,
+    fields: str = DefaultInstanceFieldEnum.get_default_fields(),
+    page_size: int | None = None,
+    page: int | None = None,
 ):
-    handlers.list_variable(fields=fields)
+    handlers.list_variable(
+        fields=fields,
+        page_size=page_size,
+        page=page,
+    )
 
 
 @app.command(short_help="Adds a new variable.")
@@ -94,10 +102,3 @@ def add(
         syntheticExpression=syntheticExpression,
         tags=tags,
     )
-
-
-@app.command(short_help="Deletes a specific variable using its id")
-@simple_lookup_key(entity_name="variable")
-def delete(id: str):
-    variable_key = get_instance_key(id=id)
-    handlers.delete_variable(variable_key=variable_key)

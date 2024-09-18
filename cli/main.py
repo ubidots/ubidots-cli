@@ -9,9 +9,9 @@ app = typer.Typer()
 
 app.command(help="Configure general settings for the CLI.")(config)
 
-app.add_typer(function_app, name="fn")
-app.add_typer(device_app, name="dev")
-app.add_typer(variable_app, name="var")
+app.add_typer(function_app, name="function")
+app.add_typer(device_app, name="devices")
+app.add_typer(variable_app, name="variables")
 
 if __name__ == "__main__":
     app()

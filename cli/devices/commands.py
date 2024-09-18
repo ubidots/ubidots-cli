@@ -3,43 +3,51 @@ from typing import no_type_check
 
 import typer
 
+from cli.commons.decorators import add_fields_option
+from cli.commons.decorators import add_pagination_options
+from cli.commons.decorators import simple_lookup_key
 from cli.commons.enums import DefaultInstanceFieldEnum
+from cli.commons.enums import EntityNameEnum
 from cli.commons.utils import get_instance_key
-from cli.commons.utils import simple_lookup_key
 from cli.devices import handlers
 
 app = typer.Typer(help="Device management and operations.")
-DEFAULT_FIELDS = DefaultInstanceFieldEnum.fields()
+
+
+@app.command(short_help="Deletes a specific device using its id or label.")
+@simple_lookup_key(entity_name=EntityNameEnum.DEVICE)
+def delete(id: str | None = None, label: str | None = None):
+    device_key = get_instance_key(id=id, label=label)
+    handlers.delete_device(device_key=device_key)
 
 
 @app.command(short_help="Retrieves a specific device using its id or label.")
-@simple_lookup_key(entity_name="device")
+@simple_lookup_key(entity_name=EntityNameEnum.DEVICE)
+@add_fields_option()
 @no_type_check
 def get(
     id: str | None = None,
     label: str | None = None,
-    fields: Annotated[
-        list[str],
-        typer.Option(
-            help="Comma-separated fields to process. e.g. field1,field2,field3"
-        ),
-    ] = DEFAULT_FIELDS,
+    fields: str = DefaultInstanceFieldEnum.get_default_fields(),
 ):
     device_key = get_instance_key(id=id, label=label)
     handlers.retrieve_device(device_key=device_key, fields=fields)
 
 
 @app.command(short_help="Lists all available devices.")
+@add_fields_option()
+@add_pagination_options()
 @no_type_check
 def list(
-    fields: Annotated[
-        list[str],
-        typer.Option(
-            help="Comma-separated fields to process. e.g. field1,field2,field3"
-        ),
-    ] = DEFAULT_FIELDS,
+    fields: str = DefaultInstanceFieldEnum.get_default_fields(),
+    page_size: int | None = None,
+    page: int | None = None,
 ):
-    handlers.list_devices(fields=fields)
+    handlers.list_devices(
+        fields=fields,
+        page_size=page_size,
+        page=page,
+    )
 
 
 @app.command(short_help="Adds a new device.")
@@ -67,10 +75,3 @@ def add(
         organization=organization,
         tags=tags,
     )
-
-
-@app.command(short_help="Deletes a specific device using its id or label.")
-@simple_lookup_key(entity_name="device")
-def delete(id: str | None = None, label: str | None = None):
-    device_key = get_instance_key(id=id, label=label)
-    handlers.delete_device(device_key=device_key)

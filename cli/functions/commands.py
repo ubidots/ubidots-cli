@@ -2,7 +2,7 @@ from typing import Annotated
 
 import typer
 
-from cli.commons.utils import verbose_option
+from cli.commons.decorators import add_verbose_option
 from cli.functions import handlers
 from cli.functions.engines.enums import FunctionEngineTypeEnum
 from cli.functions.engines.settings import engine_settings
@@ -15,7 +15,7 @@ app = typer.Typer(help="Tool for managing and deploying functions.")
 
 
 @app.command(help="Create a new local function.")
-@verbose_option()
+@add_verbose_option()
 def new(
     name: Annotated[
         str, typer.Argument(help="The name of the project folder.")
@@ -90,7 +90,7 @@ def new(
 
 
 @app.command(help="Initialize the function container environment for execution.")
-@verbose_option()
+@add_verbose_option()
 def start(
     engine: Annotated[
         FunctionEngineTypeEnum,
@@ -143,7 +143,7 @@ def start(
 
 
 @app.command(help="Stop the function.")
-@verbose_option()
+@add_verbose_option()
 def stop(
     label: Annotated[
         str,
@@ -159,7 +159,7 @@ def stop(
 
 
 @app.command(help="Check the status of the functions.")
-@verbose_option()
+@add_verbose_option()
 def status(
     engine: Annotated[
         FunctionEngineTypeEnum,
@@ -171,7 +171,7 @@ def status(
 
 
 @app.command(help="Get logs from the function.")
-@verbose_option()
+@add_verbose_option()
 def logs(
     label: Annotated[
         str, typer.Argument(help="The label of function.", show_default=False)
@@ -211,7 +211,7 @@ def logs(
 @app.command(
     help="Update and synchronize your local function code with the remote server."
 )
-@verbose_option()
+@add_verbose_option()
 def push(
     confirm: Annotated[
         bool,
@@ -225,7 +225,7 @@ def push(
 @app.command(
     help="Retrieve and update your local function code with the latest changes from the remote server."
 )
-@verbose_option()
+@add_verbose_option()
 def pull(
     confirm: Annotated[
         bool,

@@ -5,20 +5,24 @@ from cli.commons.styles import print_colored_table
 from cli.commons.utils import build_endpoint
 
 
-def list_devices(fields: list[str]):
+def list_devices(fields: str, page_size: int, page: int):
     url, headers = build_endpoint(
         route="/api/v2.0/devices/",
-        query_params={"fields": ",".join(fields)},
+        query_params={
+            "fields": fields,
+            "page_size": page_size,
+            "page": page,
+        },
     )
     response = httpx.get(url, headers=headers)
     print_colored_table(results=response.json()["results"])
 
 
-def retrieve_device(device_key: str, fields: list[str]):
+def retrieve_device(device_key: str, fields: str):
     url, headers = build_endpoint(
         route="/api/v2.0/devices/{device_key}/",
         device_key=device_key,
-        query_params={"fields": ",".join(fields)},
+        query_params={"fields": fields},
     )
     response = httpx.get(url, headers=headers)
     print_colored_table(results=[response.json()])
