@@ -5,11 +5,12 @@ from cli.commons.styles import print_colored_table
 from cli.commons.utils import build_endpoint
 
 
-def list_devices(fields: str, page_size: int, page: int):
+def list_devices(fields: str, sort_by: str, page_size: int, page: int):
     url, headers = build_endpoint(
         route="/api/v2.0/devices/",
         query_params={
             "fields": fields,
+            "sort_by": sort_by,
             "page_size": page_size,
             "page": page,
         },

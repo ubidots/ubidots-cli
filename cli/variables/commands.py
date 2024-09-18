@@ -5,6 +5,7 @@ import typer
 
 from cli.commons.decorators import add_fields_option
 from cli.commons.decorators import add_pagination_options
+from cli.commons.decorators import add_sort_by_option
 from cli.commons.decorators import simple_lookup_key
 from cli.commons.enums import DefaultInstanceFieldEnum
 from cli.commons.enums import EntityNameEnum
@@ -37,14 +38,17 @@ def get(
 @app.command(short_help="Lists all available variables.")
 @add_fields_option()
 @add_pagination_options()
+@add_sort_by_option()
 @no_type_check
 def list(
     fields: str = DefaultInstanceFieldEnum.get_default_fields(),
+    sort_by: str | None = None,
     page_size: int | None = None,
     page: int | None = None,
 ):
     handlers.list_variable(
         fields=fields,
+        sort_by=sort_by,
         page_size=page_size,
         page=page,
     )

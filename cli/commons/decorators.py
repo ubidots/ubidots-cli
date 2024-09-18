@@ -80,3 +80,20 @@ def add_pagination_options():
         return wrapper
 
     return decorator
+
+
+def add_sort_by_option():
+    def decorator(command_func):
+        @wraps(command_func)
+        def wrapper(*args, **kwargs):
+            return command_func(*args, **kwargs)
+
+        wrapper.__annotations__["sort_by"] = Annotated[
+            str,
+            typer.Option(
+                help="Attribute to sort the result set by.", show_default=False
+            ),
+        ]
+        return wrapper
+
+    return decorator
