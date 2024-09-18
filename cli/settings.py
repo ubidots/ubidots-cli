@@ -24,7 +24,7 @@ class FunctionSettings(BaseModel):
     DEFAULT_TIMEOUT_SECONDS: int = 10
     MAX_TIMEOUT_SECONDS: int = 300
     DEFAULT_CRON: str = "* * * * *"
-    CONTAINER_STARTUP_DELAY_SECONDS: float = 0.5
+    CONTAINER_STARTUP_DELAY_SECONDS: float = 3
 
 
 class Settings(BaseSettings):

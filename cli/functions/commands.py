@@ -1,6 +1,7 @@
 from typing import Annotated
 
 import typer
+from InquirerPy import inquirer
 
 from cli.commons.decorators import add_verbose_option
 from cli.functions import handlers
@@ -8,6 +9,8 @@ from cli.functions.engines.enums import FunctionEngineTypeEnum
 from cli.functions.engines.settings import engine_settings
 from cli.functions.enums import FunctionLanguageEnum
 from cli.functions.enums import FunctionMethodEnum
+from cli.functions.enums import FunctionNodejsRuntimeLayerTypeEnum
+from cli.functions.enums import FunctionPythonRuntimeLayerTypeEnum
 from cli.functions.enums import FunctionRuntimeLayerTypeEnum
 from cli.settings import settings
 
@@ -23,7 +26,7 @@ def new(
     runtime: Annotated[
         FunctionRuntimeLayerTypeEnum,
         typer.Argument(
-            help="The runtime for the function. **Required** if not in interactive mode.",
+            help="The runtime for the function.",
         ),
     ] = FunctionRuntimeLayerTypeEnum.NODEJS_20_LITE,
     cors: Annotated[
@@ -51,40 +54,61 @@ def new(
         typer.Option(
             "--interactive",
             "-i",
-            help=(
-                "Enable interactive mode to select language and runtime through prompts. "
-                "If not set, 'runtime' is required."
-            ),
+            help=("Enable interactive mode to select some options through prompts. "),
         ),
     ] = False,
     verbose: bool = False,
 ):
     if interactive:
-        language = FunctionLanguageEnum.choose(message="Select a programming language:")
-        runtime = language.choose_runtime(message=f"Select a {language} runtime:")
+        selected_name: str = inquirer.text(
+            message="Enter the name of the project:",
+            default=settings.FUNCTIONS.DEFAULT_PROJECT_NAME,
+        ).execute()
+        selected_language: FunctionLanguageEnum = inquirer.select(
+            message="Select a programming language:",
+            choices=list(FunctionLanguageEnum),
+        ).execute()
+        selected_runtime: (
+            FunctionRuntimeLayerTypeEnum
+            | FunctionPythonRuntimeLayerTypeEnum
+            | FunctionNodejsRuntimeLayerTypeEnum
+        ) = inquirer.select(
+            message="Select a programming a runtime:",
+            choices=list(selected_language.runtime),
+        ).execute()
+        selected_methods: list[FunctionMethodEnum] = inquirer.checkbox(
+            message="Pick the HTTP methods:",
+            choices=list(FunctionMethodEnum),
+            instruction="(select at least 1)",
+            validate=lambda selection: len(selection) >= 1,
+        ).execute()
+        selected_cron: str = inquirer.text(
+            message="Enter a cron:",
+            default=settings.FUNCTIONS.DEFAULT_CRON,
+        ).execute()
+        selected_raw: bool = inquirer.confirm(
+            message="Enable?", default=False
+        ).execute()
+        selected_cors: bool = inquirer.confirm(
+            message="Enable?", default=False
+        ).execute()
     else:
-        if not runtime:
-            available_runtimes = [
-                runtime.value for runtime in FunctionRuntimeLayerTypeEnum
-            ]
-            raise typer.BadParameter(
-                param_hint="RUNTIME", message=", ".join(available_runtimes)
-            )
-
-        language = (
-            FunctionLanguageEnum.PYTHON
-            if runtime.value.startswith(FunctionLanguageEnum.PYTHON)
-            else FunctionLanguageEnum.NODEJS
-        )
+        selected_name = name
+        selected_runtime = runtime
+        selected_language = FunctionLanguageEnum.get_language_by_runtime(runtime)
+        selected_methods = FunctionMethodEnum.parse_methods_to_enum_list(methods)
+        selected_cron = cron
+        selected_raw = raw
+        selected_cors = cors
 
     handlers.create_function(
-        name=name,
-        language=language,
-        runtime=runtime,
-        methods=FunctionMethodEnum.parse_methods_to_enum_list(methods),
-        is_raw=raw,
-        cron=cron,
-        cors=cors,
+        name=selected_name,
+        language=selected_language,
+        runtime=selected_runtime,
+        methods=selected_methods,
+        is_raw=selected_raw,
+        cron=selected_cron,
+        cors=selected_cors,
         verbose=verbose,
     )
 

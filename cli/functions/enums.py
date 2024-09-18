@@ -2,7 +2,6 @@ from enum import Enum
 from enum import StrEnum
 from enum import auto
 
-from cli.commons.enums import ChoosableEnum
 from cli.settings import settings
 
 
@@ -31,7 +30,7 @@ class FunctionNodejsVersionEnum(StrEnum):
     NODEJS_20 = "nodejs20.x"
 
 
-class FunctionPythonRuntimeLayerTypeEnum(ChoosableEnum):
+class FunctionPythonRuntimeLayerTypeEnum(StrEnum):
     PYTHON_3_9_LITE = (
         f"{FunctionPythonVersionEnum.PYTHON_3_9}:{FunctionLayerTypeEnum.LITE}"
     )
@@ -52,7 +51,7 @@ class FunctionPythonRuntimeLayerTypeEnum(ChoosableEnum):
     )
 
 
-class FunctionNodejsRuntimeLayerTypeEnum(ChoosableEnum):
+class FunctionNodejsRuntimeLayerTypeEnum(StrEnum):
     NODEJS_20_LITE = (
         f"{FunctionNodejsVersionEnum.NODEJS_20}:{FunctionLayerTypeEnum.LITE}"
     )
@@ -92,7 +91,7 @@ class FunctionRuntimeLayerTypeEnum(StrEnum):
     )
 
 
-class FunctionLanguageEnum(ChoosableEnum):
+class FunctionLanguageEnum(StrEnum):
     PYTHON = "python"
     NODEJS = "nodejs"
 
@@ -133,8 +132,9 @@ class FunctionLanguageEnum(ChoosableEnum):
         }
         return runtime_map[self]
 
-    def choose_runtime(self, message: str = "Select a runtime:"):
-        return self.runtime.choose(message)
+    @classmethod
+    def get_language_by_runtime(cls, runtime: str | StrEnum) -> "FunctionLanguageEnum":
+        return cls.PYTHON if runtime.startswith(cls.PYTHON) else cls.NODEJS
 
 
 class FunctionProjectValidationTypeEnum(Enum):

@@ -77,7 +77,7 @@ def create_function(
             "function_kwargs": {
                 "is_raw": is_raw,
                 "methods": methods,
-                "cors": cors,
+                "has_cors": cors,
                 "cron": cron,
             },
             "verbose": verbose,
@@ -123,7 +123,7 @@ def start_function(
                 "is_raw": is_raw,
                 "methods": methods,
                 "token": token,
-                "cors": cors,
+                "has_cors": cors,
                 "cron": cron,
                 "timeout": timeout,
             },

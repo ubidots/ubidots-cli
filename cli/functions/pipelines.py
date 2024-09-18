@@ -85,7 +85,7 @@ class SaveManifestStep(PipelineStep):
         if project_metadata and not runtime:
             runtime = project_metadata.project.runtime
 
-        if methods := project_metadata.function.methods:
+        if project_metadata and (methods := project_metadata.function.methods):
             kwargs["methods"] = methods
 
         save_manifest_project_file(
