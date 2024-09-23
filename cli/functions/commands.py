@@ -1,9 +1,20 @@
+from builtins import list as BuiltinList
 from typing import Annotated
+from typing import no_type_check
 
 import typer
 from InquirerPy import inquirer
 
+from cli.commons.decorators import add_fields_option
+from cli.commons.decorators import add_filter_option
+from cli.commons.decorators import add_pagination_options
+from cli.commons.decorators import add_sort_by_option
 from cli.commons.decorators import add_verbose_option
+from cli.commons.decorators import simple_lookup_key
+from cli.commons.enums import DefaultInstanceFieldEnum
+from cli.commons.enums import EntityNameEnum
+from cli.commons.utils import get_instance_key
+from cli.functions import executor
 from cli.functions import handlers
 from cli.functions.engines.enums import FunctionEngineTypeEnum
 from cli.functions.engines.settings import engine_settings
@@ -66,7 +77,7 @@ def new(
         ).execute()
         selected_language: FunctionLanguageEnum = inquirer.select(
             message="Select a programming language:",
-            choices=list(FunctionLanguageEnum),
+            choices=BuiltinList(FunctionLanguageEnum),
         ).execute()
         selected_runtime: (
             FunctionRuntimeLayerTypeEnum
@@ -74,11 +85,11 @@ def new(
             | FunctionNodejsRuntimeLayerTypeEnum
         ) = inquirer.select(
             message="Select a programming a runtime:",
-            choices=list(selected_language.runtime),
+            choices=BuiltinList(selected_language.runtime),
         ).execute()
-        selected_methods: list[FunctionMethodEnum] = inquirer.checkbox(
+        selected_methods: BuiltinList[FunctionMethodEnum] = inquirer.checkbox(
             message="Pick the HTTP methods:",
-            choices=list(FunctionMethodEnum),
+            choices=BuiltinList(FunctionMethodEnum),
             instruction="(select at least 1)",
             validate=lambda selection: len(selection) >= 1,
         ).execute()
@@ -101,7 +112,7 @@ def new(
         selected_raw = raw
         selected_cors = cors
 
-    handlers.create_function(
+    executor.create_function(
         name=selected_name,
         language=selected_language,
         runtime=selected_runtime,
@@ -154,7 +165,7 @@ def start(
     ] = "",
     verbose: bool = False,
 ):
-    handlers.start_function(
+    executor.start_function(
         engine=engine,
         methods=FunctionMethodEnum.parse_methods_to_enum_list(methods),
         is_raw=raw,
@@ -179,7 +190,7 @@ def stop(
     ] = engine_settings.CONTAINER.DEFAULT_ENGINE,
     verbose: bool = False,
 ):
-    handlers.stop_function(engine=engine, label=label, verbose=verbose)
+    executor.stop_function(engine=engine, label=label, verbose=verbose)
 
 
 @app.command(help="Check the status of the functions.")
@@ -191,7 +202,7 @@ def status(
     ] = engine_settings.CONTAINER.DEFAULT_ENGINE,
     verbose: bool = False,
 ):
-    handlers.status_function(engine=engine, verbose=verbose)
+    executor.status_function(engine=engine, verbose=verbose)
 
 
 @app.command(help="Get logs from the function.")
@@ -222,7 +233,7 @@ def logs(
     ] = "all",
     verbose: bool = False,
 ):
-    handlers.logs_function(
+    executor.logs_function(
         engine=engine,
         label=label,
         tail=tail,
@@ -243,7 +254,7 @@ def push(
     ] = False,
     verbose: bool = False,
 ):
-    handlers.push_function(confirm=confirm, verbose=verbose)
+    executor.push_function(confirm=confirm, verbose=verbose)
 
 
 @app.command(
@@ -257,4 +268,46 @@ def pull(
     ] = False,
     verbose: bool = False,
 ):
-    handlers.pull_function(confirm=confirm, verbose=verbose)
+    executor.pull_function(confirm=confirm, verbose=verbose)
+
+
+@app.command(short_help="Deletes a specific function using its id or label.")
+@simple_lookup_key(entity_name=EntityNameEnum.FUNCTION)
+def delete(id: str | None = None, label: str | None = None):
+    function_key = get_instance_key(id=id, label=label)
+    handlers.delete_function(function_key=function_key)
+
+
+@app.command(short_help="Retrieves a specific function using its id or label.")
+@simple_lookup_key(entity_name=EntityNameEnum.FUNCTION)
+@add_fields_option()
+@no_type_check
+def get(
+    id: str | None = None,
+    label: str | None = None,
+    fields: str = DefaultInstanceFieldEnum.get_default_fields(),
+):
+    function_key = get_instance_key(id=id, label=label)
+    handlers.retrieve_function(function_key=function_key, fields=fields)
+
+
+@app.command(short_help="Lists all available functions.")
+@add_fields_option()
+@add_pagination_options()
+@add_sort_by_option()
+@add_filter_option()
+@no_type_check
+def list(
+    fields: str = DefaultInstanceFieldEnum.get_default_fields(),
+    filter: str | None = None,
+    sort_by: str | None = None,
+    page_size: int | None = None,
+    page: int | None = None,
+):
+    handlers.list_functions(
+        fields=fields,
+        filter=filter,
+        sort_by=sort_by,
+        page_size=page_size,
+        page=page,
+    )

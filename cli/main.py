@@ -9,7 +9,7 @@ app = typer.Typer()
 
 app.command(help="Configure general settings for the CLI.")(config)
 
-app.add_typer(function_app, name="function")
+app.add_typer(function_app, name="functions")
 app.add_typer(device_app, name="devices")
 app.add_typer(variable_app, name="variables")
 
