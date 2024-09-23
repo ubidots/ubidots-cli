@@ -97,3 +97,24 @@ def add_sort_by_option():
         return wrapper
 
     return decorator
+
+
+def add_filter_option():
+    def decorator(command_func):
+        @wraps(command_func)
+        def wrapper(*args, **kwargs):
+            return command_func(*args, **kwargs)
+
+        wrapper.__annotations__["filter"] = Annotated[
+            str,
+            typer.Option(
+                help=(
+                    "Filter results by attributes. "
+                    "e.g. 'key1=val1&key2__in=val20,val21' or key1=val1\\&key2__in=val20,val21"
+                ),
+                show_default=False,
+            ),
+        ]
+        return wrapper
+
+    return decorator

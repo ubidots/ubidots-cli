@@ -4,6 +4,7 @@ from typing import no_type_check
 import typer
 
 from cli.commons.decorators import add_fields_option
+from cli.commons.decorators import add_filter_option
 from cli.commons.decorators import add_pagination_options
 from cli.commons.decorators import add_sort_by_option
 from cli.commons.decorators import simple_lookup_key
@@ -39,15 +40,18 @@ def get(
 @add_fields_option()
 @add_pagination_options()
 @add_sort_by_option()
+@add_filter_option()
 @no_type_check
 def list(
     fields: str = DefaultInstanceFieldEnum.get_default_fields(),
+    filter: str | None = None,
     sort_by: str | None = None,
     page_size: int | None = None,
     page: int | None = None,
 ):
     handlers.list_variable(
         fields=fields,
+        filter=filter,
         sort_by=sort_by,
         page_size=page_size,
         page=page,

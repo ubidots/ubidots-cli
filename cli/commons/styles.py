@@ -20,6 +20,9 @@ def print_colored_table(
     sub_keys_to_show: dict[str, list[str]] | None = None,
     column_order: list[str] | None = None,
 ) -> None:
+    if not results:
+        return
+
     color_cycle = itertools.cycle(TableColorEnum)
     table = Table(show_header=True, header_style="bold")
 
