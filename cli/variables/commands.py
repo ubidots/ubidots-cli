@@ -11,6 +11,7 @@ from cli.commons.decorators import simple_lookup_key
 from cli.commons.enums import DefaultInstanceFieldEnum
 from cli.commons.enums import EntityNameEnum
 from cli.commons.utils import get_instance_key
+from cli.commons.validators import is_valid_json_string
 from cli.variables import handlers
 from cli.variables.enums import VariableTypeEnum
 
@@ -95,6 +96,12 @@ def add(
         str,
         typer.Option(help="Comma-separated tags for the variable. e.g. tag1,tag2,tag3"),
     ] = "",
+    properties: Annotated[
+        str,
+        typer.Option(
+            help="Device properties in JSON format.", callback=is_valid_json_string
+        ),
+    ] = "{}",
 ):
     if not label and not name:
         error_message = "Either 'label' or 'name' must be provided."
@@ -109,4 +116,60 @@ def add(
         unit=unit,
         syntheticExpression=syntheticExpression,
         tags=tags,
+        properties=properties,
+    )
+
+
+@app.command(short_help="Update a variable.")
+@simple_lookup_key(entity_name=EntityNameEnum.VARIABLE)
+def update(
+    id: str,
+    new_label: Annotated[str, typer.Option(help="The label for the variable.")] = "",
+    name: Annotated[str, typer.Option(help="The name of the variable.")] = "",
+    description: Annotated[
+        str, typer.Option(help="A brief description of the variable.")
+    ] = "",
+    type: Annotated[
+        VariableTypeEnum,
+        typer.Option(
+            help="The type of variable.",
+            show_choices=True,
+            show_default=True,
+        ),
+    ] = VariableTypeEnum.RAW,
+    unit: Annotated[
+        str, typer.Option(help="The unit of measurement that represents the variable.")
+    ] = "",
+    syntheticExpression: Annotated[
+        str,
+        typer.Option(
+            help=(
+                f"If the variable is of type '{VariableTypeEnum.SYNTHETIC}', "
+                "this is the corresponding synthetic expression used to calculate its value."
+            )
+        ),
+    ] = "",
+    tags: Annotated[
+        str,
+        typer.Option(help="Comma-separated tags for the variable. e.g. tag1,tag2,tag3"),
+    ] = "",
+    properties: Annotated[
+        str,
+        typer.Option(
+            help="Device properties in JSON format.", callback=is_valid_json_string
+        ),
+    ] = "{}",
+):
+
+    variable_key = get_instance_key(id=id)
+    handlers.update_variable(
+        variable_key=variable_key,
+        label=new_label,
+        name=name,
+        description=description,
+        type=type,
+        unit=unit,
+        syntheticExpression=syntheticExpression,
+        tags=tags,
+        properties=properties,
     )

@@ -13,13 +13,17 @@ def simple_lookup_key(entity_name: str):
         wrapper.__annotations__["id"] = Annotated[
             str,
             typer.Option(
-                help=f"Unique identifier for the {entity_name}.", show_default=False
+                help=f"Unique **identifier** for the {entity_name}.", show_default=False
             ),
         ]
         wrapper.__annotations__["label"] = Annotated[
             str,
             typer.Option(
-                help=f"Descriptive label for the {entity_name}.", show_default=False
+                help=(
+                    f"Descriptive label **identifier** for the {entity_name}. "
+                    "---------------------------------------------------------"
+                ),
+                show_default=False,
             ),
         ]
         return wrapper

@@ -1,8 +1,8 @@
 import httpx
-import typer
 
 from cli.commons.styles import print_colored_table
 from cli.commons.utils import build_endpoint
+from cli.commons.utils import exit_with_success_message
 
 
 def list_devices(fields: str, filter: str, sort_by: str, page_size: int, page: int):
@@ -36,6 +36,7 @@ def add_device(**kwargs):
         "description": kwargs.get("description", ""),
         "organization": kwargs.get("organization") or None,
         "tags": kwargs.get("tags", "").split(",") if kwargs.get("tags") else [],
+        "properties": kwargs.get("properties", {}),
     }
     if name := kwargs.get("name"):
         data["name"] = name
@@ -44,9 +45,26 @@ def add_device(**kwargs):
     )
     client = httpx.Client(follow_redirects=True)
     response = client.post(url, headers=headers, data=data)
-    typer.echo(
+    exit_with_success_message(
         f"The device with 'id={response.json()['id']}' and 'label={data['label']}' was created successfully."
     )
+
+
+def update_device(device_key: str, **kwargs):
+    data = dict(kwargs)
+    if tags := data.get("tags"):
+        data["tags"] = tags.split(",")
+
+    url, headers = build_endpoint(
+        route="/api/v2.0/devices/{device_key}/",
+        device_key=device_key,
+    )
+    response = httpx.patch(url, headers=headers, data=data)
+    if response.status_code == httpx.codes.OK:
+        exit_with_success_message(
+            f"The device with 'id={response.json()['id']}' and 'label={response.json()['label']}' "
+            "was updated successfully."
+        )
 
 
 def delete_device(device_key: str):
@@ -55,4 +73,4 @@ def delete_device(device_key: str):
         device_key=device_key,
     )
     httpx.delete(url, headers=headers)
-    typer.echo(f"The device '{device_key}' was removed successfully.")
+    exit_with_success_message(f"The device '{device_key}' was removed successfully.")
