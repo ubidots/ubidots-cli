@@ -37,7 +37,7 @@ isort:
 	poetry run isort .
 
 ruff:
-	poetry run ruff check . --preview
+	poetry run ruff check . --exclude cli/compat.py --preview
 
 mypy:
 	poetry run mypy .

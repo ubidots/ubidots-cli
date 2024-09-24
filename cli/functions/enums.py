@@ -1,7 +1,7 @@
 from enum import Enum
-from enum import StrEnum
 from enum import auto
 
+from cli.compat import StrEnum
 from cli.settings import settings
 
 

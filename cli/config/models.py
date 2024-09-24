@@ -1,6 +1,5 @@
-from enum import StrEnum
-
 from cli.commons.models import BaseYAMLDumpModel
+from cli.compat import StrEnum
 from cli.settings import settings
 
 

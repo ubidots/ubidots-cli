@@ -1,4 +1,4 @@
-from enum import StrEnum
+from cli.compat import StrEnum
 
 
 class VariableTypeEnum(StrEnum):
