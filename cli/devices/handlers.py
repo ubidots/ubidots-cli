@@ -2,6 +2,7 @@ import httpx
 
 from cli.commons.styles import print_colored_table
 from cli.commons.utils import build_endpoint
+from cli.commons.utils import exit_with_error_message
 from cli.commons.utils import exit_with_success_message
 
 
@@ -44,7 +45,7 @@ def add_device(**kwargs):
         route="/api/v2.0/devices/",
     )
     client = httpx.Client(follow_redirects=True)
-    response = client.post(url, headers=headers, data=data)
+    response = client.post(url, headers=headers, json=data)
     exit_with_success_message(
         f"The device with 'id={response.json()['id']}' and 'label={data['label']}' was created successfully."
     )
@@ -59,11 +60,19 @@ def update_device(device_key: str, **kwargs):
         route="/api/v2.0/devices/{device_key}/",
         device_key=device_key,
     )
-    response = httpx.patch(url, headers=headers, data=data)
+    response = httpx.patch(url, headers=headers, json=data)
     if response.status_code == httpx.codes.OK:
         exit_with_success_message(
             f"The device with 'id={response.json()['id']}' and 'label={response.json()['label']}' "
             "was updated successfully."
+        )
+    else:
+        exit_with_error_message(
+            httpx.HTTPStatusError(
+                message=response._content.decode("utf-8"),
+                request=response.request,
+                response=response,
+            )
         )
 
 

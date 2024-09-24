@@ -14,6 +14,7 @@ from cli.commons.decorators import simple_lookup_key
 from cli.commons.enums import DefaultInstanceFieldEnum
 from cli.commons.enums import EntityNameEnum
 from cli.commons.utils import get_instance_key
+from cli.commons.validators import is_valid_json_string
 from cli.functions import executor
 from cli.functions import handlers
 from cli.functions.engines.enums import FunctionEngineTypeEnum
@@ -310,4 +311,63 @@ def list(
         sort_by=sort_by,
         page_size=page_size,
         page=page,
+    )
+
+
+@app.command(short_help="Adds a new function.")
+def add(
+    name: Annotated[
+        str, typer.Argument(help="The name of the function.", show_default=False)
+    ],
+    label: Annotated[str, typer.Option(help="The label for the function.")] = "",
+    triggers: Annotated[
+        str,
+        typer.Option(help="Triggers in JSON format.", callback=is_valid_json_string),
+    ] = "{}",
+    serverless: Annotated[
+        str,
+        typer.Option(help="Serverless in JSON format.", callback=is_valid_json_string),
+    ] = "{}",
+    environment: Annotated[
+        str,
+        typer.Option(help="environment in JSON format.", callback=is_valid_json_string),
+    ] = "[]",
+):
+    handlers.add_function(
+        label=label,
+        name=name,
+        triggers=triggers,
+        serverless=serverless,
+        environment=environment,
+    )
+
+
+@app.command(short_help="Update a function.")
+@simple_lookup_key(entity_name=EntityNameEnum.FUNCTION)
+def update(
+    id: str | None = None,
+    label: str | None = None,
+    new_label: Annotated[str, typer.Option(help="The label for the device.")] = "",
+    name: Annotated[str, typer.Option(help="The name of the device.")] = "",
+    triggers: Annotated[
+        str,
+        typer.Option(help="Triggers in JSON format.", callback=is_valid_json_string),
+    ] = "{}",
+    serverless: Annotated[
+        str,
+        typer.Option(help="Serverless in JSON format.", callback=is_valid_json_string),
+    ] = "{}",
+    environment: Annotated[
+        str,
+        typer.Option(help="environment in JSON format.", callback=is_valid_json_string),
+    ] = "[]",
+):
+    function_key = get_instance_key(id=id, label=label)
+    handlers.update_function(
+        function_key=function_key,
+        label=new_label,
+        name=name,
+        triggers=triggers,
+        serverless=serverless,
+        environment=environment,
     )
