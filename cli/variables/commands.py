@@ -1,4 +1,5 @@
 from typing import Annotated
+from typing import Optional
 from typing import no_type_check
 
 import typer
@@ -64,7 +65,8 @@ def add(
     device: Annotated[
         str,
         typer.Argument(
-            help="The device associated with the variable. Its id or ['~label'|\\~label]."
+            help="The device associated with the variable. Its id or ['~label'|\\~label].",
+            show_default=False,
         ),
     ],
     label: Annotated[str, typer.Argument(help="The label for the variable.")] = "",
@@ -102,6 +104,20 @@ def add(
             help="Device properties in JSON format.", callback=is_valid_json_string
         ),
     ] = "{}",
+    min: Annotated[
+        Optional[int],  # noqa: UP007
+        typer.Option(
+            help="Lowest value allowed.",
+            show_default=False,
+        ),
+    ] = None,
+    max: Annotated[
+        Optional[int],  # noqa: UP007
+        typer.Option(
+            help="Highest value allowed.",
+            show_default=False,
+        ),
+    ] = None,
 ):
     if not label and not name:
         error_message = "Either 'label' or 'name' must be provided."
@@ -117,6 +133,8 @@ def add(
         syntheticExpression=syntheticExpression,
         tags=tags,
         properties=properties,
+        min=min,
+        max=max,
     )
 
 
@@ -125,7 +143,7 @@ def add(
 def update(
     id: str,
     new_label: Annotated[str, typer.Option(help="The label for the variable.")] = "",
-    name: Annotated[str, typer.Option(help="The name of the variable.")] = "",
+    new_name: Annotated[str, typer.Option(help="The name of the variable.")] = "",
     description: Annotated[
         str, typer.Option(help="A brief description of the variable.")
     ] = "",
@@ -159,17 +177,33 @@ def update(
             help="Device properties in JSON format.", callback=is_valid_json_string
         ),
     ] = "{}",
+    min: Annotated[
+        Optional[int],  # noqa: UP007
+        typer.Option(
+            help="Lowest value allowed.",
+            show_default=False,
+        ),
+    ] = None,
+    max: Annotated[
+        Optional[int],  # noqa: UP007
+        typer.Option(
+            help="Highest value allowed.",
+            show_default=False,
+        ),
+    ] = None,
 ):
 
     variable_key = get_instance_key(id=id)
     handlers.update_variable(
         variable_key=variable_key,
         label=new_label,
-        name=name,
+        name=new_name,
         description=description,
         type=type,
         unit=unit,
         syntheticExpression=syntheticExpression,
         tags=tags,
         properties=properties,
+        min=min,
+        max=max,
     )

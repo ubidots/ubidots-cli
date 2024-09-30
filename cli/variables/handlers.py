@@ -4,6 +4,7 @@ from cli.commons.styles import print_colored_table
 from cli.commons.utils import build_endpoint
 from cli.commons.utils import exit_with_error_message
 from cli.commons.utils import exit_with_success_message
+from cli.variables.helpers import build_variables_payload
 
 
 def list_variable(fields: str, filter: str, sort_by: str, page_size: int, page: int):
@@ -32,36 +33,30 @@ def retrieve_variable(variable_key: str, fields: str):
 
 
 def add_variable(**kwargs):
-    data = {
-        "description": kwargs.get("description", ""),
-        "device": kwargs.get("device") or None,
-        "type": kwargs.get("type"),
-        "unit": kwargs.get("unit") or None,
-        "syntheticExpression": kwargs.get("syntheticExpression", ""),
-        "tags": kwargs.get("tags", "").split(",") if kwargs.get("tags") else [],
-        "properties": kwargs.get("properties", {}),
-    }
-    if label := kwargs.get("label"):
-        data["label"] = label
-    if name := kwargs.get("name"):
-        data["name"] = name
+    data = build_variables_payload(**kwargs)
     url, headers = build_endpoint(
         route="/api/v2.0/variables/",
     )
     client = httpx.Client(follow_redirects=True)
     response = client.post(url, headers=headers, json=data)
-    exit_with_success_message(
-        f"The variable with 'id={response.json()['id']}' and 'label={data['label']}' was created successfully "
-        f"on device with 'device.id={response.json()['device']['id']}' "
-        f"and 'device.label={response.json()['device']['label']}'."
-    )
+    if response.status_code == httpx.codes.CREATED:
+        exit_with_success_message(
+            f"The variable with 'id={response.json()['id']}' and 'label={data['label']}' was created successfully "
+            f"on device with 'device.id={response.json()['device']['id']}' "
+            f"and 'device.label={response.json()['device']['label']}'."
+        )
+    else:
+        exit_with_error_message(
+            httpx.HTTPStatusError(
+                message=response._content.decode("utf-8"),
+                request=response.request,
+                response=response,
+            )
+        )
 
 
 def update_variable(variable_key: str, **kwargs):
-    data = dict(kwargs)
-    if tags := data.get("tags"):
-        data["tags"] = tags.split(",")
-
+    data = build_variables_payload(**kwargs)
     url, headers = build_endpoint(
         route="/api/v2.0/variables/{variable_key}/",
         variable_key=variable_key,
