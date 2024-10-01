@@ -3,6 +3,8 @@ from typing import Annotated
 
 import typer
 
+from cli.commons.enums import EntityNameEnum
+
 
 def simple_lookup_key(entity_name: str):
     def decorator(command_func):
@@ -10,19 +12,31 @@ def simple_lookup_key(entity_name: str):
         def wrapper(*args, **kwargs):
             return command_func(*args, **kwargs)
 
+        id_help_suffix = (
+            "If both id and label are provided, the id takes precedence."
+            if entity_name != EntityNameEnum.VARIABLE
+            else ""
+        )
+        label_help_suffix = (
+            "Ignored if id is provided."
+            if entity_name != EntityNameEnum.VARIABLE
+            else ""
+        )
+
+        id_help = f"Unique **identifier** for the {entity_name}. {id_help_suffix}"
+        label_help = f"Descriptive label **identifier** for the {entity_name}. {label_help_suffix}"
+
         wrapper.__annotations__["id"] = Annotated[
             str,
             typer.Option(
-                help=f"Unique **identifier** for the {entity_name}.", show_default=False
+                help=id_help,
+                show_default=False,
             ),
         ]
         wrapper.__annotations__["label"] = Annotated[
             str,
             typer.Option(
-                help=(
-                    f"Descriptive label **identifier** for the {entity_name}. "
-                    "---------------------------------------------------------"
-                ),
+                help=label_help,
                 show_default=False,
             ),
         ]

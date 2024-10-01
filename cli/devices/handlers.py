@@ -4,6 +4,7 @@ from cli.commons.styles import print_colored_table
 from cli.commons.utils import build_endpoint
 from cli.commons.utils import exit_with_error_message
 from cli.commons.utils import exit_with_success_message
+from cli.devices.helpers import build_devices_payload
 
 
 def list_devices(fields: str, filter: str, sort_by: str, page_size: int, page: int):
@@ -32,30 +33,28 @@ def retrieve_device(device_key: str, fields: str):
 
 
 def add_device(**kwargs):
-    data = {
-        "label": kwargs.get("label"),
-        "description": kwargs.get("description", ""),
-        "organization": kwargs.get("organization") or None,
-        "tags": kwargs.get("tags", "").split(",") if kwargs.get("tags") else [],
-        "properties": kwargs.get("properties", {}),
-    }
-    if name := kwargs.get("name"):
-        data["name"] = name
+    data = build_devices_payload(**kwargs)
     url, headers = build_endpoint(
         route="/api/v2.0/devices/",
     )
     client = httpx.Client(follow_redirects=True)
     response = client.post(url, headers=headers, json=data)
-    exit_with_success_message(
-        f"The device with 'id={response.json()['id']}' and 'label={data['label']}' was created successfully."
-    )
+    if response.status_code == httpx.codes.CREATED:
+        exit_with_success_message(
+            f"The device with 'id={response.json()['id']}' and 'label={data['label']}' was created successfully."
+        )
+    else:
+        exit_with_error_message(
+            httpx.HTTPStatusError(
+                message=response._content.decode("utf-8"),
+                request=response.request,
+                response=response,
+            )
+        )
 
 
 def update_device(device_key: str, **kwargs):
-    data = dict(kwargs)
-    if tags := data.get("tags"):
-        data["tags"] = tags.split(",")
-
+    data = build_devices_payload(**kwargs)
     url, headers = build_endpoint(
         route="/api/v2.0/devices/{device_key}/",
         device_key=device_key,

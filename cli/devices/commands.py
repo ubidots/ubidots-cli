@@ -83,7 +83,7 @@ def add(
         typer.Option(
             help="Device properties in JSON format.", callback=is_valid_json_string
         ),
-    ] = "",
+    ] = "{}",
 ):
     handlers.add_device(
         label=label,
@@ -101,7 +101,7 @@ def update(
     id: str | None = None,
     label: str | None = None,
     new_label: Annotated[str, typer.Option(help="The label for the device.")] = "",
-    name: Annotated[str, typer.Option(help="The name of the device.")] = "",
+    new_name: Annotated[str, typer.Option(help="The name of the device.")] = "",
     description: Annotated[
         str, typer.Option(help="A brief description of the device.")
     ] = "",
@@ -126,7 +126,7 @@ def update(
     handlers.update_device(
         device_key=device_key,
         label=new_label,
-        name=name,
+        name=new_name,
         description=description,
         organization=organization,
         tags=tags,
