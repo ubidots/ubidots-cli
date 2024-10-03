@@ -5,6 +5,7 @@ from cli.commons.utils import build_endpoint
 from cli.commons.utils import exit_with_error_message
 from cli.commons.utils import exit_with_success_message
 from cli.functions import FUNCTION_API_ROUTES
+from cli.functions.helpers import build_functions_payload
 
 
 def list_functions(fields: str, filter: str, sort_by: str, page_size: int, page: int):
@@ -33,31 +34,29 @@ def retrieve_function(function_key: str, fields: str):
 
 
 def add_function(**kwargs):
-    data = {
-        "label": kwargs.get("label"),
-        "triggers": kwargs.get("triggers", {}),
-        "serverless": kwargs.get("serverless", {}),
-        "environment": kwargs.get("environment", []),
-    }
-    if name := kwargs.get("name"):
-        data["name"] = name
+    data = build_functions_payload(**kwargs)
     url, headers = build_endpoint(
         route=FUNCTION_API_ROUTES["base"],
     )
     client = httpx.Client(follow_redirects=True)
-    response = client.post(url, headers=headers, data=data)
-    exit_with_success_message(
-        f"The function with 'id={response.json()['id']}' and 'label={response.json()['label']}' was created successfully."
-    )
+    response = client.post(url, headers=headers, json=data)
+    if response.status_code == httpx.codes.CREATED:
+        exit_with_success_message(
+            f"The function with 'id={response.json()['id']}' and "
+            f"'label={response.json()['label']}' was created successfully."
+        )
+    else:
+        exit_with_error_message(
+            httpx.HTTPStatusError(
+                message=response._content.decode("utf-8"),
+                request=response.request,
+                response=response,
+            )
+        )
 
 
 def update_function(function_key: str, **kwargs):
-    data = {}
-    fields = ["label", "name", "triggers", "serverless", "environment"]
-    for field in fields:
-        if value := kwargs.get(field):
-            data[field] = value
-
+    data = build_functions_payload(**kwargs)
     url, headers = build_endpoint(
         route=FUNCTION_API_ROUTES["detail"],
         function_key=function_key,

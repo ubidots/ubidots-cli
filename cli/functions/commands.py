@@ -322,14 +322,35 @@ def add(
         str, typer.Argument(help="The name of the function.", show_default=False)
     ],
     label: Annotated[str, typer.Option(help="The label for the function.")] = "",
-    triggers: Annotated[
+    runtime: Annotated[
+        FunctionRuntimeLayerTypeEnum,
+        typer.Option(
+            help="The runtime for the function.",
+        ),
+    ] = FunctionRuntimeLayerTypeEnum.NODEJS_20_LITE,
+    raw: Annotated[
+        bool,
+        typer.Option(help="Flag to determine if the output should be in raw format."),
+    ] = False,
+    token: Annotated[
+        str, typer.Option(help="Optional authentication token to invoke the function.")
+    ] = "",
+    methods: Annotated[
         str,
-        typer.Option(help="Triggers in JSON format.", callback=is_valid_json_string),
-    ] = "{}",
-    serverless: Annotated[
+        typer.Option(help="The HTTP methods the function will respond to."),
+    ] = FunctionMethodEnum.default(),
+    cors: Annotated[
+        bool,
+        typer.Option(
+            help="Flag to enable Cross-Origin Resource Sharing (CORS) for the function.",
+        ),
+    ] = False,
+    cron: Annotated[
         str,
-        typer.Option(help="Serverless in JSON format.", callback=is_valid_json_string),
-    ] = "{}",
+        typer.Option(
+            help="Cron expression to schedule the function for periodic execution."
+        ),
+    ] = settings.FUNCTIONS.DEFAULT_CRON,
     environment: Annotated[
         str,
         typer.Option(help="environment in JSON format.", callback=is_valid_json_string),
@@ -338,8 +359,16 @@ def add(
     handlers.add_function(
         label=label,
         name=name,
-        triggers=triggers,
-        serverless=serverless,
+        triggers={
+            "httpMethods": FunctionMethodEnum.parse_methods_to_enum_list(methods),
+            "httpHasCors": cors,
+            "schedulerCron": cron,
+        },
+        serverless={
+            "runtime": runtime,
+            "isRawFunction": raw,
+            "authToken": token or None,
+        },
         environment=environment,
     )
 
@@ -351,14 +380,35 @@ def update(
     label: str | None = None,
     new_label: Annotated[str, typer.Option(help="The label for the device.")] = "",
     new_name: Annotated[str, typer.Option(help="The name of the device.")] = "",
-    triggers: Annotated[
+    runtime: Annotated[
+        FunctionRuntimeLayerTypeEnum,
+        typer.Option(
+            help="The runtime for the function.",
+        ),
+    ] = FunctionRuntimeLayerTypeEnum.NODEJS_20_LITE,
+    raw: Annotated[
+        bool,
+        typer.Option(help="Flag to determine if the output should be in raw format."),
+    ] = False,
+    token: Annotated[
+        str, typer.Option(help="Optional authentication token to invoke the function.")
+    ] = "",
+    methods: Annotated[
         str,
-        typer.Option(help="Triggers in JSON format.", callback=is_valid_json_string),
-    ] = "{}",
-    serverless: Annotated[
+        typer.Option(help="The HTTP methods the function will respond to."),
+    ] = FunctionMethodEnum.default(),
+    cors: Annotated[
+        bool,
+        typer.Option(
+            help="Flag to enable Cross-Origin Resource Sharing (CORS) for the function.",
+        ),
+    ] = False,
+    cron: Annotated[
         str,
-        typer.Option(help="Serverless in JSON format.", callback=is_valid_json_string),
-    ] = "{}",
+        typer.Option(
+            help="Cron expression to schedule the function for periodic execution."
+        ),
+    ] = settings.FUNCTIONS.DEFAULT_CRON,
     environment: Annotated[
         str,
         typer.Option(help="environment in JSON format.", callback=is_valid_json_string),
@@ -369,7 +419,15 @@ def update(
         function_key=function_key,
         label=new_label,
         name=new_name,
-        triggers=triggers,
-        serverless=serverless,
+        triggers={
+            "httpMethods": FunctionMethodEnum.parse_methods_to_enum_list(methods),
+            "httpHasCors": cors,
+            "schedulerCron": cron,
+        },
+        serverless={
+            "runtime": runtime,
+            "isRawFunction": raw,
+            "authToken": token or None,
+        },
         environment=environment,
     )

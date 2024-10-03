@@ -48,6 +48,20 @@ from cli.functions.models import FunctionProjectMetadata
 from cli.settings import settings
 
 
+def build_functions_payload(**kwargs) -> dict:
+    data = {
+        "triggers": kwargs.get("triggers", {}),
+        "serverless": kwargs.get("serverless", {}),
+        "environment": kwargs.get("environment", []),
+    }
+    if label := kwargs.get("label"):
+        data["label"] = label
+    if name := kwargs.get("name"):
+        data["name"] = name
+
+    return data
+
+
 def save_manifest_project_file(
     project_path: Path,
     language: FunctionLanguageEnum,
