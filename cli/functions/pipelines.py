@@ -79,14 +79,16 @@ class SaveManifestStep(PipelineStep):
         language = data.get("language")
         runtime = data.get("runtime")
 
+        methods = kwargs.get("methods")
+
         if project_metadata and not language:
             language = project_metadata.project.language
 
         if project_metadata and not runtime:
             runtime = project_metadata.project.runtime
 
-        if project_metadata and (methods := project_metadata.function.methods):
-            kwargs["methods"] = methods
+        if project_metadata and not methods:
+            kwargs["methods"] = project_metadata.function.methods
 
         save_manifest_project_file(
             project_path=project_path,
@@ -139,9 +141,9 @@ class ShowStartupInfoStep(PipelineStep):
         project_metadata = data["project_metadata"]
         info_project = project_metadata.project
         function_kwargs = data["function_kwargs"]
-        is_raw = function_kwargs["is_raw"]
-        methods = project_metadata.function.methods or function_kwargs["methods"]
-        token = function_kwargs["token"]
+        is_raw = function_kwargs["is_raw"] or project_metadata.function.is_raw
+        methods = function_kwargs["methods"] or project_metadata.function.methods
+        token = function_kwargs["token"] or project_metadata.function.token
 
         typer.echo(
             f"""
@@ -394,9 +396,9 @@ class GetArgoContainerInputAdapterStep(PipelineStep):
         argo_adapter_port = data["argo_adapter_port"]
         ip_address = data["ip_address"]
         function_kwargs = data["function_kwargs"]
-        is_raw = function_kwargs["is_raw"]
-        token = function_kwargs["token"]
-        methods = project_metadata.function.methods or function_kwargs["methods"]
+        is_raw = function_kwargs["is_raw"] or project_metadata.function.is_raw
+        token = function_kwargs["token"] or project_metadata.function.token
+        methods = function_kwargs["methods"] or project_metadata.function.methods
 
         adapter_url, adapter_data = get_argo_input_adapter(
             client=client,
@@ -462,7 +464,7 @@ class GetFRIEContainerTargetStep(PipelineStep):
         network = data["network"]
         ip_address = data["ip_address"]
         function_kwargs = data["function_kwargs"]
-        is_raw = function_kwargs["is_raw"]
+        is_raw = function_kwargs["is_raw"] or project_metadata.function.is_raw
 
         label = project_metadata.project.label
         argo_target_port = engine_settings.CONTAINER.ARGO.INTERNAL_TARGET_PORT.split(

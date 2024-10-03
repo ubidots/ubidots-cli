@@ -33,11 +33,11 @@ app = typer.Typer(help="Tool for managing and deploying functions.")
 @add_verbose_option()
 def new(
     name: Annotated[
-        str, typer.Argument(help="The name of the project folder.")
+        str, typer.Option(help="The name of the project folder.")
     ] = settings.FUNCTIONS.DEFAULT_PROJECT_NAME,
     runtime: Annotated[
         FunctionRuntimeLayerTypeEnum,
-        typer.Argument(
+        typer.Option(
             help="The runtime for the function.",
         ),
     ] = FunctionRuntimeLayerTypeEnum.NODEJS_20_LITE,
@@ -46,7 +46,7 @@ def new(
         typer.Option(
             help="Flag to enable Cross-Origin Resource Sharing (CORS) for the function.",
         ),
-    ] = False,
+    ] = settings.FUNCTIONS.DEFAULT_HAS_CORS,
     cron: Annotated[
         str,
         typer.Option(
@@ -60,13 +60,13 @@ def new(
     raw: Annotated[
         bool,
         typer.Option(help="Flag to determine if the output should be in raw format."),
-    ] = False,
+    ] = settings.FUNCTIONS.DEFAULT_IS_RAW,
     interactive: Annotated[
         bool,
         typer.Option(
             "--interactive",
             "-i",
-            help=("Enable interactive mode to select some options through prompts. "),
+            help=("Enable interactive mode to select options through prompts."),
         ),
     ] = False,
     verbose: bool = False,
@@ -85,7 +85,7 @@ def new(
             | FunctionPythonRuntimeLayerTypeEnum
             | FunctionNodejsRuntimeLayerTypeEnum
         ) = inquirer.select(
-            message="Select a programming a runtime:",
+            message="Select a runtime:",
             choices=BuiltinList(selected_language.runtime),
         ).execute()
         selected_methods: BuiltinList[FunctionMethodEnum] = inquirer.checkbox(
@@ -99,10 +99,12 @@ def new(
             default=settings.FUNCTIONS.DEFAULT_CRON,
         ).execute()
         selected_raw: bool = inquirer.confirm(
-            message="Enable?", default=False
+            message="Do you want to enable raw output mode?",
+            default=settings.FUNCTIONS.DEFAULT_IS_RAW,
         ).execute()
         selected_cors: bool = inquirer.confirm(
-            message="Enable?", default=False
+            message="Do you want to enable Cross-Origin Resource Sharing (CORS)",
+            default=settings.FUNCTIONS.DEFAULT_HAS_CORS,
         ).execute()
     else:
         selected_name = name
@@ -137,7 +139,7 @@ def start(
         typer.Option(
             help="Flag to enable Cross-Origin Resource Sharing (CORS) for the function.",
         ),
-    ] = False,
+    ] = settings.FUNCTIONS.DEFAULT_HAS_CORS,
     cron: Annotated[
         str,
         typer.Option(
@@ -151,7 +153,7 @@ def start(
     raw: Annotated[
         bool,
         typer.Option(help="Flag to determine if the output should be in raw format."),
-    ] = False,
+    ] = settings.FUNCTIONS.DEFAULT_IS_RAW,
     timeout: Annotated[
         int,
         typer.Option(
@@ -348,7 +350,7 @@ def update(
     id: str | None = None,
     label: str | None = None,
     new_label: Annotated[str, typer.Option(help="The label for the device.")] = "",
-    name: Annotated[str, typer.Option(help="The name of the device.")] = "",
+    new_name: Annotated[str, typer.Option(help="The name of the device.")] = "",
     triggers: Annotated[
         str,
         typer.Option(help="Triggers in JSON format.", callback=is_valid_json_string),
@@ -366,7 +368,7 @@ def update(
     handlers.update_function(
         function_key=function_key,
         label=new_label,
-        name=name,
+        name=new_name,
         triggers=triggers,
         serverless=serverless,
         environment=environment,

@@ -59,8 +59,8 @@ class FunctionInfo(BaseModel):
     id: str = ""
     methods: list[FunctionMethodEnum] = [FunctionMethodEnum.GET]
     token: str = ""
-    is_raw: bool = False
-    has_cors: bool = False
+    is_raw: bool = settings.FUNCTIONS.DEFAULT_IS_RAW
+    has_cors: bool = settings.FUNCTIONS.DEFAULT_HAS_CORS
     cron: str = settings.FUNCTIONS.DEFAULT_CRON
     timeout: int = settings.FUNCTIONS.DEFAULT_TIMEOUT_SECONDS
     memory_size: int = 128  # MB
