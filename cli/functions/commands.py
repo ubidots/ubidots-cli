@@ -29,7 +29,7 @@ from cli.settings import settings
 app = typer.Typer(help="Tool for managing and deploying functions.")
 
 
-@app.command(help="Create a new local function.")
+@app.command(help="Create a new local function.", hidden=True)
 @add_verbose_option()
 def new(
     name: Annotated[
@@ -127,7 +127,9 @@ def new(
     )
 
 
-@app.command(help="Initialize the function container environment for execution.")
+@app.command(
+    help="Initialize the function container environment for execution.", hidden=True
+)
 @add_verbose_option()
 def start(
     engine: Annotated[
@@ -180,7 +182,7 @@ def start(
     )
 
 
-@app.command(help="Stop the function.")
+@app.command(help="Stop the function.", hidden=True)
 @add_verbose_option()
 def stop(
     label: Annotated[
@@ -196,7 +198,7 @@ def stop(
     executor.stop_function(engine=engine, label=label, verbose=verbose)
 
 
-@app.command(help="Check the status of the functions.")
+@app.command(help="Check the status of the functions.", hidden=True)
 @add_verbose_option()
 def status(
     engine: Annotated[
@@ -208,7 +210,7 @@ def status(
     executor.status_function(engine=engine, verbose=verbose)
 
 
-@app.command(help="Get logs from the function.")
+@app.command(help="Get logs from the function.", hidden=True)
 @add_verbose_option()
 def logs(
     label: Annotated[
@@ -247,7 +249,8 @@ def logs(
 
 
 @app.command(
-    help="Update and synchronize your local function code with the remote server."
+    help="Update and synchronize your local function code with the remote server.",
+    hidden=True,
 )
 @add_verbose_option()
 def push(
@@ -261,7 +264,8 @@ def push(
 
 
 @app.command(
-    help="Retrieve and update your local function code with the latest changes from the remote server."
+    help="Retrieve and update your local function code with the latest changes from the remote server.",
+    hidden=True,
 )
 @add_verbose_option()
 def pull(
