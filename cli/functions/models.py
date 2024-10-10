@@ -13,10 +13,10 @@ from cli.commons.validators import is_valid_object_id
 from cli.functions.engines.enums import FunctionEngineTypeEnum
 from cli.functions.engines.settings import engine_settings
 from cli.functions.enums import FunctionLanguageEnum
-from cli.functions.enums import FunctionLayerTypeEnum
 from cli.functions.enums import FunctionMethodEnum
 from cli.functions.enums import FunctionNodejsRuntimeLayerTypeEnum
 from cli.functions.enums import FunctionPythonRuntimeLayerTypeEnum
+from cli.functions.enums import FunctionRuntimeLayerTypeEnum
 from cli.settings import settings
 
 
@@ -29,10 +29,10 @@ class FunctionProjectInfo(BaseModel):
     name: str = settings.FUNCTIONS.DEFAULT_PROJECT_NAME
     language: FunctionLanguageEnum
     runtime: (
-        FunctionLayerTypeEnum
+        FunctionRuntimeLayerTypeEnum
         | FunctionPythonRuntimeLayerTypeEnum
         | FunctionNodejsRuntimeLayerTypeEnum
-    )
+    ) = FunctionRuntimeLayerTypeEnum.NODEJS_20_LITE
     main_file: str = ""
     created: datetime = Field(default_factory=datetime.now)
 
@@ -88,7 +88,7 @@ class FunctionInfo(BaseModel):
     def validate_timeout(cls, value):
         max_timeout = settings.FUNCTIONS.MAX_TIMEOUT_SECONDS
         if value > max_timeout:
-            error_message = f"Timeout value must not exceed '{max_timeout}' seconds"
+            error_message = f"Timeout value must not exceed '{max_timeout}' seconds."
             raise ValueError(error_message)
         return value
 

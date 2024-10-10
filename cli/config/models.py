@@ -10,4 +10,4 @@ class AuthHeaderTypeEnum(StrEnum):
 class APIConfigModel(BaseYAMLDumpModel):
     api_domain: str = settings.CONFIG.API_DOMAIN
     auth_method: AuthHeaderTypeEnum = AuthHeaderTypeEnum.TOKEN
-    access_token: str
+    access_token: str = ""

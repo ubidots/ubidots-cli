@@ -9,6 +9,7 @@ class ConfigSettings(BaseModel):
     API_DOMAIN: str = "https://industrial.api.ubidots.com"
     DIRECTORY_PATH: Path = Path.home() / ".ubidots_cli"
     FILE_PATH: Path = DIRECTORY_PATH / "config.yaml"
+    DEFAULT_VISIBLE_TOKEN_CHARS: int = 4
 
 
 class FunctionSettings(BaseModel):

@@ -147,7 +147,7 @@ class FunctionMethodEnum(StrEnum):
     POST = "POST"
 
     @classmethod
-    def default(cls) -> "FunctionMethodEnum":
+    def get_default_method(cls) -> "FunctionMethodEnum":
         return cls.GET
 
     @classmethod

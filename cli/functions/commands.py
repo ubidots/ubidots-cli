@@ -56,7 +56,7 @@ def new(
     methods: Annotated[
         str,
         typer.Option(help="The HTTP methods the function will respond to."),
-    ] = FunctionMethodEnum.default(),
+    ] = FunctionMethodEnum.get_default_method(),
     raw: Annotated[
         bool,
         typer.Option(help="Flag to determine if the output should be in raw format."),
@@ -151,7 +151,7 @@ def start(
     methods: Annotated[
         str,
         typer.Option(help="The HTTP methods the function will respond to."),
-    ] = FunctionMethodEnum.default(),
+    ] = FunctionMethodEnum.get_default_method(),
     raw: Annotated[
         bool,
         typer.Option(help="Flag to determine if the output should be in raw format."),
@@ -195,7 +195,11 @@ def stop(
     ] = engine_settings.CONTAINER.DEFAULT_ENGINE,
     verbose: bool = False,
 ):
-    executor.stop_function(engine=engine, label=label, verbose=verbose)
+    executor.stop_function(
+        engine=engine,
+        label=label,
+        verbose=verbose,
+    )
 
 
 @app.command(help="Check the status of the functions.", hidden=True)
@@ -207,7 +211,10 @@ def status(
     ] = engine_settings.CONTAINER.DEFAULT_ENGINE,
     verbose: bool = False,
 ):
-    executor.status_function(engine=engine, verbose=verbose)
+    executor.status_function(
+        engine=engine,
+        verbose=verbose,
+    )
 
 
 @app.command(help="Get logs from the function.", hidden=True)
@@ -260,7 +267,10 @@ def push(
     ] = False,
     verbose: bool = False,
 ):
-    executor.push_function(confirm=confirm, verbose=verbose)
+    executor.push_function(
+        confirm=confirm,
+        verbose=verbose,
+    )
 
 
 @app.command(
@@ -275,14 +285,20 @@ def pull(
     ] = False,
     verbose: bool = False,
 ):
-    executor.pull_function(confirm=confirm, verbose=verbose)
+    executor.pull_function(
+        confirm=confirm,
+        verbose=verbose,
+    )
 
 
 @app.command(short_help="Deletes a specific function using its id or label.")
 @simple_lookup_key(entity_name=EntityNameEnum.FUNCTION)
 def delete(id: str | None = None, label: str | None = None):
     function_key = get_instance_key(id=id, label=label)
-    handlers.delete_function(function_key=function_key)
+
+    handlers.delete_function(
+        function_key=function_key,
+    )
 
 
 @app.command(short_help="Retrieves a specific function using its id or label.")
@@ -295,7 +311,11 @@ def get(
     fields: str = DefaultInstanceFieldEnum.get_default_fields(),
 ):
     function_key = get_instance_key(id=id, label=label)
-    handlers.retrieve_function(function_key=function_key, fields=fields)
+
+    handlers.retrieve_function(
+        function_key=function_key,
+        fields=fields,
+    )
 
 
 @app.command(short_help="Lists all available functions.")
@@ -342,7 +362,7 @@ def add(
     methods: Annotated[
         str,
         typer.Option(help="The HTTP methods the function will respond to."),
-    ] = FunctionMethodEnum.default(),
+    ] = FunctionMethodEnum.get_default_method(),
     cors: Annotated[
         bool,
         typer.Option(
@@ -400,7 +420,7 @@ def update(
     methods: Annotated[
         str,
         typer.Option(help="The HTTP methods the function will respond to."),
-    ] = FunctionMethodEnum.default(),
+    ] = FunctionMethodEnum.get_default_method(),
     cors: Annotated[
         bool,
         typer.Option(
@@ -419,6 +439,7 @@ def update(
     ] = "[]",
 ):
     function_key = get_instance_key(id=id, label=label)
+
     handlers.update_function(
         function_key=function_key,
         label=new_label,

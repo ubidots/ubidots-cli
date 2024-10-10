@@ -37,10 +37,10 @@ from cli.functions.engines.podman.container import \
     FunctionPodmanContainerManager
 from cli.functions.engines.settings import engine_settings
 from cli.functions.enums import FunctionLanguageEnum
-from cli.functions.enums import FunctionLayerTypeEnum
 from cli.functions.enums import FunctionMethodEnum
 from cli.functions.enums import FunctionNodejsRuntimeLayerTypeEnum
 from cli.functions.enums import FunctionPythonRuntimeLayerTypeEnum
+from cli.functions.enums import FunctionRuntimeLayerTypeEnum
 from cli.functions.models import FunctionGlobals
 from cli.functions.models import FunctionInfo
 from cli.functions.models import FunctionProjectInfo
@@ -66,7 +66,7 @@ def save_manifest_project_file(
     project_path: Path,
     language: FunctionLanguageEnum,
     runtime: (
-        FunctionLayerTypeEnum
+        FunctionRuntimeLayerTypeEnum
         | FunctionPythonRuntimeLayerTypeEnum
         | FunctionNodejsRuntimeLayerTypeEnum
     ),

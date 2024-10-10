@@ -16,9 +16,9 @@ from cli.functions.engines.enums import FunctionEngineTypeEnum
 from cli.functions.engines.manager import FunctionEngineClientManager
 from cli.functions.engines.settings import engine_settings
 from cli.functions.enums import FunctionHandlerFileExtensionEnum
-from cli.functions.exceptions import FolderAlreadyExistsException
-from cli.functions.exceptions import PermissionDeniedException
-from cli.functions.exceptions import TemplateNotFoundException
+from cli.functions.exceptions import FolderAlreadyExistsError
+from cli.functions.exceptions import PermissionDeniedError
+from cli.functions.exceptions import TemplateNotFoundError
 from cli.functions.helpers import argo_container_manager
 from cli.functions.helpers import compress_project_to_zip
 from cli.functions.helpers import create_handler_file
@@ -40,7 +40,7 @@ class ValidateTemplateStep(PipelineStep):
         template_file = data["template_file"]
 
         if not template_file.exists():
-            raise TemplateNotFoundException(
+            raise TemplateNotFoundError(
                 language=language,
                 template_file=template_file,
             )
@@ -52,11 +52,11 @@ class CreateProjectFolderStep(PipelineStep):
         project_path = data["project_path"]
 
         if project_path.exists():
-            raise FolderAlreadyExistsException(name=project_path.name)
+            raise FolderAlreadyExistsError(name=project_path.name)
         try:
             project_path.mkdir(parents=True, exist_ok=False)
         except PermissionError as error:
-            raise PermissionDeniedException(error=str(error)) from error
+            raise PermissionDeniedError(error=str(error)) from error
         return data
 
 
@@ -125,14 +125,14 @@ class ValidateProjectStep(PipelineStep):
         project_files = data["project_files"]
         project_metadata = data["project_metadata"]
 
-        if self.validate_manifest_file:
-            validate_manifest_file(project_metadata.function.id)
         if self.validate_main_file_presence:
             validate_main_file_presence(
                 project_path=project_path,
                 project_files=project_files,
                 main_file=project_metadata.project.language.main_file,
             )
+        if self.validate_manifest_file:
+            validate_manifest_file(project_metadata.function.id)
         return data
 
 

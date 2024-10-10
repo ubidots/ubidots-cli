@@ -24,6 +24,7 @@ def config():
     )
     is_token_unchanged = not access_token_input or access_token_input == masked_token
     access_token = original_token if is_token_unchanged else access_token_input
+
     handlers.set_configuration(
         api_domain=api_domain,
         auth_method_key=auth_method_key,
