@@ -11,7 +11,7 @@ def build_variables_payload(**kwargs) -> dict:
         "device": kwargs.get("device") or None,
         "type": kwargs.get("type"),
         "unit": kwargs.get("unit") or None,
-        "syntheticExpression": kwargs.get("syntheticExpression", ""),
+        "synthetic_expression": kwargs.get("synthetic_expression", ""),
         "tags": kwargs.get("tags", "").split(",") if kwargs.get("tags") else [],
         "properties": properties,
     }

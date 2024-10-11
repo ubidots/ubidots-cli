@@ -85,7 +85,7 @@ def add(
     unit: Annotated[
         str, typer.Option(help="The unit of measurement that represents the variable.")
     ] = "",
-    syntheticExpression: Annotated[
+    synthetic_expression: Annotated[
         str,
         typer.Option(
             help=(
@@ -130,7 +130,7 @@ def add(
         device=device,
         type=type,
         unit=unit,
-        syntheticExpression=syntheticExpression,
+        synthetic_expression=synthetic_expression,
         tags=tags,
         properties=properties,
         min=min,
@@ -158,7 +158,7 @@ def update(
     unit: Annotated[
         str, typer.Option(help="The unit of measurement that represents the variable.")
     ] = "",
-    syntheticExpression: Annotated[
+    synthetic_expression: Annotated[
         str,
         typer.Option(
             help=(
@@ -201,7 +201,7 @@ def update(
         description=description,
         type=type,
         unit=unit,
-        syntheticExpression=syntheticExpression,
+        synthetic_expression=synthetic_expression,
         tags=tags,
         properties=properties,
         min=min,
