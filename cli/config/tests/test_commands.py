@@ -1,4 +1,4 @@
-import unittest
+from unittest import TestCase
 from unittest.mock import patch
 
 import typer
@@ -14,7 +14,7 @@ app.command()(config)
 runner = CliRunner()
 
 
-class TestConfigCommand(unittest.TestCase):
+class TestConfigCommand(TestCase):
     @patch("cli.config.commands.custom_prompt")
     @patch("cli.config.handlers.get_access_token_configuration")
     @patch("cli.config.handlers.set_configuration")

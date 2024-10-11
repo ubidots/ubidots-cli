@@ -1,4 +1,4 @@
-import unittest
+from unittest import TestCase
 
 import yaml
 
@@ -10,7 +10,7 @@ from cli.config.models import AuthHeaderTypeEnum
 from cli.settings import settings
 
 
-class TestCLIConfiguration(unittest.TestCase):
+class TestCLIConfiguration(TestCase):
     def setUp(self):
         self.config_directory = settings.CONFIG.DIRECTORY_PATH
         self.config_file = settings.CONFIG.FILE_PATH
@@ -69,7 +69,7 @@ class TestCLIConfiguration(unittest.TestCase):
     def test_mask_token_all_chars_visible_equals_token_length(self):
         # Setup
         token = "1234"
-        expected_result = "****"
+        expected_result = "******1234"
         masked_token = mask_token(token)
         # Expected
         self.assertEqual(masked_token, expected_result)

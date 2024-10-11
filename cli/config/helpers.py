@@ -18,10 +18,8 @@ def read_cli_configuration() -> APIConfigModel:
 
 def mask_token(
     token: str,
-    visible_chars: int = settings.CONFIG.DEFAULT_VISIBLE_TOKEN_CHARS,
+    visible_chars: int = settings.CONFIG.VISIBLE_SECRET_CHARS,
+    fixed_length: int = settings.CONFIG.FIXED_LENGTH,
 ) -> str:
-    if visible_chars >= len(token):
-        return "*" * len(token)
-
-    num_asterisks = len(token) - visible_chars
-    return "*" * num_asterisks + token[-visible_chars:]
+    visible_part = token[-visible_chars:]
+    return visible_part.rjust(fixed_length, "*")
