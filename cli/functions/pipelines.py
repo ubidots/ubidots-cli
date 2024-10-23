@@ -82,7 +82,8 @@ class SaveManifestStep(PipelineStep):
         runtime = data.get("runtime")
 
         methods = kwargs.get("methods")
-        function_id = data.get("function_id") or project_metadata.function.id
+        function_id = data.get("function_id", "")
+        function_label = data.get("function_label", "")
 
         if project_metadata and not language:
             language = project_metadata.project.language
@@ -93,10 +94,17 @@ class SaveManifestStep(PipelineStep):
         if project_metadata and not methods:
             kwargs["methods"] = project_metadata.function.methods
 
+        if project_metadata and not function_id:
+            function_id = project_metadata.function.id
+
+        if project_metadata and not function_label:
+            function_label = project_metadata.project.label
+
         save_manifest_project_file(
             project_path=project_path,
             language=language,
             runtime=runtime,
+            label=function_label,
             function_id=function_id,
             **kwargs,
         )
@@ -269,6 +277,7 @@ class CreateFunctionStep(PipelineStep):
                 )
             )
         data["response"] = response
+        data["function_label"] = project_metadata.project.label
         data["function_id"] = response.json()["id"]
         return data
 
@@ -526,7 +535,7 @@ class GetFRIEContainerTargetStep(PipelineStep):
             is_raw=is_raw,
             target_url=target_url,
         )
-        data["function_kwargs"]["label"] = label
+        data["function_label"] = label
         data["target_url"] = target_url
         return data
 
