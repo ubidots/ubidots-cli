@@ -440,6 +440,8 @@ Setting up a local development environment for UbiFunctions involves two steps:
 1. Creating the local UbiFunction.
 2. Starting the environment.
 
+[Docker](https://docs.docker.com/engine/install/) is required for UbiFunctions local developing. Install it before proceeding further.
+
 ### Create a local UbiFunction
 Create a new local UbiFunction with the given runtime, method and other settings. 
 ```bash
@@ -492,3 +494,27 @@ Start the local development environment in order to enable the UbiFunction execu
 │ --help                               Show this message and exit.                                                        │
 ╰─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
 ```
+
+This will ouput the following:
+```bash
+
+    ------------------
+    Starting Function:
+    ------------------
+    Name: prueba-python-push
+    Runtime: python3.9:base
+    Local label: lambda_fn_prueba-python-push_Bk2L4H5bKp
+
+    -------
+    INPUTS:
+    -------
+    Raw: False
+    Methods: GET
+    Token: 
+        
+http://172.18.0.2:8042/lambda_fn_prueba-python-push_Bk2L4H5bKp
+
+> [DONE]: Function started successfully.
+```
+
+You can use the given URL to perform HTTP request and execute your local UbiFunction.
