@@ -154,3 +154,9 @@ class FunctionMethodEnum(StrEnum):
     def parse_methods_to_enum_list(cls, methods_str: str) -> list["FunctionMethodEnum"]:
         methods = methods_str.split(",")
         return [cls(method.strip().upper()) for method in methods]
+
+    @classmethod
+    def enum_list_to_str_list(
+        cls, methods_enum_list: list["FunctionMethodEnum"]
+    ) -> list[str]:
+        return [method.value for method in methods_enum_list]

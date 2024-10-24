@@ -16,10 +16,12 @@ from cli.functions.engines.enums import FunctionEngineTypeEnum
 from cli.functions.engines.manager import FunctionEngineClientManager
 from cli.functions.engines.settings import engine_settings
 from cli.functions.enums import FunctionHandlerFileExtensionEnum
+from cli.functions.enums import FunctionMethodEnum
 from cli.functions.exceptions import FolderAlreadyExistsError
 from cli.functions.exceptions import PermissionDeniedError
 from cli.functions.exceptions import TemplateNotFoundError
 from cli.functions.helpers import argo_container_manager
+from cli.functions.helpers import build_functions_payload
 from cli.functions.helpers import compress_project_to_zip
 from cli.functions.helpers import create_handler_file
 from cli.functions.helpers import enumerate_project_files
@@ -80,6 +82,8 @@ class SaveManifestStep(PipelineStep):
         runtime = data.get("runtime")
 
         methods = kwargs.get("methods")
+        function_id = data.get("function_id", "")
+        function_label = data.get("function_label", "")
 
         if project_metadata and not language:
             language = project_metadata.project.language
@@ -90,10 +94,18 @@ class SaveManifestStep(PipelineStep):
         if project_metadata and not methods:
             kwargs["methods"] = project_metadata.function.methods
 
+        if project_metadata and not function_id:
+            function_id = project_metadata.function.id
+
+        if project_metadata and not function_label:
+            function_label = project_metadata.project.label
+
         save_manifest_project_file(
             project_path=project_path,
             language=language,
             runtime=runtime,
+            label=function_label,
+            function_id=function_id,
             **kwargs,
         )
         return data
@@ -224,6 +236,49 @@ class BuildEndpointStep(PipelineStep):
         )
         data["url"] = url
         data["headers"] = headers
+        return data
+
+
+class CreateFunctionStep(PipelineStep):
+    def execute(self, data):
+        url = data["url"]
+        headers = data["headers"]
+        project_metadata = data["project_metadata"]
+
+        if project_metadata.function.id:
+            return data
+
+        json = build_functions_payload(
+            label=project_metadata.project.label,
+            name=project_metadata.project.name,
+            triggers={
+                "httpMethods": FunctionMethodEnum.enum_list_to_str_list(
+                    project_metadata.function.methods
+                ),
+                "httpHasCors": project_metadata.function.has_cors,
+                "schedulerCron": project_metadata.function.cron,
+            },
+            serverless={
+                "runtime": project_metadata.project.runtime,
+                "isRawFunction": project_metadata.function.is_raw,
+                "authToken": project_metadata.function.token or None,
+            },
+        )
+
+        client = httpx.Client(follow_redirects=True)
+        response = client.post(url, headers=headers, json=json)
+
+        if response.status_code != httpx.codes.CREATED:
+            raise (
+                httpx.HTTPStatusError(
+                    message=response._content.decode("utf-8"),
+                    request=response.request,
+                    response=response,
+                )
+            )
+        data["response"] = response
+        data["function_label"] = project_metadata.project.label
+        data["function_id"] = response.json()["id"]
         return data
 
 
@@ -480,7 +535,7 @@ class GetFRIEContainerTargetStep(PipelineStep):
             is_raw=is_raw,
             target_url=target_url,
         )
-        data["function_kwargs"]["label"] = label
+        data["function_label"] = label
         data["target_url"] = target_url
         return data
 
