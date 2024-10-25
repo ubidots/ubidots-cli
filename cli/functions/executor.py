@@ -67,7 +67,7 @@ def start_function(
     steps = [
         pipelines.ReadManifestStep(),
         pipelines.GetProjectFilesStep(),
-        pipelines.ValidateProjectStep(validate_manifest_file=False),
+        pipelines.ValidateProjectStep(),
         pipelines.GetClientStep(engine=engine),
         pipelines.GetImageNamesStep(),
         pipelines.ValidateImageNamesStep(),
@@ -87,6 +87,10 @@ def start_function(
     pipeline.run(
         {
             "project_path": Path.cwd(),
+            "validations": {
+                "manifest_file_exists": True,
+                "function_exists": False,
+            },
             "function_kwargs": {
                 "is_raw": is_raw,
                 "methods": methods,
@@ -116,7 +120,11 @@ def stop_function(
         steps, success_message=f"Function '{label}' stoped successfully."
     )
     pipeline.run(
-        {"container_key": label, "verbose": verbose, "root": stop_function.__name__}
+        {
+            "container_key": label,
+            "verbose": verbose,
+            "root": stop_function.__name__,
+        }
     )
 
 
@@ -156,6 +164,10 @@ def logs_function(
         pipeline.run(
             {
                 "project_path": Path.cwd(),
+                "validations": {
+                    "manifest_file_exists": True,
+                    "function_exists": True,
+                },
                 "verbose": verbose,
                 "root": logs_function.__name__,
             }
@@ -169,7 +181,11 @@ def logs_function(
         ]
         pipeline = Pipeline(steps)
         pipeline.run(
-            {"container_key": label, "verbose": verbose, "root": logs_function.__name__}
+            {
+                "container_key": label,
+                "verbose": verbose,
+                "root": logs_function.__name__,
+            }
         )
 
 
@@ -178,17 +194,14 @@ def push_function(
     verbose: bool,
 ):
     steps = [
-        pipelines.ConfirmOverwriteStep(
-            confirm=confirm,
-            message="Are you sure you want to overwrite the remote files?",
-        ),
         pipelines.ReadManifestStep(),
+        pipelines.GetProjectFilesStep(),
+        pipelines.ValidateProjectStep(),
+        pipelines.ConfirmOverwriteStep(),
         pipelines.BuildEndpointStep(FUNCTION_API_ROUTES["base"]),
         pipelines.CreateFunctionStep(),
         pipelines.SaveManifestStep(),
-        pipelines.GetProjectFilesStep(),
         pipelines.ReadManifestStep(),
-        pipelines.ValidateProjectStep(),
         pipelines.CompressProjectStep(),
         pipelines.BuildEndpointStep(FUNCTION_API_ROUTES["zip_file"]),
         pipelines.UploadFileStep(),
@@ -196,7 +209,19 @@ def push_function(
     ]
     pipeline = Pipeline(steps, success_message="Function uploaded successfully.")
     pipeline.run(
-        {"project_path": Path.cwd(), "verbose": verbose, "root": push_function.__name__}
+        {
+            "project_path": Path.cwd(),
+            "overwrite": {
+                "confirm": confirm,
+                "message": "Are you sure you want to overwrite the remote files?",
+            },
+            "validations": {
+                "manifest_file_exists": True,
+                "function_exists": True,
+            },
+            "verbose": verbose,
+            "root": push_function.__name__,
+        }
     )
 
 
@@ -205,13 +230,10 @@ def pull_function(
     verbose: bool,
 ):
     steps = [
-        pipelines.ConfirmOverwriteStep(
-            confirm=confirm,
-            message="Are you sure you want to overwrite the local files?",
-        ),
         pipelines.ReadManifestStep(),
         pipelines.GetProjectFilesStep(),
         pipelines.ValidateProjectStep(),
+        pipelines.ConfirmOverwriteStep(),
         pipelines.BuildEndpointStep(FUNCTION_API_ROUTES["zip_file"]),
         pipelines.DownloadFileStep(),
         pipelines.CheckResponseStep(),
@@ -219,5 +241,17 @@ def pull_function(
     ]
     pipeline = Pipeline(steps, success_message="Function downloaded successfully.")
     pipeline.run(
-        {"project_path": Path.cwd(), "verbose": verbose, "root": pull_function.__name__}
+        {
+            "project_path": Path.cwd(),
+            "overwrite": {
+                "confirm": confirm,
+                "message": "Are you sure you want to overwrite the local files?",
+            },
+            "validations": {
+                "manifest_file_exists": True,
+                "function_exists": True,
+            },
+            "verbose": verbose,
+            "root": pull_function.__name__,
+        }
     )

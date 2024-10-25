@@ -31,8 +31,8 @@ from cli.functions.helpers import get_or_create_network
 from cli.functions.helpers import read_manifest_project_file
 from cli.functions.helpers import save_manifest_project_file
 from cli.functions.helpers import verify_and_fetch_images
-from cli.functions.validators import validate_main_file_presence
-from cli.functions.validators import validate_manifest_file
+from cli.functions.validators import validate_function_exists
+from cli.functions.validators import validate_main_file_exists
 from cli.settings import settings
 
 
@@ -127,24 +127,27 @@ class GetProjectFilesStep(PipelineStep):
         return data
 
 
-@dataclass
 class ValidateProjectStep(PipelineStep):
-    validate_manifest_file: bool = True
-    validate_main_file_presence: bool = True
-
     def execute(self, data):
         project_path = data["project_path"]
         project_files = data["project_files"]
         project_metadata = data["project_metadata"]
+        validations = data.get("validations", {})
 
-        if self.validate_main_file_presence:
-            validate_main_file_presence(
+        if validations.get("manifest_file"):
+            validate_main_file_exists(
                 project_path=project_path,
                 project_files=project_files,
                 main_file=project_metadata.project.language.main_file,
             )
-        if self.validate_manifest_file:
-            validate_manifest_file(project_metadata.function.id)
+        if validations.get("function_exists"):
+            try:
+                validate_function_exists(project_metadata.function.id)
+            except ValueError as error:
+                if data["root"] in ["push_function"]:
+                    data["overwrite"]["confirm"] = True
+                else:
+                    raise error
         return data
 
 
@@ -177,14 +180,11 @@ class ShowStartupInfoStep(PipelineStep):
         return data
 
 
-@dataclass
 class ConfirmOverwriteStep(PipelineStep):
-    confirm: bool
-    message: str
-
     def execute(self, data):
-        confirm = self.confirm
-        if not confirm and not typer.confirm(self.message):
+        overwrite = data["overwrite"]
+
+        if not overwrite.get("confirm") and not typer.confirm(overwrite.get("message")):
             error_message = (
                 "Operation cancelled: The overwrite process was aborted by the user."
             )
