@@ -94,17 +94,16 @@ class SaveManifestStep(PipelineStep):
         if project_metadata and not methods:
             kwargs["methods"] = project_metadata.function.methods
 
+        if project_metadata and not project_metadata.function.label:
+            kwargs["label"] = function_label
+
         if project_metadata and not function_id:
             function_id = project_metadata.function.id
-
-        if project_metadata and not function_label:
-            function_label = project_metadata.project.label
 
         save_manifest_project_file(
             project_path=project_path,
             language=language,
             runtime=runtime,
-            label=function_label,
             function_id=function_id,
             **kwargs,
         )
@@ -167,7 +166,7 @@ class ShowStartupInfoStep(PipelineStep):
     ------------------
     Name: {info_project.name}
     Runtime: {info_project.runtime}
-    Local label: {info_project.label}
+    Local label: {info_project.local_label}
 
     -------
     INPUTS:
@@ -249,7 +248,7 @@ class CreateFunctionStep(PipelineStep):
             return data
 
         json = build_functions_payload(
-            label=project_metadata.project.label,
+            label=project_metadata.function.label or "",
             name=project_metadata.project.name,
             triggers={
                 "httpMethods": FunctionMethodEnum.enum_list_to_str_list(
@@ -277,8 +276,8 @@ class CreateFunctionStep(PipelineStep):
                 )
             )
         data["response"] = response
-        data["function_label"] = project_metadata.project.label
         data["function_id"] = response.json()["id"]
+        data["function_label"] = response.json()["label"]
         return data
 
 
@@ -417,7 +416,7 @@ class GetArgoContainerManagerStep(PipelineStep):
             client=client,
             network=network,
             image_name=image_name,
-            frie_label=project_metadata.project.label,
+            frie_label=project_metadata.project.local_label,
         )
         data["argo_container"] = container
         data["argo_adapter_port"] = argo_adapter_port
@@ -458,7 +457,7 @@ class GetArgoContainerInputAdapterStep(PipelineStep):
         adapter_url, adapter_data = get_argo_input_adapter(
             client=client,
             network=network,
-            frie_label=project_metadata.project.label,
+            frie_label=project_metadata.project.local_label,
             argo_adapter_port=argo_adapter_port,
             is_raw=is_raw,
             ip_address=ip_address,
@@ -521,7 +520,7 @@ class GetFRIEContainerTargetStep(PipelineStep):
         function_kwargs = data["function_kwargs"]
         is_raw = function_kwargs["is_raw"] or project_metadata.function.is_raw
 
-        label = project_metadata.project.label
+        label = project_metadata.project.local_label
         argo_target_port = engine_settings.CONTAINER.ARGO.INTERNAL_TARGET_PORT.split(
             "/"
         )[0]
@@ -535,7 +534,7 @@ class GetFRIEContainerTargetStep(PipelineStep):
             is_raw=is_raw,
             target_url=target_url,
         )
-        data["function_label"] = label
+
         data["target_url"] = f"URL: {target_url}"
         return data
 

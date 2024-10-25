@@ -43,7 +43,7 @@ class TestFunctionUtils:
             globals=FunctionGlobals(),
             project=FunctionProjectInfo(
                 name=project_path.name,
-                label="my_function",
+                local_label="my_function",
                 language=language,
                 runtime=runtime,
             ),
@@ -53,7 +53,7 @@ class TestFunctionUtils:
         save_manifest_project_file(
             project_path=project_path,
             engine=engine,
-            label="my_function",
+            local_label="my_function",
             language=language,
             runtime=runtime,
         )

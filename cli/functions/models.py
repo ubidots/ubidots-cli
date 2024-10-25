@@ -25,7 +25,7 @@ class FunctionGlobals(BaseModel):
 
 
 class FunctionProjectInfo(BaseModel):
-    label: str = ""
+    local_label: str = ""
     name: str = settings.FUNCTIONS.DEFAULT_PROJECT_NAME
     language: FunctionLanguageEnum
     runtime: (
@@ -38,12 +38,12 @@ class FunctionProjectInfo(BaseModel):
 
     @model_validator(mode="before")
     def generate_label_based_on_name(cls, values):
-        if not values.get("label"):
+        if not values.get("local_label"):
             suffix = "".join(
                 secrets.choice(string.ascii_letters + string.digits)
                 for _ in range(engine_settings.CONTAINER.DEFAULT_LABEL_LENGTH)
             )
-            values["label"] = (
+            values["local_label"] = (
                 f'{engine_settings.CONTAINER.LABEL_PREFIX}_{values["name"]}_{suffix}'
             )
         return values
@@ -57,6 +57,7 @@ class FunctionProjectInfo(BaseModel):
 
 class FunctionInfo(BaseModel):
     id: str = ""
+    label: str = ""
     methods: list[FunctionMethodEnum] = [FunctionMethodEnum.GET]
     token: str = ""
     is_raw: bool = settings.FUNCTIONS.DEFAULT_IS_RAW

@@ -70,7 +70,7 @@ def save_manifest_project_file(
         | FunctionPythonRuntimeLayerTypeEnum
         | FunctionNodejsRuntimeLayerTypeEnum
     ),
-    label: str = "",
+    local_label: str = "",
     engine: FunctionEngineTypeEnum = engine_settings.CONTAINER.DEFAULT_ENGINE,
     function_id: str = "",
     **kwargs,
@@ -80,7 +80,7 @@ def save_manifest_project_file(
         name=project_path.name,
         language=language,
         runtime=runtime,
-        label=label,
+        local_label=local_label,
     )
     function_instance = FunctionInfo(
         id=function_id,
