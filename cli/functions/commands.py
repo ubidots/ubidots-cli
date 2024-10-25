@@ -128,7 +128,7 @@ def new(
 
 
 @app.command(
-    help="Initialize the function container environment for execution.", hidden=True
+    help="Initialize the function container environment for execution.",
 )
 @add_verbose_option()
 def start(
@@ -182,7 +182,7 @@ def start(
     )
 
 
-@app.command(help="Stop the function.", hidden=True)
+@app.command(help="Stop the function.")
 @add_verbose_option()
 def stop(
     label: Annotated[
@@ -202,7 +202,7 @@ def stop(
     )
 
 
-@app.command(help="Check the status of the functions.", hidden=True)
+@app.command(help="Check the status of the functions.")
 @add_verbose_option()
 def status(
     engine: Annotated[
@@ -257,7 +257,6 @@ def logs(
 
 @app.command(
     help="Update and synchronize your local function code with the remote server.",
-    hidden=True,
 )
 @add_verbose_option()
 def push(
@@ -275,7 +274,6 @@ def push(
 
 @app.command(
     help="Retrieve and update your local function code with the latest changes from the remote server.",
-    hidden=True,
 )
 @add_verbose_option()
 def pull(
