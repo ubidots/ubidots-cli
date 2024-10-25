@@ -536,7 +536,7 @@ class GetFRIEContainerTargetStep(PipelineStep):
             target_url=target_url,
         )
         data["function_label"] = label
-        data["target_url"] = target_url
+        data["target_url"] = f"URL: {target_url}"
         return data
 
 
