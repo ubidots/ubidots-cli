@@ -1,12 +1,24 @@
 import path from 'path';
+import { promises as fs } from 'fs';
 import { fileURLToPath } from 'url';
+import { pathToFileURL } from 'url';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const loadModule = async (modulePath) => {
     try {
-        return await import(modulePath);
+        let code = await fs.readFile(modulePath, 'utf-8');
+        code += '\nexports.main = main;';
+        
+        const tempModulePath = path.join(__dirname, './.main.js');
+        await fs.writeFile(tempModulePath, code, 'utf-8');
+
+        const moduleUrl = pathToFileURL(tempModulePath).href;
+        const module = await import(moduleUrl);
+
+        await fs.unlink(tempModulePath);
+        return module;
     } catch (e) {
         console.error("Error loading module:", e);
         return null;

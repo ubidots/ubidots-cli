@@ -16,6 +16,7 @@ from cli.functions.engines.enums import FunctionEngineTypeEnum
 from cli.functions.engines.manager import FunctionEngineClientManager
 from cli.functions.engines.settings import engine_settings
 from cli.functions.enums import FunctionHandlerFileExtensionEnum
+from cli.functions.enums import FunctionMainFileExtensionEnum
 from cli.functions.enums import FunctionMethodEnum
 from cli.functions.exceptions import FolderAlreadyExistsError
 from cli.functions.exceptions import PermissionDeniedError
@@ -84,6 +85,7 @@ class SaveManifestStep(PipelineStep):
         methods = kwargs.get("methods")
         function_id = data.get("function_id", "")
         function_label = data.get("function_label", "")
+        local_label = data.get("local_label")
 
         if project_metadata and not language:
             language = project_metadata.project.language
@@ -100,10 +102,14 @@ class SaveManifestStep(PipelineStep):
         if project_metadata and not function_id:
             function_id = project_metadata.function.id
 
+        if project_metadata and not local_label:
+            local_label = project_metadata.project.local_label
+
         save_manifest_project_file(
             project_path=project_path,
             language=language,
             runtime=runtime,
+            local_label=local_label,
             function_id=function_id,
             **kwargs,
         )
@@ -196,6 +202,8 @@ class CompressProjectStep(PipelineStep):
     exclude_files: list[str] = field(
         default_factory=lambda: [
             settings.FUNCTIONS.PROJECT_METADATA_FILE,
+            f".{settings.FUNCTIONS.DEFAULT_MAIN_FUNCTION_NAME}.{FunctionMainFileExtensionEnum.PYTHON_EXTENSION}",
+            f".{settings.FUNCTIONS.DEFAULT_MAIN_FUNCTION_NAME}.{FunctionMainFileExtensionEnum.NODEJS_EXTENSION}",
             f"{settings.FUNCTIONS.DEFAULT_HANDLER_FILE_NAME}.{FunctionHandlerFileExtensionEnum.PYTHON_EXTENSION}",
             f"{settings.FUNCTIONS.DEFAULT_HANDLER_FILE_NAME}.{FunctionHandlerFileExtensionEnum.NODEJS_EXTENSION}",
         ]
@@ -246,6 +254,13 @@ class CreateFunctionStep(PipelineStep):
 
         if project_metadata.function.id:
             return data
+
+        message = "This function is not created. Would you like to create a new function and push it?"
+        if not typer.confirm(message):
+            error_message = (
+                "Operation cancelled: The overwrite process was aborted by the user."
+            )
+            raise typer.Abort(error_message)
 
         json = build_functions_payload(
             label=project_metadata.function.label or "",
@@ -374,8 +389,14 @@ class GetImageNamesStep(PipelineStep):
     def execute(self, data):
         project_metadata = data["project_metadata"]
         hub_username = engine_settings.HUB_USERNAME
-        function_image_name = f"{hub_username}/{project_metadata.project.runtime}"
-        argo_image_name = f"{hub_username}/argo2:2.0.1"
+        function_image_name = (
+            f"{hub_username}/"
+            f"{engine_settings.HUB_PREFFIX}-{project_metadata.project.runtime}"
+        )
+        argo_image_name = (
+            f"{hub_username}/"
+            f"{engine_settings.HUB_PREFFIX}-{engine_settings.CONTAINER.ARGO.NAME}:2.0.1"
+        )
 
         data["image_names"] = [
             argo_image_name,
@@ -519,6 +540,8 @@ class GetFRIEContainerTargetStep(PipelineStep):
         ip_address = data["ip_address"]
         function_kwargs = data["function_kwargs"]
         is_raw = function_kwargs["is_raw"] or project_metadata.function.is_raw
+        timeout = function_kwargs["timeout"] or project_metadata.function.timeout
+        language = project_metadata.project.language
 
         label = project_metadata.project.local_label
         argo_target_port = engine_settings.CONTAINER.ARGO.INTERNAL_TARGET_PORT.split(
@@ -531,10 +554,13 @@ class GetFRIEContainerTargetStep(PipelineStep):
             network=network,
             image_name=function_image_name,
             label=label,
+            language=language,
             is_raw=is_raw,
+            timeout=timeout,
             target_url=target_url,
         )
 
+        data["local_label"] = label
         data["target_url"] = f"URL: {target_url}"
         return data
 
@@ -576,4 +602,33 @@ class StopFunctionStep(PipelineStep):
         container_manager.stop(
             f"{engine_settings.CONTAINER.FRIE.LABEL_KEY}={container_key}"
         )
+        return data
+
+
+class CleanFunctionsStep(PipelineStep):
+    def execute(self, data):
+        client = data["client"]
+        container_manager = data["container_manager"]
+
+        for container in container_manager.list(
+            label=engine_settings.CONTAINER.FRIE.LABEL_KEY
+        ):
+            container.stop()
+            container.remove()
+
+        for container in container_manager.list(
+            label=engine_settings.CONTAINER.ARGO.LABEL_KEY
+        ):
+            container.stop()
+            container.remove()
+
+        for image in client.client.images.list():
+            prefix = f"{engine_settings.HUB_USERNAME}/{engine_settings.HUB_PREFFIX}"
+            if any(tag.startswith(prefix) for tag in image.tags):
+                client.client.images.remove(image.id, force=True)
+
+        for network in client.client.networks.list():
+            prefix_name = engine_settings.CONTAINER.NETWORK_NAME
+            if network.name.startswith(prefix_name):
+                network.remove()
         return data

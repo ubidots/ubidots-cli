@@ -255,3 +255,30 @@ def pull_function(
             "root": pull_function.__name__,
         }
     )
+
+
+def clean_functions(
+    engine: FunctionEngineTypeEnum,
+    confirm: bool,
+    verbose: bool,
+):
+    steps = [
+        pipelines.ConfirmOverwriteStep(),
+        pipelines.GetClientStep(engine=engine),
+        pipelines.GetContainerManagerStep(),
+        pipelines.CleanFunctionsStep(),
+    ]
+    pipeline = Pipeline(steps)
+    pipeline.run(
+        {
+            "overwrite": {
+                "confirm": confirm,
+                "message": (
+                    "Are you sure you want to proceed?\n"
+                    "This will remove all unused images, containers, and networks, which cannot be undone."
+                ),
+            },
+            "verbose": verbose,
+            "root": pull_function.__name__,
+        }
+    )

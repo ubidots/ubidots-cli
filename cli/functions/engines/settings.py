@@ -48,7 +48,8 @@ class ContainerSettings(BaseModel):
 
 class EngineSettings(BaseSettings):
     CONTAINER: ContainerSettings = ContainerSettings()
-    HUB_USERNAME: str = "cristianrubioa"
+    HUB_USERNAME: str = "ubidots"
+    HUB_PREFFIX: str = "functions"
     DEFAULT_START_PORT_RANGE: int = 8040
     DEFAULT_END_PORT_RANGE: int = 65535
 

@@ -27,7 +27,6 @@ from cli.functions.engines.enums import TargetTypeEnum
 from cli.functions.engines.exceptions import ContainerNotFoundException
 from cli.functions.engines.exceptions import EngineNotInstalledException
 from cli.functions.engines.exceptions import ImageFetchException
-from cli.functions.engines.exceptions import ImageNotAvailableLocallyException
 from cli.functions.engines.exceptions import ImageNotFoundException
 from cli.functions.engines.models import ArgoAdapterBaseModel
 from cli.functions.engines.models import ArgoAdapterMiddlewareBaseModel
@@ -166,15 +165,13 @@ def verify_and_fetch_images(
     for image_name in image_names:
         try:
             validator.validate_engine_installed()
-            validator.validate_image_available_locally(image_name=image_name)
         except EngineNotInstalledException as error:
             raise error
-        except ImageNotAvailableLocallyException:
-            downloader = client.get_downloader()
-            try:
-                downloader.pull_image(image_name=image_name)
-            except (ImageNotFoundException, ImageFetchException) as error:
-                raise error
+        downloader = client.get_downloader()
+        try:
+            downloader.pull_image(image_name=image_name)
+        except (ImageNotFoundException, ImageFetchException) as error:
+            raise error
 
 
 def create_handler_file(project_path: Path, language: FunctionLanguageEnum):
@@ -237,7 +234,9 @@ def frie_container_manager(
     network: Network,
     image_name: str,
     label: str,
+    language: FunctionLanguageEnum,
     is_raw: bool,
+    timeout: int,
     target_url: str,
 ):
     def check_container_status() -> object | None:
@@ -267,6 +266,14 @@ def frie_container_manager(
         if not is_port_available(port=port):
             port = find_available_ports(ports=[port])
 
+        volumes = {
+            str(project_path): engine_settings.CONTAINER.FRIE.VOLUME_MAPPING,
+        }
+        environment = {"AWS_LAMBDA_FUNCTION_TIMEOUT": str(timeout)}
+        if language == FunctionLanguageEnum.NODEJS:
+            volumes["node_modules"] = {"bind": "/opt/node_modules", "mode": "ro"}
+            environment["NODE_PATH"] = "/opt/node_modules"
+
         container = container_manager.start(
             image_name=image_name,
             container_name=label,
@@ -279,7 +286,8 @@ def frie_container_manager(
             ports={
                 engine_settings.CONTAINER.FRIE.INTERNAL_PORT: port,
             },
-            volumes={str(project_path): engine_settings.CONTAINER.FRIE.VOLUME_MAPPING},
+            volumes=volumes,
+            environment=environment,
             command=f"{settings.FUNCTIONS.DEFAULT_HANDLER_FILE_NAME}.{settings.FUNCTIONS.DEFAULT_HANDLER_FUNCTION_NAME}",
         )
 

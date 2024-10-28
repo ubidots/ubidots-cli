@@ -67,6 +67,7 @@ class FunctionDockerContainerManager(AbstractContainerManager):
         ports: dict[str, int],
         volumes: dict | None = None,
         detach: bool = engine_settings.CONTAINER.IS_DETACH,
+        environment: dict | None = None,
         command: str = "",
     ):
         kwargs = {
@@ -83,6 +84,9 @@ class FunctionDockerContainerManager(AbstractContainerManager):
 
         if command:
             kwargs["command"] = command
+
+        if environment is not None:
+            kwargs["environment"] = environment
 
         with suppress(NotFound):
             if self.client.containers.get(container_name):

@@ -289,6 +289,28 @@ def pull(
     )
 
 
+@app.command(
+    help="Clean up functions environment to ensure a fresh start.", hidden=True
+)
+@add_verbose_option()
+def clean(
+    engine: Annotated[
+        FunctionEngineTypeEnum,
+        typer.Option(help="The engine used to serve the function.", hidden=True),
+    ] = engine_settings.CONTAINER.DEFAULT_ENGINE,
+    confirm: Annotated[
+        bool,
+        typer.Option("--yes", "-y", help="Confirm file overwrite without prompt."),
+    ] = False,
+    verbose: bool = False,
+):
+    executor.clean_functions(
+        engine=engine,
+        confirm=confirm,
+        verbose=verbose,
+    )
+
+
 @app.command(short_help="Deletes a specific function using its id or label.")
 @simple_lookup_key(entity_name=EntityNameEnum.FUNCTION)
 def delete(id: str | None = None, label: str | None = None):
