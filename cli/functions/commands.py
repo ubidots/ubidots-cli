@@ -5,7 +5,6 @@ from typing import no_type_check
 import typer
 from InquirerPy import inquirer
 
-from cli.commons.decorators import add_fields_option
 from cli.commons.decorators import add_filter_option
 from cli.commons.decorators import add_pagination_options
 from cli.commons.decorators import add_sort_by_option
@@ -26,6 +25,12 @@ from cli.functions.enums import FunctionNodejsRuntimeLayerTypeEnum
 from cli.functions.enums import FunctionPythonRuntimeLayerTypeEnum
 from cli.functions.enums import FunctionRuntimeLayerTypeEnum
 from cli.settings import settings
+
+FIELDS_FUNCTION_HELP_TEXT = (
+    "Comma-separated fields to process * e.g. field1,field2,field3. "
+    "* Available fields: (url, id, label, name, isActive, createdAt, serverless, "
+    "triggers, environment, zipFileProperties)."
+)
 
 app = typer.Typer(help="Tool for managing and deploying functions.")
 
@@ -324,12 +329,14 @@ def delete(id: str | None = None, label: str | None = None):
 
 @app.command(short_help="Retrieves a specific function using its id or label.")
 @simple_lookup_key(entity_name=EntityNameEnum.FUNCTION)
-@add_fields_option()
 @no_type_check
 def get(
     id: str | None = None,
     label: str | None = None,
-    fields: str = DefaultInstanceFieldEnum.get_default_fields(),
+    fields: Annotated[
+        str,
+        typer.Option(help=FIELDS_FUNCTION_HELP_TEXT),
+    ] = DefaultInstanceFieldEnum.get_default_fields(),
     format: OutputFormatFieldsEnum = settings.CONFIG.DEFAULT_OUTPUT_FORMAT,
 ):
     function_key = get_instance_key(id=id, label=label)
@@ -342,13 +349,15 @@ def get(
 
 
 @app.command(short_help="Lists all available functions.")
-@add_fields_option()
 @add_pagination_options()
 @add_sort_by_option()
 @add_filter_option()
 @no_type_check
 def list(
-    fields: str = DefaultInstanceFieldEnum.get_default_fields(),
+    fields: Annotated[
+        str,
+        typer.Option(help=FIELDS_FUNCTION_HELP_TEXT),
+    ] = DefaultInstanceFieldEnum.get_default_fields(),
     filter: str | None = None,
     sort_by: str | None = None,
     page_size: int | None = None,

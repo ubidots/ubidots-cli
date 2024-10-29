@@ -59,23 +59,6 @@ def add_verbose_option():
     return decorator
 
 
-def add_fields_option():
-    def decorator(command_func):
-        @wraps(command_func)
-        def wrapper(*args, **kwargs):
-            return command_func(*args, **kwargs)
-
-        wrapper.__annotations__["fields"] = Annotated[
-            str,
-            typer.Option(
-                help="Comma-separated fields to process. e.g. field1,field2,field3"
-            ),
-        ]
-        return wrapper
-
-    return decorator
-
-
 def add_pagination_options():
     def decorator(command_func):
         @wraps(command_func)

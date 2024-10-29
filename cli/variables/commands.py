@@ -4,7 +4,6 @@ from typing import no_type_check
 
 import typer
 
-from cli.commons.decorators import add_fields_option
 from cli.commons.decorators import add_filter_option
 from cli.commons.decorators import add_pagination_options
 from cli.commons.decorators import add_sort_by_option
@@ -18,6 +17,14 @@ from cli.settings import settings
 from cli.variables import handlers
 from cli.variables.enums import VariableTypeEnum
 
+FIELDS_VARIABLE_HELP_TEXT = (
+    "Comma-separated fields to process * e.g. field1,field2,field3. "
+    "* Available fields: (id, label, name, createdAt, syntheticExpression, description, "
+    "device, lastActivity, lastValue, properties, tags, type, unit, url, valuesUrl). "
+    "For more details, visit the documentation at:\n"
+    "https://docs.ubidots.com/reference/variable-object"
+)
+
 app = typer.Typer(help="Variable management and operations.")
 
 
@@ -30,11 +37,13 @@ def delete(id: str):
 
 @app.command(short_help="Retrieves a specific variable using its id.")
 @simple_lookup_key(entity_name=EntityNameEnum.VARIABLE)
-@add_fields_option()
 @no_type_check
 def get(
     id: str,
-    fields: str = DefaultInstanceFieldEnum.get_default_fields(),
+    fields: Annotated[
+        str,
+        typer.Option(help=FIELDS_VARIABLE_HELP_TEXT),
+    ] = DefaultInstanceFieldEnum.get_default_fields(),
     format: OutputFormatFieldsEnum = settings.CONFIG.DEFAULT_OUTPUT_FORMAT,
 ):
     variable_key = get_instance_key(id=id)
@@ -46,13 +55,15 @@ def get(
 
 
 @app.command(short_help="Lists all available variables.")
-@add_fields_option()
 @add_pagination_options()
 @add_sort_by_option()
 @add_filter_option()
 @no_type_check
 def list(
-    fields: str = DefaultInstanceFieldEnum.get_default_fields(),
+    fields: Annotated[
+        str,
+        typer.Option(help=FIELDS_VARIABLE_HELP_TEXT),
+    ] = DefaultInstanceFieldEnum.get_default_fields(),
     filter: str | None = None,
     sort_by: str | None = None,
     page_size: int | None = None,
