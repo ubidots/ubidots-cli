@@ -56,7 +56,8 @@ def new(
     cron: Annotated[
         str,
         typer.Option(
-            help="Cron expression to schedule the function for periodic execution."
+            help="Cron expression to schedule the function for periodic execution.",
+            hidden=True,
         ),
     ] = settings.FUNCTIONS.DEFAULT_CRON,
     methods: Annotated[
@@ -100,10 +101,12 @@ def new(
             instruction="(select at least 1)",
             validate=lambda selection: len(selection) >= 1,
         ).execute()
-        selected_cron: str = inquirer.text(
-            message="Enter a cron:",
-            default=settings.FUNCTIONS.DEFAULT_CRON,
-        ).execute()
+        selected_cron = settings.FUNCTIONS.DEFAULT_CRON
+        #  TODO: Temporarily hidden while deciding on development approach
+        # selected_cron: str = inquirer.text(
+        #     message="Enter a cron:",
+        #     default=settings.FUNCTIONS.DEFAULT_CRON,
+        # ).execute()
         selected_raw: bool = inquirer.confirm(
             message="Do you want to enable raw output mode?",
             default=settings.FUNCTIONS.DEFAULT_IS_RAW,
@@ -151,7 +154,8 @@ def start(
     cron: Annotated[
         str,
         typer.Option(
-            help="Cron expression to schedule the function for periodic execution."
+            help="Cron expression to schedule the function for periodic execution.",
+            hidden=True,
         ),
     ] = settings.FUNCTIONS.DEFAULT_CRON,
     methods: Annotated[
@@ -406,7 +410,8 @@ def add(
     cron: Annotated[
         str,
         typer.Option(
-            help="Cron expression to schedule the function for periodic execution."
+            help="Cron expression to schedule the function for periodic execution.",
+            hidden=True,
         ),
     ] = settings.FUNCTIONS.DEFAULT_CRON,
     environment: Annotated[
@@ -464,7 +469,8 @@ def update(
     cron: Annotated[
         str,
         typer.Option(
-            help="Cron expression to schedule the function for periodic execution."
+            help="Cron expression to schedule the function for periodic execution.",
+            hidden=True,
         ),
     ] = settings.FUNCTIONS.DEFAULT_CRON,
     environment: Annotated[
