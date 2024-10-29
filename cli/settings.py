@@ -24,7 +24,7 @@ class FunctionSettings(BaseModel):
     DEFAULT_MAIN_FUNCTION_NAME: str = "main"
     DEFAULT_HANDLER_FILE_NAME: str = "handler"
     DEFAULT_HANDLER_FUNCTION_NAME: str = "main"
-    PROJECT_METADATA_FILE: str = ".metadata.yaml"
+    PROJECT_METADATA_FILE: str = ".manifest.yaml"
     BASE_PATH: Path = Path(__file__).resolve().parent.parent / "cli" / "functions"
     TEMPLATES_PATH: Path = BASE_PATH / "templates"
     HANDLERS_PATH: Path = BASE_PATH / "lambda_handlers"
