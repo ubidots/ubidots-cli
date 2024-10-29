@@ -113,7 +113,7 @@ def stop_function(
     steps = [
         pipelines.GetClientStep(engine=engine),
         pipelines.GetContainerManagerStep(),
-        pipelines.RemoveHandlerFRIEStep(),
+        pipelines.RemoveNonDeployableFiles(),
         pipelines.StopFunctionStep(),
     ]
     pipeline = Pipeline(

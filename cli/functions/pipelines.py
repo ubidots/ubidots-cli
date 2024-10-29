@@ -1,3 +1,4 @@
+import shutil
 import time
 import zipfile
 from dataclasses import dataclass
@@ -206,6 +207,7 @@ class CompressProjectStep(PipelineStep):
             f".{settings.FUNCTIONS.DEFAULT_MAIN_FUNCTION_NAME}.{FunctionMainFileExtensionEnum.NODEJS_EXTENSION}",
             f"{settings.FUNCTIONS.DEFAULT_HANDLER_FILE_NAME}.{FunctionHandlerFileExtensionEnum.PYTHON_EXTENSION}",
             f"{settings.FUNCTIONS.DEFAULT_HANDLER_FILE_NAME}.{FunctionHandlerFileExtensionEnum.NODEJS_EXTENSION}",
+            "node_modules",
         ]
     )
 
@@ -512,7 +514,7 @@ class CreateHandlerFRIEStep(PipelineStep):
         return data
 
 
-class RemoveHandlerFRIEStep(PipelineStep):
+class RemoveNonDeployableFiles(PipelineStep):
     def execute(self, data):
         container_key = data["container_key"]
         container_manager = data["container_manager"]
@@ -527,6 +529,11 @@ class RemoveHandlerFRIEStep(PipelineStep):
         ]:
             for handler_file in project_path.glob(pattern):
                 handler_file.unlink()
+
+        node_modules_path = project_path / "node_modules"
+        if node_modules_path.exists() and node_modules_path.is_dir():
+            shutil.rmtree(node_modules_path)
+
         return data
 
 

@@ -271,8 +271,7 @@ def frie_container_manager(
         }
         environment = {"AWS_LAMBDA_FUNCTION_TIMEOUT": str(timeout)}
         if language == FunctionLanguageEnum.NODEJS:
-            volumes["node_modules"] = {"bind": "/opt/node_modules", "mode": "ro"}
-            environment["NODE_PATH"] = "/opt/node_modules"
+            volumes["node_modules"] = {"bind": "/var/task/node_modules", "mode": "ro"}
 
         container = container_manager.start(
             image_name=image_name,
