@@ -10,9 +10,11 @@ from cli.commons.decorators import add_sort_by_option
 from cli.commons.decorators import simple_lookup_key
 from cli.commons.enums import DefaultInstanceFieldEnum
 from cli.commons.enums import EntityNameEnum
+from cli.commons.enums import OutputFormatFieldsEnum
 from cli.commons.utils import get_instance_key
 from cli.commons.validators import is_valid_json_string
 from cli.devices import handlers
+from cli.settings import settings
 
 app = typer.Typer(help="Device management and operations.")
 
@@ -32,9 +34,14 @@ def get(
     id: str | None = None,
     label: str | None = None,
     fields: str = DefaultInstanceFieldEnum.get_default_fields(),
+    format: OutputFormatFieldsEnum = settings.CONFIG.DEFAULT_OUTPUT_FORMAT,
 ):
     device_key = get_instance_key(id=id, label=label)
-    handlers.retrieve_device(device_key=device_key, fields=fields)
+    handlers.retrieve_device(
+        device_key=device_key,
+        fields=fields,
+        format=format,
+    )
 
 
 @app.command(short_help="Lists all available devices.")
@@ -49,6 +56,7 @@ def list(
     sort_by: str | None = None,
     page_size: int | None = None,
     page: int | None = None,
+    format: OutputFormatFieldsEnum = settings.CONFIG.DEFAULT_OUTPUT_FORMAT,
 ):
     handlers.list_devices(
         fields=fields,
@@ -56,6 +64,7 @@ def list(
         sort_by=sort_by,
         page_size=page_size,
         page=page,
+        format=format,
     )
 
 

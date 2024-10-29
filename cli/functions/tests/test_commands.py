@@ -76,6 +76,7 @@ class TestGetFunctionCommand(TestCase):
         mock_retrieve_function.assert_called_once_with(
             function_key="function_key_from_id",
             fields=DefaultInstanceFieldEnum.get_default_fields(),
+            format=settings.CONFIG.DEFAULT_OUTPUT_FORMAT,
         )
 
     def test_get_function_with_custom_fields(
@@ -92,7 +93,9 @@ class TestGetFunctionCommand(TestCase):
         self.assertEqual(result.exit_code, 0)
         mock_get_instance_key.assert_called_once_with(id="function123", label=None)
         mock_retrieve_function.assert_called_once_with(
-            function_key="function_key_from_id", fields=custom_fields
+            function_key="function_key_from_id",
+            fields=custom_fields,
+            format=settings.CONFIG.DEFAULT_OUTPUT_FORMAT,
         )
 
     def test_get_function_both_id_and_label(
@@ -112,6 +115,7 @@ class TestGetFunctionCommand(TestCase):
         mock_retrieve_function.assert_called_once_with(
             function_key="function_key_from_id",
             fields=DefaultInstanceFieldEnum.get_default_fields(),
+            format=settings.CONFIG.DEFAULT_OUTPUT_FORMAT,
         )
 
 
@@ -128,6 +132,7 @@ class TestListFunctionsCommand(TestCase):
             sort_by=None,
             page_size=None,
             page=None,
+            format=settings.CONFIG.DEFAULT_OUTPUT_FORMAT,
         )
 
     def test_list_functions_with_custom_options(self, mock_list_functions):
@@ -162,6 +167,7 @@ class TestListFunctionsCommand(TestCase):
             sort_by=sort_by_value,
             page_size=page_size_value,
             page=page_value,
+            format=settings.CONFIG.DEFAULT_OUTPUT_FORMAT,
         )
 
 

@@ -11,8 +11,10 @@ from cli.commons.decorators import add_sort_by_option
 from cli.commons.decorators import simple_lookup_key
 from cli.commons.enums import DefaultInstanceFieldEnum
 from cli.commons.enums import EntityNameEnum
+from cli.commons.enums import OutputFormatFieldsEnum
 from cli.commons.utils import get_instance_key
 from cli.commons.validators import is_valid_json_string
+from cli.settings import settings
 from cli.variables import handlers
 from cli.variables.enums import VariableTypeEnum
 
@@ -33,9 +35,14 @@ def delete(id: str):
 def get(
     id: str,
     fields: str = DefaultInstanceFieldEnum.get_default_fields(),
+    format: OutputFormatFieldsEnum = settings.CONFIG.DEFAULT_OUTPUT_FORMAT,
 ):
     variable_key = get_instance_key(id=id)
-    handlers.retrieve_variable(variable_key=variable_key, fields=fields)
+    handlers.retrieve_variable(
+        variable_key=variable_key,
+        fields=fields,
+        format=format,
+    )
 
 
 @app.command(short_help="Lists all available variables.")
@@ -50,6 +57,7 @@ def list(
     sort_by: str | None = None,
     page_size: int | None = None,
     page: int | None = None,
+    format: OutputFormatFieldsEnum = settings.CONFIG.DEFAULT_OUTPUT_FORMAT,
 ):
     handlers.list_variable(
         fields=fields,
@@ -57,6 +65,7 @@ def list(
         sort_by=sort_by,
         page_size=page_size,
         page=page,
+        format=format,
     )
 
 

@@ -1,5 +1,7 @@
 import httpx
+import typer
 
+from cli.commons.enums import OutputFormatFieldsEnum
 from cli.commons.styles import print_colored_table
 from cli.commons.utils import build_endpoint
 from cli.commons.utils import exit_with_error_message
@@ -7,7 +9,14 @@ from cli.commons.utils import exit_with_success_message
 from cli.devices.helpers import build_devices_payload
 
 
-def list_devices(fields: str, filter: str, sort_by: str, page_size: int, page: int):
+def list_devices(
+    fields: str,
+    filter: str,
+    sort_by: str,
+    page_size: int,
+    page: int,
+    format: OutputFormatFieldsEnum,
+):
     url, headers = build_endpoint(
         route="/api/v2.0/devices/",
         query_params={
@@ -19,17 +28,23 @@ def list_devices(fields: str, filter: str, sort_by: str, page_size: int, page: i
         },
     )
     response = httpx.get(url, headers=headers)
-    print_colored_table(results=response.json()["results"])
+    if format == OutputFormatFieldsEnum.JSON:
+        typer.echo(response.json()["results"])
+    else:
+        print_colored_table(results=response.json()["results"])
 
 
-def retrieve_device(device_key: str, fields: str):
+def retrieve_device(device_key: str, fields: str, format: OutputFormatFieldsEnum):
     url, headers = build_endpoint(
         route="/api/v2.0/devices/{device_key}/",
         device_key=device_key,
         query_params={"fields": fields},
     )
     response = httpx.get(url, headers=headers)
-    print_colored_table(results=[response.json()])
+    if format == OutputFormatFieldsEnum.JSON:
+        typer.echo(response.json())
+    else:
+        print_colored_table(results=[response.json()])
 
 
 def add_device(**kwargs):

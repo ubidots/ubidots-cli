@@ -6,6 +6,7 @@ from typer.testing import CliRunner
 
 from cli.commons.enums import DefaultInstanceFieldEnum
 from cli.devices.commands import app as device_app
+from cli.settings import settings
 
 runner = CliRunner()
 
@@ -64,6 +65,7 @@ class TestGetCommand(TestCase):
         mock_retrieve_device.assert_called_once_with(
             device_key="device_key_from_id",
             fields=DefaultInstanceFieldEnum.get_default_fields(),
+            format=settings.CONFIG.DEFAULT_OUTPUT_FORMAT,
         )
 
     def test_get_device_by_label(self, mock_retrieve_device, mock_get_instance_key):
@@ -77,6 +79,7 @@ class TestGetCommand(TestCase):
         mock_retrieve_device.assert_called_once_with(
             device_key="device_key_from_label",
             fields=DefaultInstanceFieldEnum.get_default_fields(),
+            format=settings.CONFIG.DEFAULT_OUTPUT_FORMAT,
         )
 
     def test_get_device_both_id_and_label(
@@ -96,6 +99,7 @@ class TestGetCommand(TestCase):
         mock_retrieve_device.assert_called_once_with(
             device_key="device_key_from_id",
             fields=DefaultInstanceFieldEnum.get_default_fields(),
+            format=settings.CONFIG.DEFAULT_OUTPUT_FORMAT,
         )
 
     def test_get_device_with_custom_fields(
@@ -112,7 +116,9 @@ class TestGetCommand(TestCase):
         self.assertEqual(result.exit_code, 0)
         mock_get_instance_key.assert_called_once_with(id="device123", label=None)
         mock_retrieve_device.assert_called_once_with(
-            device_key="device_key_from_id", fields=custom_fields
+            device_key="device_key_from_id",
+            fields=custom_fields,
+            format=settings.CONFIG.DEFAULT_OUTPUT_FORMAT,
         )
 
 
@@ -129,6 +135,7 @@ class TestListCommand(TestCase):
             sort_by=None,
             page_size=None,
             page=None,
+            format=settings.CONFIG.DEFAULT_OUTPUT_FORMAT,
         )
 
     def test_list_devices_with_custom_fields(self, mock_list_devices):
@@ -144,6 +151,7 @@ class TestListCommand(TestCase):
             sort_by=None,
             page_size=None,
             page=None,
+            format=settings.CONFIG.DEFAULT_OUTPUT_FORMAT,
         )
 
     def test_list_devices_with_filter(self, mock_list_devices):
@@ -159,6 +167,7 @@ class TestListCommand(TestCase):
             sort_by=None,
             page_size=None,
             page=None,
+            format=settings.CONFIG.DEFAULT_OUTPUT_FORMAT,
         )
 
     def test_list_devices_with_sort(self, mock_list_devices):
@@ -174,6 +183,7 @@ class TestListCommand(TestCase):
             sort_by=sort_by_value,
             page_size=None,
             page=None,
+            format=settings.CONFIG.DEFAULT_OUTPUT_FORMAT,
         )
 
     def test_list_devices_with_pagination(self, mock_list_devices):
@@ -193,6 +203,7 @@ class TestListCommand(TestCase):
             sort_by=None,
             page_size=page_size_value,
             page=page_value,
+            format=settings.CONFIG.DEFAULT_OUTPUT_FORMAT,
         )
 
     def test_list_devices_with_all_options(self, mock_list_devices):
@@ -227,6 +238,7 @@ class TestListCommand(TestCase):
             sort_by=sort_by_value,
             page_size=page_size_value,
             page=page_value,
+            format=settings.CONFIG.DEFAULT_OUTPUT_FORMAT,
         )
 
 

@@ -1,5 +1,7 @@
 import httpx
+import typer
 
+from cli.commons.enums import OutputFormatFieldsEnum
 from cli.commons.styles import print_colored_table
 from cli.commons.utils import build_endpoint
 from cli.commons.utils import exit_with_error_message
@@ -10,7 +12,14 @@ from cli.functions.helpers import build_functions_payload
 from cli.settings import settings
 
 
-def list_functions(fields: str, filter: str, sort_by: str, page_size: int, page: int):
+def list_functions(
+    fields: str,
+    filter: str,
+    sort_by: str,
+    page_size: int,
+    page: int,
+    format: OutputFormatFieldsEnum,
+):
     url, headers = build_endpoint(
         route=FUNCTION_API_ROUTES["base"],
         query_params={
@@ -22,17 +31,23 @@ def list_functions(fields: str, filter: str, sort_by: str, page_size: int, page:
         },
     )
     response = httpx.get(url, headers=headers)
-    print_colored_table(results=response.json()["results"])
+    if format == OutputFormatFieldsEnum.JSON:
+        typer.echo(response.json()["results"])
+    else:
+        print_colored_table(results=response.json()["results"])
 
 
-def retrieve_function(function_key: str, fields: str):
+def retrieve_function(function_key: str, fields: str, format: OutputFormatFieldsEnum):
     url, headers = build_endpoint(
         route=FUNCTION_API_ROUTES["detail"],
         function_key=function_key,
         query_params={"fields": fields},
     )
     response = httpx.get(url, headers=headers)
-    print_colored_table(results=[response.json()])
+    if format == OutputFormatFieldsEnum.JSON:
+        typer.echo(response.json())
+    else:
+        print_colored_table(results=[response.json()])
 
 
 def add_function(**kwargs):

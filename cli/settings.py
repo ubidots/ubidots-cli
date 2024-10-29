@@ -4,6 +4,8 @@ from pathlib import Path
 from pydantic import BaseModel
 from pydantic_settings import BaseSettings
 
+from cli.commons.enums import OutputFormatFieldsEnum
+
 
 class ConfigSettings(BaseModel):
     API_DOMAIN: str = "https://industrial.api.ubidots.com"
@@ -11,6 +13,9 @@ class ConfigSettings(BaseModel):
     FILE_PATH: Path = DIRECTORY_PATH / "config.yaml"
     VISIBLE_SECRET_CHARS: int = 4
     FIXED_LENGTH: int = 10
+    DEFAULT_OUTPUT_FORMAT: OutputFormatFieldsEnum = (
+        OutputFormatFieldsEnum.get_default_format()
+    )
 
 
 class FunctionSettings(BaseModel):

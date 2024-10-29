@@ -1,5 +1,7 @@
 import httpx
+import typer
 
+from cli.commons.enums import OutputFormatFieldsEnum
 from cli.commons.styles import print_colored_table
 from cli.commons.utils import build_endpoint
 from cli.commons.utils import exit_with_error_message
@@ -7,7 +9,14 @@ from cli.commons.utils import exit_with_success_message
 from cli.variables.helpers import build_variables_payload
 
 
-def list_variable(fields: str, filter: str, sort_by: str, page_size: int, page: int):
+def list_variable(
+    fields: str,
+    filter: str,
+    sort_by: str,
+    page_size: int,
+    page: int,
+    format: OutputFormatFieldsEnum,
+):
     url, headers = build_endpoint(
         route="/api/v2.0/variables/",
         query_params={
@@ -19,17 +28,23 @@ def list_variable(fields: str, filter: str, sort_by: str, page_size: int, page: 
         },
     )
     response = httpx.get(url, headers=headers)
-    print_colored_table(results=response.json()["results"])
+    if format == OutputFormatFieldsEnum.JSON:
+        typer.echo(response.json()["results"])
+    else:
+        print_colored_table(results=response.json()["results"])
 
 
-def retrieve_variable(variable_key: str, fields: str):
+def retrieve_variable(variable_key: str, fields: str, format: OutputFormatFieldsEnum):
     url, headers = build_endpoint(
         route="/api/v2.0/variables/{variable_key}/",
         variable_key=variable_key,
         query_params={"fields": fields},
     )
     response = httpx.get(url, headers=headers)
-    print_colored_table(results=[response.json()])
+    if format == OutputFormatFieldsEnum.JSON:
+        typer.echo(response.json())
+    else:
+        print_colored_table(results=[response.json()])
 
 
 def add_variable(**kwargs):

@@ -13,6 +13,7 @@ from cli.commons.decorators import add_verbose_option
 from cli.commons.decorators import simple_lookup_key
 from cli.commons.enums import DefaultInstanceFieldEnum
 from cli.commons.enums import EntityNameEnum
+from cli.commons.enums import OutputFormatFieldsEnum
 from cli.commons.utils import get_instance_key
 from cli.commons.validators import is_valid_json_string
 from cli.functions import executor
@@ -329,12 +330,14 @@ def get(
     id: str | None = None,
     label: str | None = None,
     fields: str = DefaultInstanceFieldEnum.get_default_fields(),
+    format: OutputFormatFieldsEnum = settings.CONFIG.DEFAULT_OUTPUT_FORMAT,
 ):
     function_key = get_instance_key(id=id, label=label)
 
     handlers.retrieve_function(
         function_key=function_key,
         fields=fields,
+        format=format,
     )
 
 
@@ -350,6 +353,7 @@ def list(
     sort_by: str | None = None,
     page_size: int | None = None,
     page: int | None = None,
+    format: OutputFormatFieldsEnum = settings.CONFIG.DEFAULT_OUTPUT_FORMAT,
 ):
     handlers.list_functions(
         fields=fields,
@@ -357,6 +361,7 @@ def list(
         sort_by=sort_by,
         page_size=page_size,
         page=page,
+        format=format,
     )
 
 
