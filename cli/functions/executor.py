@@ -113,14 +113,16 @@ def stop_function(
     steps = [
         pipelines.GetClientStep(engine=engine),
         pipelines.GetContainerManagerStep(),
-        pipelines.RemoveNonDeployableFiles(),
+        pipelines.ReadManifestStep(),
+        pipelines.GetContainerKeyStep(),
+        pipelines.RemoveNonDeployableFilesStep(),
         pipelines.StopFunctionStep(),
+        pipelines.PrintkeyStep(key="local_label"),
     ]
-    pipeline = Pipeline(
-        steps, success_message=f"Function '{label}' stoped successfully."
-    )
+    pipeline = Pipeline(steps, success_message="Function stoped successfully.")
     pipeline.run(
         {
+            "project_path": Path.cwd(),
             "container_key": label,
             "verbose": verbose,
             "root": stop_function.__name__,

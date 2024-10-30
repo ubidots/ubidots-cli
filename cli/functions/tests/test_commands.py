@@ -184,7 +184,7 @@ class TestAddFunctionCommand(TestCase):
             triggers={
                 "httpMethods": [FunctionMethodEnum.get_default_method()],
                 "httpHasCors": False,
-                "schedulerCron": "* * * * *",
+                "schedulerCron": "",
             },
             serverless={
                 "runtime": FunctionRuntimeLayerTypeEnum.NODEJS_20_LITE,
@@ -256,7 +256,7 @@ class TestUpdateFunctionCommand(TestCase):
             triggers={
                 "httpMethods": [FunctionMethodEnum.get_default_method()],
                 "httpHasCors": False,
-                "schedulerCron": "* * * * *",
+                "schedulerCron": "",
             },
             serverless={
                 "runtime": FunctionRuntimeLayerTypeEnum.NODEJS_20_LITE,

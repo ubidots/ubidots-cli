@@ -514,7 +514,17 @@ class CreateHandlerFRIEStep(PipelineStep):
         return data
 
 
-class RemoveNonDeployableFiles(PipelineStep):
+class GetContainerKeyStep(PipelineStep):
+    def execute(self, data):
+        if data["container_key"]:
+            return data
+
+        project_metadata = data["project_metadata"]
+        data["container_key"] = project_metadata.project.local_label
+        return data
+
+
+class RemoveNonDeployableFilesStep(PipelineStep):
     def execute(self, data):
         container_key = data["container_key"]
         container_manager = data["container_manager"]
@@ -609,6 +619,7 @@ class StopFunctionStep(PipelineStep):
         container_manager.stop(
             f"{engine_settings.CONTAINER.FRIE.LABEL_KEY}={container_key}"
         )
+        data["local_label"] = f"\n Local label: {container_key}"
         return data
 
 

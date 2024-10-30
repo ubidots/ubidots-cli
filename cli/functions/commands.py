@@ -198,7 +198,7 @@ def stop(
     label: Annotated[
         str,
         typer.Argument(help="The label of the function.", show_default=False),
-    ],
+    ] = "",
     engine: Annotated[
         FunctionEngineTypeEnum,
         typer.Option(help="The engine used to serve the function.", hidden=True),
