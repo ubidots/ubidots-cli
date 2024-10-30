@@ -2,7 +2,6 @@ import secrets
 import string
 from datetime import datetime
 
-from croniter import croniter
 from pydantic import BaseModel
 from pydantic import Field
 from pydantic import field_validator
@@ -64,9 +63,7 @@ class FunctionInfo(BaseModel):
     has_cors: bool = settings.FUNCTIONS.DEFAULT_HAS_CORS
     cron: str = settings.FUNCTIONS.DEFAULT_CRON
     timeout: int = settings.FUNCTIONS.DEFAULT_TIMEOUT_SECONDS
-    memory_size: int = 128  # MB
-    payload: dict = {}
-    url: str = ""
+    payload: str = "{}"
 
     @field_validator("id")
     @classmethod
@@ -74,14 +71,6 @@ class FunctionInfo(BaseModel):
         if value and isinstance(value, str) and not is_valid_object_id(value):
             error_message = "Input is not a valid object id."
             ValueError(error_message)
-        return value
-
-    @field_validator("cron")
-    @classmethod
-    def validate_cron(cls, value):
-        if not croniter.is_valid(value):
-            error_message = "Input is not a valid cron expression."
-            raise ValueError(error_message)
         return value
 
     @field_validator("timeout")

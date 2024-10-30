@@ -30,7 +30,7 @@ class FunctionSettings(BaseModel):
     HANDLERS_PATH: Path = BASE_PATH / "lambda_handlers"
     DEFAULT_TIMEOUT_SECONDS: int = 10
     MAX_TIMEOUT_SECONDS: int = 300
-    DEFAULT_CRON: str = "* * * * *"
+    DEFAULT_CRON: str = ""
     DEFAULT_HAS_CORS: bool = False
     DEFAULT_IS_RAW: bool = False
     CONTAINER_STARTUP_DELAY_SECONDS: float = 3

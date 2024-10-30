@@ -168,20 +168,20 @@ class ShowStartupInfoStep(PipelineStep):
 
         typer.echo(
             f"""
-    ------------------
-    Starting Function:
-    ------------------
-    Name: {info_project.name}
-    Runtime: {info_project.runtime}
-    Local label: {info_project.local_label}
+------------------
+Starting Function:
+------------------
+Name: {info_project.name}
+Runtime: {info_project.runtime}
+Local label: {info_project.local_label}
 
-    -------
-    INPUTS:
-    -------
-    Raw: {is_raw}
-    Methods: {", ".join(methods)}
-    Token: {token}
-        """
+-------
+INPUTS:
+-------
+Raw: {is_raw}
+Methods: {", ".join(methods)}
+Token: {token}
+    """
         )
         return data
 
