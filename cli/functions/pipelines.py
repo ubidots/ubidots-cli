@@ -516,7 +516,7 @@ class CreateHandlerFRIEStep(PipelineStep):
 
 class GetContainerKeyStep(PipelineStep):
     def execute(self, data):
-        if data["container_key"]:
+        if data.get("container_key"):
             return data
 
         project_metadata = data["project_metadata"]
@@ -620,6 +620,17 @@ class StopFunctionStep(PipelineStep):
             f"{engine_settings.CONTAINER.FRIE.LABEL_KEY}={container_key}"
         )
         data["local_label"] = f"\n Local label: {container_key}"
+        return data
+
+
+class RestartFunctionStep(PipelineStep):
+    def execute(self, data):
+        container_key = data["container_key"]
+        container_manager = data["container_manager"]
+
+        container_manager.restart(
+            f"{engine_settings.CONTAINER.FRIE.LABEL_KEY}={container_key}"
+        )
         return data
 
 

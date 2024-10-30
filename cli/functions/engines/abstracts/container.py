@@ -27,3 +27,6 @@ class AbstractContainerManager(ABC):
 
     @abstractmethod
     def stop(self, *args, **kwargs) -> None: ...
+
+    @abstractmethod
+    def restart(self, *args, **kwargs) -> None: ...

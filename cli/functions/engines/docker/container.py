@@ -112,3 +112,10 @@ class FunctionDockerContainerManager(AbstractContainerManager):
                 )
                 argo_container.stop()
                 argo_container.remove()
+
+    def restart(
+        self,
+        label: str,
+    ):
+        container = self.get(label=label)
+        container.restart()

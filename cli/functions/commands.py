@@ -197,7 +197,7 @@ def start(
 def stop(
     label: Annotated[
         str,
-        typer.Argument(help="The label of the function.", show_default=False),
+        typer.Option(help="The label of the function.", show_default=False),
     ] = "",
     engine: Annotated[
         FunctionEngineTypeEnum,
@@ -208,6 +208,21 @@ def stop(
     executor.stop_function(
         engine=engine,
         label=label,
+        verbose=verbose,
+    )
+
+
+@app.command(help="Restart the function.")
+@add_verbose_option()
+def restart(
+    engine: Annotated[
+        FunctionEngineTypeEnum,
+        typer.Option(help="The engine used to serve the function.", hidden=True),
+    ] = engine_settings.CONTAINER.DEFAULT_ENGINE,
+    verbose: bool = False,
+):
+    executor.restart_function(
+        engine=engine,
         verbose=verbose,
     )
 

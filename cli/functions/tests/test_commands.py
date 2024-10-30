@@ -460,12 +460,36 @@ class TestStartFunctionCommand(TestCase):
 class TestStopFunctionCommand(TestCase):
     def test_stop_function_with_defaults(self, mock_stop_function):
         # Action
-        result = runner.invoke(function_app, ["stop", "test_function"])
+        result = runner.invoke(function_app, ["stop"])
+        # Expected
+        self.assertEqual(result.exit_code, 0)
+        mock_stop_function.assert_called_once_with(
+            engine=engine_settings.CONTAINER.DEFAULT_ENGINE,
+            label="",
+            verbose=False,
+        )
+
+    def test_stop_function_with_custom_options(self, mock_stop_function):
+        # Action
+        result = runner.invoke(function_app, ["stop", "--label", "test_function"])
         # Expected
         self.assertEqual(result.exit_code, 0)
         mock_stop_function.assert_called_once_with(
             engine=engine_settings.CONTAINER.DEFAULT_ENGINE,
             label="test_function",
+            verbose=False,
+        )
+
+
+@patch("cli.functions.commands.executor.restart_function")
+class TestRestartFunctionCommand(TestCase):
+    def test_restart_function_with_defaults(self, mock_restart_function):
+        # Action
+        result = runner.invoke(function_app, ["restart"])
+        # Expected
+        self.assertEqual(result.exit_code, 0)
+        mock_restart_function.assert_called_once_with(
+            engine=engine_settings.CONTAINER.DEFAULT_ENGINE,
             verbose=False,
         )
 

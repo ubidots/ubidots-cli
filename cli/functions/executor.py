@@ -130,6 +130,27 @@ def stop_function(
     )
 
 
+def restart_function(
+    engine: FunctionEngineTypeEnum,
+    verbose: bool,
+):
+    steps = [
+        pipelines.GetClientStep(engine=engine),
+        pipelines.GetContainerManagerStep(),
+        pipelines.ReadManifestStep(),
+        pipelines.GetContainerKeyStep(),
+        pipelines.RestartFunctionStep(),
+    ]
+    pipeline = Pipeline(steps, success_message="Function restarted successfully.")
+    pipeline.run(
+        {
+            "project_path": Path.cwd(),
+            "verbose": verbose,
+            "root": restart_function.__name__,
+        }
+    )
+
+
 def status_function(
     engine: FunctionEngineTypeEnum,
     verbose: bool,
