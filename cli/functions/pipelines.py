@@ -77,34 +77,31 @@ class ExtractTemplateStep(PipelineStep):
 class SaveManifestStep(PipelineStep):
     def execute(self, data):
         project_path = data["project_path"]
-
         project_metadata = data.get("project_metadata")
-        kwargs = data.get("function_kwargs", {})
-        language = data.get("language")
-        runtime = data.get("runtime")
 
-        methods = kwargs.get("methods")
-        function_id = data.get("function_id", "")
-        function_label = data.get("function_label", "")
-        local_label = data.get("local_label")
+        def get_project_value(key: str, metadata_object=None):
+            field = data.get(key, None)
+            if field:
+                return field
 
-        if project_metadata and not language:
-            language = project_metadata.project.language
+            if metadata_object:
+                return getattr(metadata_object, key, None)
 
-        if project_metadata and not runtime:
-            runtime = project_metadata.project.runtime
+            return field
 
-        if project_metadata and not methods:
-            kwargs["methods"] = project_metadata.function.methods
+        language = get_project_value("language", project_metadata.project)
+        runtime = get_project_value("runtime", project_metadata.project)
+        local_label = get_project_value("local_label", project_metadata.project)
 
-        if project_metadata and not project_metadata.function.label:
-            kwargs["label"] = function_label
+        function_id = data.get("function_id") or project_metadata.function.id
+        label = data.get("function_label") or project_metadata.function.label
+        is_raw = data.get("is_raw", False)
+        has_cors = data.get("has_cors", False)
 
-        if project_metadata and not function_id:
-            function_id = project_metadata.function.id
-
-        if project_metadata and not local_label:
-            local_label = project_metadata.project.local_label
+        cron = get_project_value("cron", project_metadata.function)
+        timeout = get_project_value("timeout", project_metadata.function)
+        payload = get_project_value("payload", project_metadata.function)
+        methods = get_project_value("methods", project_metadata.function)
 
         save_manifest_project_file(
             project_path=project_path,
@@ -112,7 +109,13 @@ class SaveManifestStep(PipelineStep):
             runtime=runtime,
             local_label=local_label,
             function_id=function_id,
-            **kwargs,
+            label=label,
+            methods=methods,
+            timeout=timeout,
+            cron=cron,
+            is_raw=is_raw,
+            has_cors=has_cors,
+            payload=payload,
         )
         return data
 
@@ -161,10 +164,9 @@ class ShowStartupInfoStep(PipelineStep):
     def execute(self, data):
         project_metadata = data["project_metadata"]
         info_project = project_metadata.project
-        function_kwargs = data["function_kwargs"]
-        is_raw = function_kwargs["is_raw"] or project_metadata.function.is_raw
-        methods = function_kwargs["methods"] or project_metadata.function.methods
-        token = function_kwargs["token"] or project_metadata.function.token
+        is_raw = data.get("is_raw", False)
+        methods = data.get("methods") or project_metadata.function.methods
+        token = data.get("token") or project_metadata.function.token
 
         typer.echo(
             f"""
@@ -253,8 +255,10 @@ class CreateFunctionStep(PipelineStep):
         url = data["url"]
         headers = data["headers"]
         project_metadata = data["project_metadata"]
+        data["needs_update"] = False
 
         if project_metadata.function.id:
+            data["needs_update"] = True
             return data
 
         message = "This function is not created. Would you like to create a new function and push it?"
@@ -272,12 +276,14 @@ class CreateFunctionStep(PipelineStep):
                     project_metadata.function.methods
                 ),
                 "httpHasCors": project_metadata.function.has_cors,
-                "schedulerCron": project_metadata.function.cron,
+                "schedulerCron": project_metadata.function.cron or None,
             },
             serverless={
                 "runtime": project_metadata.project.runtime,
                 "isRawFunction": project_metadata.function.is_raw,
-                "authToken": project_metadata.function.token or None,
+                "authToken": None,
+                "timeout": project_metadata.function.timeout,
+                "params": project_metadata.function.payload,
             },
         )
 
@@ -295,6 +301,47 @@ class CreateFunctionStep(PipelineStep):
         data["response"] = response
         data["function_id"] = response.json()["id"]
         data["function_label"] = response.json()["label"]
+        return data
+
+
+class UpdateFunctionStep(PipelineStep):
+    def execute(self, data):
+        url = data["url"]
+        headers = data["headers"]
+        project_metadata = data["project_metadata"]
+
+        if not project_metadata.function.id and not data.get("needs_update"):
+            return data
+
+        json = build_functions_payload(
+            label=project_metadata.function.label or "",
+            name=project_metadata.project.name,
+            triggers={
+                "httpMethods": FunctionMethodEnum.enum_list_to_str_list(
+                    project_metadata.function.methods
+                ),
+                "httpHasCors": project_metadata.function.has_cors,
+                "schedulerCron": project_metadata.function.cron or None,
+            },
+            serverless={
+                "runtime": project_metadata.project.runtime,
+                "isRawFunction": project_metadata.function.is_raw,
+                "authToken": None,
+                "timeout": project_metadata.function.timeout,
+                "params": project_metadata.function.payload,
+            },
+        )
+
+        response = httpx.patch(url, headers=headers, json=json)
+        if response.status_code != httpx.codes.OK:
+            raise (
+                httpx.HTTPStatusError(
+                    message=response._content.decode("utf-8"),
+                    request=response.request,
+                    response=response,
+                )
+            )
+        data["response"] = response
         return data
 
 
@@ -472,10 +519,10 @@ class GetArgoContainerInputAdapterStep(PipelineStep):
         project_metadata = data["project_metadata"]
         argo_adapter_port = data["argo_adapter_port"]
         ip_address = data["ip_address"]
-        function_kwargs = data["function_kwargs"]
-        is_raw = function_kwargs["is_raw"] or project_metadata.function.is_raw
-        token = function_kwargs["token"] or project_metadata.function.token
-        methods = function_kwargs["methods"] or project_metadata.function.methods
+
+        is_raw = data.get("is_raw", False)
+        token = data.get("token") or project_metadata.function.token
+        methods = data.get("methods") or project_metadata.function.methods
 
         adapter_url, adapter_data = get_argo_input_adapter(
             client=client,
@@ -555,9 +602,8 @@ class GetFRIEContainerTargetStep(PipelineStep):
         function_image_name = data["function_image_name"]
         network = data["network"]
         ip_address = data["ip_address"]
-        function_kwargs = data["function_kwargs"]
-        is_raw = function_kwargs["is_raw"] or project_metadata.function.is_raw
-        timeout = function_kwargs["timeout"] or project_metadata.function.timeout
+        is_raw = data.get("is_raw", False)
+        timeout = data.get("timeout") or project_metadata.function.timeout
         language = project_metadata.project.language
 
         label = project_metadata.project.local_label
