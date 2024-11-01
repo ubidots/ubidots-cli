@@ -54,7 +54,7 @@ def create_function(
 
 def start_function(
     engine: FunctionEngineTypeEnum,
-    methods: list[FunctionMethodEnum],
+    methods: list[FunctionMethodEnum] | None,
     is_raw: bool,
     token: str,
     cors: bool,

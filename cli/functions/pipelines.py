@@ -79,29 +79,62 @@ class SaveManifestStep(PipelineStep):
         project_path = data["project_path"]
         project_metadata = data.get("project_metadata")
 
-        def get_project_value(key: str, metadata_object=None):
-            field = data.get(key, None)
-            if field:
-                return field
+        language = data.get("language")
+        runtime = data.get("runtime")
+        local_label = data.get("local_label", "")
+        function_id = data.get("function_id", "")
 
-            if metadata_object:
-                return getattr(metadata_object, key, None)
+        if project_metadata and not language:
+            language = project_metadata.project.language
 
-            return field
+        if project_metadata and not runtime:
+            runtime = project_metadata.project.runtime
 
-        language = get_project_value("language", project_metadata.project)
-        runtime = get_project_value("runtime", project_metadata.project)
-        local_label = get_project_value("local_label", project_metadata.project)
+        if project_metadata and not local_label:
+            local_label = project_metadata.project.local_label
 
-        function_id = data.get("function_id") or project_metadata.function.id
-        label = data.get("function_label") or project_metadata.function.label
+        if project_metadata and not function_id:
+            function_id = project_metadata.function.id
+
+        kwargs = {}
+        label = data.get("function_label")
         is_raw = data.get("is_raw", False)
         has_cors = data.get("has_cors", False)
+        cron = data.get("cron")
+        payload = data.get("payload")
+        methods = data.get("methods")
+        timeout = data.get("timeout")
 
-        cron = get_project_value("cron", project_metadata.function)
-        timeout = get_project_value("timeout", project_metadata.function)
-        payload = get_project_value("payload", project_metadata.function)
-        methods = get_project_value("methods", project_metadata.function)
+        if project_metadata and not label:
+            kwargs["label"] = project_metadata.function.label
+
+        if project_metadata and not is_raw:
+            kwargs["is_raw"] = project_metadata.function.is_raw
+
+        if project_metadata and not has_cors:
+            kwargs["has_cors"] = project_metadata.function.has_cors
+
+        if project_metadata and not cron:
+            kwargs["cron"] = project_metadata.function.cron
+
+        if project_metadata and not payload:
+            kwargs["payload"] = project_metadata.function.payload
+
+        methods = (
+            project_metadata.function.methods
+            if not data.get("methods") and project_metadata
+            else data.get("methods")
+        )
+        if methods:
+            kwargs["methods"] = methods
+
+        timeout = (
+            None if timeout is settings.FUNCTIONS.DEFAULT_TIMEOUT_SECONDS else timeout
+        )
+        if project_metadata and not timeout:
+            timeout = project_metadata.function.timeout
+        if timeout:
+            kwargs["timeout"] = timeout
 
         save_manifest_project_file(
             project_path=project_path,
@@ -109,13 +142,7 @@ class SaveManifestStep(PipelineStep):
             runtime=runtime,
             local_label=local_label,
             function_id=function_id,
-            label=label,
-            methods=methods,
-            timeout=timeout,
-            cron=cron,
-            is_raw=is_raw,
-            has_cors=has_cors,
-            payload=payload,
+            **kwargs,
         )
         return data
 
@@ -165,7 +192,11 @@ class ShowStartupInfoStep(PipelineStep):
         project_metadata = data["project_metadata"]
         info_project = project_metadata.project
         is_raw = data.get("is_raw", False)
-        methods = data.get("methods") or project_metadata.function.methods
+        methods = (
+            project_metadata.function.methods
+            if not data.get("methods") and project_metadata
+            else data.get("methods")
+        )
         token = data.get("token") or project_metadata.function.token
 
         typer.echo(

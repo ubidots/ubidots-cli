@@ -31,6 +31,7 @@ FIELDS_FUNCTION_HELP_TEXT = (
     "* Available fields: (url, id, label, name, isActive, createdAt, serverless, "
     "triggers, environment, zipFileProperties)."
 )
+DEFAULT_METHODS = FunctionMethodEnum.get_default_method()
 
 app = typer.Typer(help="Tool for managing and deploying functions.")
 
@@ -161,7 +162,7 @@ def start(
     methods: Annotated[
         str,
         typer.Option(help="The HTTP methods the function will respond to."),
-    ] = FunctionMethodEnum.get_default_method(),
+    ] = DEFAULT_METHODS,
     raw: Annotated[
         bool,
         typer.Option(help="Flag to determine if the output should be in raw format."),
@@ -180,9 +181,14 @@ def start(
     ] = "",
     verbose: bool = False,
 ):
+    parse_methods = (
+        None
+        if methods is DEFAULT_METHODS
+        else FunctionMethodEnum.parse_methods_to_enum_list(methods)
+    )
     executor.start_function(
         engine=engine,
-        methods=FunctionMethodEnum.parse_methods_to_enum_list(methods),
+        methods=parse_methods,
         is_raw=raw,
         token=token,
         cors=cors,

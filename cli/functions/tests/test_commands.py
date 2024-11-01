@@ -410,9 +410,7 @@ class TestStartFunctionCommand(TestCase):
         self.assertEqual(result.exit_code, 0)
         mock_start_function.assert_called_once_with(
             engine=engine_settings.CONTAINER.DEFAULT_ENGINE,
-            methods=FunctionMethodEnum.parse_methods_to_enum_list(
-                FunctionMethodEnum.get_default_method()
-            ),
+            methods=None,
             is_raw=settings.FUNCTIONS.DEFAULT_IS_RAW,
             token="",
             cors=settings.FUNCTIONS.DEFAULT_HAS_CORS,
