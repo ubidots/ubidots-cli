@@ -1,3 +1,5 @@
+import json
+
 import httpx
 import typer
 
@@ -29,7 +31,7 @@ def list_variable(
     )
     response = httpx.get(url, headers=headers)
     if format == OutputFormatFieldsEnum.JSON:
-        typer.echo(response.json()["results"])
+        typer.echo(json.dumps(response.json()["results"]))
     else:
         print_colored_table(results=response.json()["results"])
 
@@ -42,7 +44,7 @@ def retrieve_variable(variable_key: str, fields: str, format: OutputFormatFields
     )
     response = httpx.get(url, headers=headers)
     if format == OutputFormatFieldsEnum.JSON:
-        typer.echo(response.json())
+        typer.echo(json.dumps(response.json()))
     else:
         print_colored_table(results=[response.json()])
 
