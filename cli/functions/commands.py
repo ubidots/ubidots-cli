@@ -147,11 +147,11 @@ def start(
         typer.Option(help="The engine used to serve the function.", hidden=True),
     ] = engine_settings.CONTAINER.DEFAULT_ENGINE,
     cors: Annotated[
-        bool,
+        bool,  # noqa: RUF013
         typer.Option(
             help="Flag to enable Cross-Origin Resource Sharing (CORS) for the function.",
         ),
-    ] = settings.FUNCTIONS.DEFAULT_HAS_CORS,
+    ] = None,  # type: ignore
     cron: Annotated[
         str,
         typer.Option(
@@ -164,9 +164,9 @@ def start(
         typer.Option(help="The HTTP methods the function will respond to."),
     ] = DEFAULT_METHODS,
     raw: Annotated[
-        bool,
+        bool,  # noqa: RUF013
         typer.Option(help="Flag to determine if the output should be in raw format."),
-    ] = settings.FUNCTIONS.DEFAULT_IS_RAW,
+    ] = None,  # type: ignore
     timeout: Annotated[
         int,
         typer.Option(

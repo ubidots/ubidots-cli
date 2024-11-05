@@ -25,7 +25,7 @@ class TestCreateFunction(TestCase):
     @patch("cli.functions.pipelines.CreateProjectFolderStep")
     @patch("cli.functions.pipelines.ExtractTemplateStep")
     @patch("cli.functions.pipelines.SaveManifestStep")
-    def test_create_function_with_defaults(
+    def test_create_function(
         self,
         MockSaveManifestStep,
         MockExtractStep,
@@ -362,7 +362,6 @@ class TestLogsFunction(TestCase):
             remote=remote,
             verbose=verbose,
         )
-
         # Expected
         MockPipeline.assert_called_once_with(
             [

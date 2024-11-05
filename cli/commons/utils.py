@@ -26,7 +26,7 @@ def build_endpoint(
 
 
 def check_response_status(response: httpx.Response):
-    if response.status_code != httpx.codes.OK:
+    if response.status_code not in [httpx.codes.OK, httpx.codes.ACCEPTED]:
         response_json = response.json()
         error_message = response_json.get("detail") or response_json.get(
             "message", "Unknown error"

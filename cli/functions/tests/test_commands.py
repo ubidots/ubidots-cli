@@ -411,9 +411,9 @@ class TestStartFunctionCommand(TestCase):
         mock_start_function.assert_called_once_with(
             engine=engine_settings.CONTAINER.DEFAULT_ENGINE,
             methods=None,
-            is_raw=settings.FUNCTIONS.DEFAULT_IS_RAW,
+            is_raw=None,
             token="",
-            cors=settings.FUNCTIONS.DEFAULT_HAS_CORS,
+            cors=None,
             cron=settings.FUNCTIONS.DEFAULT_CRON,
             timeout=settings.FUNCTIONS.DEFAULT_TIMEOUT_SECONDS,
             verbose=False,

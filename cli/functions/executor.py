@@ -55,9 +55,9 @@ def create_function(
 def start_function(
     engine: FunctionEngineTypeEnum,
     methods: list[FunctionMethodEnum] | None,
-    is_raw: bool,
+    is_raw: bool | None,
     token: str,
-    cors: bool,
+    cors: bool | None,
     cron: str,
     timeout: int,
     verbose: bool,

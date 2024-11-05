@@ -81,8 +81,8 @@ class SaveManifestStep(PipelineStep):
 
         language = data.get("language")
         runtime = data.get("runtime")
-        local_label = data.get("local_label", "")
-        function_id = data.get("function_id", "")
+        local_label = data.get("local_label")
+        function_id = data.get("function_id")
 
         if project_metadata and not language:
             language = project_metadata.project.language
@@ -98,21 +98,15 @@ class SaveManifestStep(PipelineStep):
 
         kwargs = {}
         label = data.get("function_label")
-        is_raw = data.get("is_raw", False)
-        has_cors = data.get("has_cors", False)
         cron = data.get("cron")
+        is_raw = data.get("is_raw")
+        has_cors = data.get("has_cors")
         payload = data.get("payload")
         methods = data.get("methods")
         timeout = data.get("timeout")
 
         if project_metadata and not label:
             kwargs["label"] = project_metadata.function.label
-
-        if project_metadata and not is_raw:
-            kwargs["is_raw"] = project_metadata.function.is_raw
-
-        if project_metadata and not has_cors:
-            kwargs["has_cors"] = project_metadata.function.has_cors
 
         if project_metadata and not cron:
             kwargs["cron"] = project_metadata.function.cron
@@ -135,6 +129,14 @@ class SaveManifestStep(PipelineStep):
             timeout = project_metadata.function.timeout
         if timeout:
             kwargs["timeout"] = timeout
+
+        if project_metadata and is_raw is None:
+            is_raw = project_metadata.function.is_raw
+        kwargs["is_raw"] = False if is_raw is None else is_raw
+
+        if project_metadata and has_cors is None:
+            has_cors = project_metadata.function.has_cors
+        kwargs["has_cors"] = False if has_cors is None else has_cors
 
         save_manifest_project_file(
             project_path=project_path,
@@ -191,7 +193,10 @@ class ShowStartupInfoStep(PipelineStep):
     def execute(self, data):
         project_metadata = data["project_metadata"]
         info_project = project_metadata.project
-        is_raw = data.get("is_raw", False)
+        is_raw = data.get("is_raw")
+        if project_metadata and is_raw is None:
+            is_raw = project_metadata.function.is_raw
+        is_raw = False if is_raw is None else is_raw
         methods = (
             project_metadata.function.methods
             if not data.get("methods") and project_metadata
@@ -551,9 +556,16 @@ class GetArgoContainerInputAdapterStep(PipelineStep):
         argo_adapter_port = data["argo_adapter_port"]
         ip_address = data["ip_address"]
 
-        is_raw = data.get("is_raw", False)
+        is_raw = data.get("is_raw")
+        if project_metadata and is_raw is None:
+            is_raw = project_metadata.function.is_raw
+        is_raw = False if is_raw is None else is_raw
         token = data.get("token") or project_metadata.function.token
-        methods = data.get("methods") or project_metadata.function.methods
+        methods = (
+            project_metadata.function.methods
+            if not data.get("methods") and project_metadata
+            else data.get("methods")
+        )
 
         adapter_url, adapter_data = get_argo_input_adapter(
             client=client,
@@ -633,8 +645,13 @@ class GetFRIEContainerTargetStep(PipelineStep):
         function_image_name = data["function_image_name"]
         network = data["network"]
         ip_address = data["ip_address"]
-        is_raw = data.get("is_raw", False)
-        timeout = data.get("timeout") or project_metadata.function.timeout
+        is_raw = data.get("is_raw")
+        if project_metadata and is_raw is None:
+            is_raw = project_metadata.function.is_raw
+        is_raw = False if is_raw is None else is_raw
+        timeout = data.get("timeout")
+        if project_metadata and not timeout:
+            timeout = project_metadata.function.timeout
         language = project_metadata.project.language
 
         label = project_metadata.project.local_label
