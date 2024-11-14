@@ -21,6 +21,7 @@ from cli.commons.enums import MessageColorEnum
 from cli.functions.engines.docker.client import FunctionDockerClient
 from cli.functions.engines.docker.container import \
     FunctionDockerContainerManager
+from cli.functions.engines.enums import ArgoMethodEnum
 from cli.functions.engines.enums import ContainerStatusEnum
 from cli.functions.engines.enums import FunctionEngineTypeEnum
 from cli.functions.engines.enums import TargetTypeEnum
@@ -29,7 +30,9 @@ from cli.functions.engines.exceptions import EngineNotInstalledException
 from cli.functions.engines.exceptions import ImageFetchException
 from cli.functions.engines.exceptions import ImageNotFoundException
 from cli.functions.engines.models import ArgoAdapterBaseModel
-from cli.functions.engines.models import ArgoAdapterMiddlewareBaseModel
+from cli.functions.engines.models import \
+    ArgoAdapterMiddlewareAllowedMethodsBaseModel
+from cli.functions.engines.models import ArgoAdapterMiddlewareCorsBaseModel
 from cli.functions.engines.models import ArgoAdapterTargetBaseModel
 from cli.functions.engines.podman.client import FunctionPodmanClient
 from cli.functions.engines.podman.container import \
@@ -367,20 +370,32 @@ def get_argo_input_adapter(
     ip_address: str,
     token: str,
     methods: list[FunctionMethodEnum],
+    has_cors: bool,
 ) -> tuple[str, dict]:
     network_manager = client.get_network_manager()
     network = network_manager.get(network.id)
 
     frie_port = engine_settings.CONTAINER.FRIE.INTERNAL_PORT.split("/")[0]
     url = f"http://{ip_address}:{argo_adapter_port}/{engine_settings.CONTAINER.ARGO.API_ADAPTER_BASE_PATH}"
+    argo_methods = [ArgoMethodEnum(method.value) for method in methods]
+    if has_cors:
+        argo_methods.append(ArgoMethodEnum.OPTIONS)
+
+    middlewares: list[
+        ArgoAdapterMiddlewareAllowedMethodsBaseModel
+        | ArgoAdapterMiddlewareCorsBaseModel
+    ] = [
+        ArgoAdapterMiddlewareAllowedMethodsBaseModel(
+            methods=argo_methods,
+        )
+    ]
+    if has_cors:
+        middlewares.append(ArgoAdapterMiddlewareCorsBaseModel())
+
     data = ArgoAdapterBaseModel(
         label=frie_label,
         path=frie_label,
-        middlewares=[
-            ArgoAdapterMiddlewareBaseModel(
-                methods=methods,
-            )
-        ],
+        middlewares=middlewares,
         target=ArgoAdapterTargetBaseModel(
             type=(
                 TargetTypeEnum.RIE_FUNCTION_RAW
