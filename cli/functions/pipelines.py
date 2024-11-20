@@ -82,7 +82,7 @@ class SaveManifestStep(PipelineStep):
         language = data.get("language")
         runtime = data.get("runtime")
         local_label = data.get("local_label")
-        function_id = data.get("function_id")
+        function_id = data.get("function_id", "")
 
         if project_metadata and not language:
             language = project_metadata.project.language
