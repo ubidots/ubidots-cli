@@ -529,32 +529,12 @@ class GetArgoContainerManagerStep(PipelineStep):
         return data
 
 
-class GetArgoContainerIPAddressStep(PipelineStep):
-    def execute(self, data):
-        client = data["client"]
-        container = data["argo_container"]
-        network = data["network"]
-
-        def get_ip_address(container):
-            return container.attrs["NetworkSettings"]["Networks"][network.name][
-                "IPAddress"
-            ]
-
-        ip_address = get_ip_address(container)
-        if not ip_address:
-            container = client.client.containers.get(container.name)
-            ip_address = get_ip_address(container)
-        data["ip_address"] = ip_address
-        return data
-
-
 class GetArgoContainerInputAdapterStep(PipelineStep):
     def execute(self, data):
         client = data["client"]
         network = data["network"]
         project_metadata = data["project_metadata"]
         argo_adapter_port = data["argo_adapter_port"]
-        ip_address = data["ip_address"]
 
         is_raw = data.get("is_raw")
         if project_metadata and is_raw is None:
@@ -577,7 +557,6 @@ class GetArgoContainerInputAdapterStep(PipelineStep):
             frie_label=project_metadata.project.local_label,
             argo_adapter_port=argo_adapter_port,
             is_raw=is_raw,
-            ip_address=ip_address,
             token=token,
             methods=methods,
             has_cors=has_cors,
@@ -649,7 +628,6 @@ class GetFRIEContainerTargetStep(PipelineStep):
         container_manager = data["container_manager"]
         function_image_name = data["function_image_name"]
         network = data["network"]
-        ip_address = data["ip_address"]
         is_raw = data.get("is_raw")
         if project_metadata and is_raw is None:
             is_raw = project_metadata.function.is_raw
@@ -663,7 +641,7 @@ class GetFRIEContainerTargetStep(PipelineStep):
         argo_target_port = engine_settings.CONTAINER.ARGO.INTERNAL_TARGET_PORT.split(
             "/"
         )[0]
-        target_url = f"http://{ip_address}:{argo_target_port}/{label}"
+        target_url = f"http://{engine_settings.HOST_BIND}:{argo_target_port}/{label}"
         frie_container_manager(
             container_manager=container_manager,
             project_path=project_path,

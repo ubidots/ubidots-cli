@@ -285,12 +285,10 @@ def frie_container_manager(
                 engine_settings.CONTAINER.FRIE.IS_RAW_LABEL_KEY: str(is_raw),
                 engine_settings.CONTAINER.FRIE.URL_LABEL_KEY: target_url,
             },
-            ports={
-                engine_settings.CONTAINER.FRIE.INTERNAL_PORT: port,
-            },
             volumes=volumes,
             environment=environment,
             command=f"{settings.FUNCTIONS.DEFAULT_HANDLER_FILE_NAME}.{settings.FUNCTIONS.DEFAULT_HANDLER_FUNCTION_NAME}",
+            hostname=label,
         )
 
 
@@ -349,9 +347,16 @@ def argo_container_manager(
             network_name=network.name,
             labels={engine_settings.CONTAINER.ARGO.LABEL_KEY: container_name},
             ports={
-                engine_settings.CONTAINER.ARGO.INTERNAL_ADAPTER_PORT: argo_adapter_port,
-                engine_settings.CONTAINER.ARGO.INTERNAL_TARGET_PORT: argo_target_port,
+                engine_settings.CONTAINER.ARGO.INTERNAL_ADAPTER_PORT: (
+                    engine_settings.HOST_BIND,
+                    argo_adapter_port,
+                ),
+                engine_settings.CONTAINER.ARGO.INTERNAL_TARGET_PORT: (
+                    engine_settings.HOST_BIND,
+                    argo_target_port,
+                ),
             },
+            hostname=engine_settings.CONTAINER.ARGO.HOSTNAME,
         )
     else:
         argo_adapter_port = get_external_container_port(
@@ -367,7 +372,6 @@ def get_argo_input_adapter(
     frie_label: str,
     argo_adapter_port: int,
     is_raw: bool,
-    ip_address: str,
     token: str,
     methods: list[FunctionMethodEnum],
     has_cors: bool,
@@ -376,7 +380,7 @@ def get_argo_input_adapter(
     network = network_manager.get(network.id)
 
     frie_port = engine_settings.CONTAINER.FRIE.INTERNAL_PORT.split("/")[0]
-    url = f"http://{ip_address}:{argo_adapter_port}/{engine_settings.CONTAINER.ARGO.API_ADAPTER_BASE_PATH}"
+    url = f"http://{engine_settings.HOST_BIND}:{argo_adapter_port}/{engine_settings.CONTAINER.ARGO.API_ADAPTER_BASE_PATH}"
     argo_methods = [ArgoMethodEnum(method.value) for method in methods]
     if has_cors:
         argo_methods.append(ArgoMethodEnum.OPTIONS)

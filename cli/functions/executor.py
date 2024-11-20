@@ -73,7 +73,6 @@ def start_function(
         pipelines.GetContainerManagerStep(),
         pipelines.GetClientNetworkStep(),
         pipelines.GetArgoContainerManagerStep(),
-        pipelines.GetArgoContainerIPAddressStep(),
         pipelines.GetArgoContainerInputAdapterStep(),
         pipelines.CreateArgoContainerAdapterStep(),
         pipelines.CreateHandlerFRIEStep(),

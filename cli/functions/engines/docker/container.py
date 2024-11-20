@@ -64,17 +64,17 @@ class FunctionDockerContainerManager(AbstractContainerManager):
         container_name: str,
         network_name: str,
         labels: dict,
-        ports: dict[str, int],
+        ports: dict[str, tuple[str, int]] | None = None,
         volumes: dict | None = None,
         detach: bool = engine_settings.CONTAINER.IS_DETACH,
         environment: dict | None = None,
         command: str = "",
+        hostname: str = "",
     ):
         kwargs = {
             "image": image_name,
             "name": container_name,
             "labels": labels,
-            "ports": ports,
             "network": network_name,
             "detach": detach,
         }
@@ -82,11 +82,17 @@ class FunctionDockerContainerManager(AbstractContainerManager):
         if volumes is not None:
             kwargs["volumes"] = volumes
 
+        if ports is not None:
+            kwargs["ports"] = ports
+
         if command:
             kwargs["command"] = command
 
         if environment is not None:
             kwargs["environment"] = environment
+
+        if hostname:
+            kwargs["hostname"] = hostname
 
         with suppress(NotFound):
             if self.client.containers.get(container_name):

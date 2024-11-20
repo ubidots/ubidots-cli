@@ -95,7 +95,6 @@ class TestStartFunction(TestCase):
     @patch("cli.functions.pipelines.GetContainerManagerStep")
     @patch("cli.functions.pipelines.GetClientNetworkStep")
     @patch("cli.functions.pipelines.GetArgoContainerManagerStep")
-    @patch("cli.functions.pipelines.GetArgoContainerIPAddressStep")
     @patch("cli.functions.pipelines.GetArgoContainerInputAdapterStep")
     @patch("cli.functions.pipelines.CreateArgoContainerAdapterStep")
     @patch("cli.functions.pipelines.CreateHandlerFRIEStep")
@@ -110,7 +109,6 @@ class TestStartFunction(TestCase):
         MockCreateHandlerFRIEStep,
         MockCreateArgoContainerAdapterStep,
         MockGetArgoContainerInputAdapterStep,
-        MockGetArgoContainerIPAddressStep,
         MockGetArgoContainerManagerStep,
         MockGetClientNetworkStep,
         MockGetContainerManagerStep,
@@ -159,7 +157,6 @@ class TestStartFunction(TestCase):
                 MockGetContainerManagerStep.return_value,
                 MockGetClientNetworkStep.return_value,
                 MockGetArgoContainerManagerStep.return_value,
-                MockGetArgoContainerIPAddressStep.return_value,
                 MockGetArgoContainerInputAdapterStep.return_value,
                 MockCreateArgoContainerAdapterStep.return_value,
                 MockCreateHandlerFRIEStep.return_value,

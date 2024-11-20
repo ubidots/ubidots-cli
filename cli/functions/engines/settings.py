@@ -10,6 +10,7 @@ from cli.functions.engines.enums import FunctionEngineTypeEnum
 class ArgoContainerSettings(BaseModel):
     NAME: str = "argo"
     LABEL_KEY: str = "ubidots_cli_argo"
+    HOSTNAME: str = "ubi.argo"
     API_ADAPTER_BASE_PATH: str = "api/v2/adapter"
     INTERNAL_ADAPTER_PORT: str = "8040/tcp"
     INTERNAL_TARGET_PORT: str = "8042/tcp"
@@ -50,6 +51,7 @@ class EngineSettings(BaseSettings):
     CONTAINER: ContainerSettings = ContainerSettings()
     HUB_USERNAME: str = "ubidots"
     HUB_PREFFIX: str = "functions"
+    HOST_BIND: str = "127.0.0.1"
     DEFAULT_START_PORT_RANGE: int = 8040
     DEFAULT_END_PORT_RANGE: int = 65535
 
