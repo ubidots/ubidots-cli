@@ -22,3 +22,14 @@ class ContainerNetworkModeEnum(StrEnum):
 class TargetTypeEnum(StrEnum):
     RIE_FUNCTION = "rie_function"
     RIE_FUNCTION_RAW = "rie_function_raw"
+
+
+class MiddlewareTypeEnum(StrEnum):
+    ALLOWED_METHODS = "allowed_methods"
+    CORS = "cors"
+
+
+class ArgoMethodEnum(StrEnum):
+    GET = "GET"
+    POST = "POST"
+    OPTIONS = "OPTIONS"

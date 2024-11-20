@@ -2,10 +2,11 @@ from pydantic import BaseModel
 from pydantic import Field
 from pydantic import field_validator
 
+from cli.functions.engines.enums import ArgoMethodEnum
 from cli.functions.engines.enums import ContainerStatusEnum
 from cli.functions.engines.enums import FunctionEngineTypeEnum
+from cli.functions.engines.enums import MiddlewareTypeEnum
 from cli.functions.engines.enums import TargetTypeEnum
-from cli.functions.enums import FunctionMethodEnum
 
 
 class ContainerStatusBaseModel(BaseModel):
@@ -16,12 +17,33 @@ class ContainerStatusBaseModel(BaseModel):
     url: str = ""
 
 
-class ArgoAdapterMiddlewareBaseModel(BaseModel):
-    type: str = "allowed_methods"
-    methods: list[FunctionMethodEnum] = [
-        FunctionMethodEnum.GET,
-        FunctionMethodEnum.POST,
+class ArgoAdapterMiddlewareAllowedMethodsBaseModel(BaseModel):
+    type: MiddlewareTypeEnum = MiddlewareTypeEnum.ALLOWED_METHODS
+    methods: list[ArgoMethodEnum] = [
+        ArgoMethodEnum.GET,
+        ArgoMethodEnum.POST,
     ]
+
+
+class ArgoAdapterMiddlewareCorsBaseModel(BaseModel):
+    type: MiddlewareTypeEnum = MiddlewareTypeEnum.CORS
+    allow_origins: list[str] = ["*"]
+    allow_methods: list[ArgoMethodEnum] = [
+        ArgoMethodEnum.GET,
+        ArgoMethodEnum.POST,
+        ArgoMethodEnum.OPTIONS,
+    ]
+    allow_headers: list[str] = [
+        "Accept",
+        "Accept-Version",
+        "Content-Length",
+        "Content-MD5",
+        "Content-Type",
+        "Date",
+        "X-Auth-Token",
+    ]
+    allow_credentials: bool = True
+    expose_headers: list[str] = ["X-Auth-Token"]
 
 
 class ArgoAdapterTargetBaseModel(BaseModel):
@@ -34,9 +56,10 @@ class ArgoAdapterBaseModel(BaseModel):
     label: str
     path: str
     is_strict: bool = Field(default=True)
-    middlewares: list[ArgoAdapterMiddlewareBaseModel] = Field(
-        default=[ArgoAdapterMiddlewareBaseModel()]
-    )
+    middlewares: list[
+        ArgoAdapterMiddlewareAllowedMethodsBaseModel
+        | ArgoAdapterMiddlewareCorsBaseModel
+    ] = Field(default=[ArgoAdapterMiddlewareAllowedMethodsBaseModel()])
     target: ArgoAdapterTargetBaseModel
 
 

@@ -560,6 +560,10 @@ class GetArgoContainerInputAdapterStep(PipelineStep):
         if project_metadata and is_raw is None:
             is_raw = project_metadata.function.is_raw
         is_raw = False if is_raw is None else is_raw
+        has_cors = data.get("has_cors")
+        if project_metadata and has_cors is None:
+            has_cors = project_metadata.function.has_cors
+        has_cors = False if has_cors is None else has_cors
         token = data.get("token") or project_metadata.function.token
         methods = (
             project_metadata.function.methods
@@ -576,6 +580,7 @@ class GetArgoContainerInputAdapterStep(PipelineStep):
             ip_address=ip_address,
             token=token,
             methods=methods,
+            has_cors=has_cors,
         )
         data["adapter_url"] = adapter_url
         data["adapter_data"] = adapter_data
