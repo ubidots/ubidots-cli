@@ -3,13 +3,15 @@ import typer
 
 from cli.commons.enums import MessageColorEnum
 from cli.commons.validators import is_valid_object_id
-from cli.config.helpers import read_cli_configuration
 
 
 def build_endpoint(
     route: str, query_params: dict | None = None, **kwargs
 ) -> tuple[str, dict]:
-    access_config = read_cli_configuration()
+    from cli.config.helpers import read_cli_configuration  # noqa: PLC0415
+
+    # This was added to avoid validation errors but it is required to refactor in upcoming PRs
+    access_config = read_cli_configuration("dummy-profile")
     url = f"{access_config.api_domain}{route.format(**kwargs)}"
     if query_params:
         filter_string = query_params.pop("filter", None)

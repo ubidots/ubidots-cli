@@ -9,13 +9,20 @@ from cli.commons.enums import OutputFormatFieldsEnum
 
 class ConfigSettings(BaseModel):
     API_DOMAIN: str = "https://industrial.api.ubidots.com"
+    RUNTIMES_URL: str = "https://industrial.ubidots.com/api/-/functions/_/runtimes"
     DIRECTORY_PATH: Path = Path.home() / ".ubidots_cli"
+    PROFILES_PATH: Path = DIRECTORY_PATH / "profiles"
     FILE_PATH: Path = DIRECTORY_PATH / "config.yaml"
     VISIBLE_SECRET_CHARS: int = 4
     FIXED_LENGTH: int = 10
     DEFAULT_OUTPUT_FORMAT: OutputFormatFieldsEnum = (
         OutputFormatFieldsEnum.get_default_format()
     )
+    DEFAULT_PROFILE: str = "default"
+    DEFAULT_INTERACTIVE: bool = True
+    IGNORE_FUNCTIONS_FILE: Path = DIRECTORY_PATH / "functions.ignore"
+    DEFAULT_CONTAINER_REPOSITORY: str = "https://registry.hub.docker.com/library/"
+    DEFAULT_RUNTIMES: list[str] = []
 
 
 class FunctionSettings(BaseModel):
