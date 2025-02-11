@@ -9,7 +9,7 @@ from cli.commons.enums import OutputFormatFieldsEnum
 
 class ConfigSettings(BaseModel):
     API_DOMAIN: str = "https://industrial.api.ubidots.com"
-    RUNTIMES_URL: str = "https://industrial.ubidots.com/api/-/functions/_/runtimes"
+    RUNTIMES_URL: str = f"{API_DOMAIN}/api/-/functions/_/runtimes"
     DIRECTORY_PATH: Path = Path.home() / ".ubidots_cli"
     PROFILES_PATH: Path = DIRECTORY_PATH / "profiles"
     FILE_PATH: Path = DIRECTORY_PATH / "config.yaml"

@@ -13,23 +13,26 @@ from cli.config.helpers import profile_exists
 from cli.config.helpers import read_cli_configuration
 from cli.config.helpers import save_cli_configuration
 from cli.config.helpers import validate_profile
+from cli.config.helpers import exist_config_file 
+from cli.config.helpers import exists_default_profile 
 from cli.config.models import APIConfigModel
 from cli.config.models import AuthHeaderTypeEnum
 
 
 def existing_profile(profile: str):
-    if profile_exists(profile):
-        profile_overwrite_confirmation = custom_prompt(
-            "Profile already exists. Do you want to overwrite it? [y/n]",
-            type=str,
-            default="n",
+    if not profile_exists(profile):
+        return
+    profile_overwrite_confirmation = custom_prompt(
+        "Profile already exists. Do you want to overwrite it? [y/n]",
+        type=str,
+        default="n",
+    )
+    if profile_overwrite_confirmation.lower() != "y":
+        exit_with_error_message(
+            exception=FileExistsError(
+                "Profile already exists and user chose not to overwrite it. Aborting configuration."
+            ),
         )
-        if profile_overwrite_confirmation.lower() != "y":
-            exit_with_error_message(
-                exception=FileExistsError(
-                    "Profile already exists and user chose not to overwrite it. Aborting configuration."
-                ),
-            )
 
 
 def get_runtimes(access_token: str) -> list[str]:
@@ -72,10 +75,13 @@ def set_configuration(
     access_token: str,
     profile: str,
 ):
-    # Create the main configuration file if it doesn't exist
-    create_config_file()
-    # Create the default profile if it doesn't exist
-    create_default_profile()
+
+    if not exist_config_file():
+        create_config_file()
+
+    if not exists_default_profile():
+        create_default_profile()
+
     # Check if a profile was provided and exit with error if not
     validate_profile(profile=profile)
     # If the profile already exists, ask the user if they want to overwrite it

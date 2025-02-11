@@ -16,19 +16,20 @@ def save_cli_configuration(profile: str, config_model: APIConfigModel) -> None:
         yaml.dump(config_model.to_yaml_serializable_format(), config_file)
 
 
+def exists_default_profile() -> bool:
+    return Path(settings.CONFIG.PROFILES_PATH / "default.yaml").exists()
+
 def create_default_profile() -> None:
     file_path: Path = Path(settings.CONFIG.PROFILES_PATH / "default.yaml")
-    if file_path.exists():
-        return
     file_path.parent.mkdir(parents=True, exist_ok=True)
     with file_path.open("w") as config_file:
         yaml.dump(APIConfigModel().to_yaml_serializable_format(), config_file)
 
+def exist_config_file() -> bool:
+    return Path(settings.CONFIG.FILE_PATH).exists()
 
 def create_config_file() -> None:
     file_path: Path = Path(settings.CONFIG.FILE_PATH)
-    if file_path.exists():
-        return
     file_path.parent.mkdir(parents=True, exist_ok=True)
     config_data = {
         "profilesPath": str(settings.CONFIG.PROFILES_PATH),

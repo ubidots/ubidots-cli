@@ -27,9 +27,6 @@ class InvalidOptionError(Exception):
 
 
 class NoProfileError(Exception):
-    def __init__(self):
-        pass
-
     def __str__(self):
         return "Profile not provided. Please provide a profile name."
 
@@ -37,14 +34,14 @@ class NoProfileError(Exception):
 class UnexistentProfileError(Exception):
     def __init__(self, profile: str):
         self.profile = profile
-
     def __str__(self):
         return f"Profile {self.profile} does not exist yet. Please provide a valid profile name."
 
 
 class RuntimeNotFoundError(Exception):
-    def __init__(self):
-        pass
-
     def __str__(self):
-        return "No runtimes were found. Please check your access token and API domain and try again."
+        return (
+            "No runtimes were found. This may be due to an invalid or missing access token, "
+            "or an incorrect API domain. Please verify that your token is set correctly and "
+            "that you are using the correct API domain."
+        )

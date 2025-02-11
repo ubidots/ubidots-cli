@@ -13,10 +13,10 @@ from cli.commons.enums import TableColorEnum
 
 
 def custom_prompt(text: str, **kwargs) -> Any:
+    MISSING_PARAMETER_ERROR_MESSAGE = "This field is mandatory. Please provide a value."
     mandatory = kwargs.pop("mandatory", False)
     prompt_text = style(text, fg=colors.CYAN, bold=True)
-    missing_parameter_error_message = "This field is mandatory. Please provide a value."
-    message = kwargs.pop("error_message", missing_parameter_error_message)
+    message = kwargs.pop("error_message", MISSING_PARAMETER_ERROR_MESSAGE)
     while True:
         value = prompt(prompt_text, **kwargs)
         if mandatory and not value.strip():
