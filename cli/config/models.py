@@ -7,13 +7,13 @@ class AuthHeaderTypeEnum(StrEnum):
     TOKEN = "X-Auth-Token"
 
 
-class MainConfigModel(BaseYAMLDumpModel):
+class CliConfigModel(BaseYAMLDumpModel):
     profilesPath: str = settings.CONFIG.PROFILES_PATH
     ignoreFunctionsFile: str = settings.CONFIG.IGNORE_FUNCTIONS_FILE
     profile: str = settings.CONFIG.DEFAULT_PROFILE
 
 
-class APIConfigModel(BaseYAMLDumpModel):
+class ProfileConfigModel(BaseYAMLDumpModel):
     api_domain: str = settings.CONFIG.API_DOMAIN
     auth_method: AuthHeaderTypeEnum = AuthHeaderTypeEnum.TOKEN
     access_token: str = ""

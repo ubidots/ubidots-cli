@@ -11,11 +11,11 @@ from cli.config.helpers import mask_token
 from cli.config.helpers import overwrite_default_profile
 from cli.config.helpers import profile_exists
 from cli.config.helpers import read_cli_configuration
-from cli.config.helpers import save_cli_configuration
+from cli.config.helpers import save_profile_configuration 
 from cli.config.helpers import validate_profile
 from cli.config.helpers import exist_config_file 
 from cli.config.helpers import exists_default_profile 
-from cli.config.models import APIConfigModel
+from cli.config.models import ProfileConfigModel 
 from cli.config.models import AuthHeaderTypeEnum
 
 
@@ -93,9 +93,9 @@ def set_configuration(
         exit_with_error_message(
             exception=RuntimeNotFoundError(),
         )
-    save_cli_configuration(
+    save_profile_configuration(
         profile=profile,
-        config_model=APIConfigModel(
+        config_model=ProfileConfigModel(
             api_domain=api_domain,
             auth_method=auth_method_value,
             access_token=access_token,

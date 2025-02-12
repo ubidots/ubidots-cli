@@ -5,11 +5,11 @@ import yaml
 
 from cli.commons.exceptions import NoProfileError
 from cli.commons.utils import exit_with_error_message
-from cli.config.models import APIConfigModel
+from cli.config.models import ProfileConfigModel 
 from cli.settings import settings
 
 
-def save_cli_configuration(profile: str, config_model: APIConfigModel) -> None:
+def save_profile_configuration(profile: str, config_model: ProfileConfigModel) -> None:
     file_path = Path(settings.CONFIG.PROFILES_PATH / f"{profile}.yaml")
     settings.CONFIG.PROFILES_PATH.mkdir(parents=True, exist_ok=True)
     with file_path.open("w") as config_file:
@@ -23,7 +23,7 @@ def create_default_profile() -> None:
     file_path: Path = Path(settings.CONFIG.PROFILES_PATH / "default.yaml")
     file_path.parent.mkdir(parents=True, exist_ok=True)
     with file_path.open("w") as config_file:
-        yaml.dump(APIConfigModel().to_yaml_serializable_format(), config_file)
+        yaml.dump(ProfileConfigModel().to_yaml_serializable_format(), config_file)
 
 def exist_config_file() -> bool:
     return Path(settings.CONFIG.FILE_PATH).exists()
@@ -56,11 +56,11 @@ def overwrite_default_profile(profile: str) -> None:
         yaml.safe_dump(config_data, config_file)
 
 
-def read_cli_configuration(profile: str) -> APIConfigModel:
+def read_cli_configuration(profile: str) -> ProfileConfigModel:
     file_path: Path = Path(settings.CONFIG.PROFILES_PATH / f"{profile}.yaml")
     with file_path.open() as config_file:
         config_data = yaml.safe_load(config_file)
-    return APIConfigModel(**config_data)
+    return ProfileConfigModel(**config_data)
 
 
 def mask_token(
