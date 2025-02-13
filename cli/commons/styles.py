@@ -1,18 +1,34 @@
 import itertools
 from typing import Any
 
+import typer
 from rich.console import Console
 from rich.table import Table
 from typer import colors
 from typer import prompt
 from typer import style
 
+from cli.commons.enums import MessageColorEnum
 from cli.commons.enums import TableColorEnum
 
 
 def custom_prompt(text: str, **kwargs) -> Any:
+    MISSING_PARAMETER_ERROR_MESSAGE = "This field is mandatory. Please provide a value."
+    mandatory = kwargs.pop("mandatory", False)
     prompt_text = style(text, fg=colors.CYAN, bold=True)
-    return prompt(prompt_text, **kwargs)
+    message = kwargs.pop("error_message", MISSING_PARAMETER_ERROR_MESSAGE)
+    while True:
+        value = prompt(prompt_text, **kwargs)
+        if mandatory and not value.strip():
+            typer.echo(
+                typer.style(
+                    text=f"\n> [ERROR]: {message}\n",
+                    fg=MessageColorEnum.ERROR,
+                    bold=True,
+                )
+            )
+        else:
+            return value
 
 
 def print_colored_table(
