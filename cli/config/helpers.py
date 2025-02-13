@@ -41,6 +41,7 @@ def create_config_file() -> None:
 
 
 def validate_profile(profile: str):
+    profile = profile.strip().strip('"').strip("'")
     if not profile.strip():
         exit_with_error_message(
             exception=NoProfileError(),
