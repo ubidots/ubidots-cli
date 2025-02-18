@@ -4,6 +4,33 @@ class FolderAlreadyExistsError(Exception):
         super().__init__(error_message)
 
 
+class FunctionWithIdAlreadyExistsError(Exception):
+    """Exception raised when a function is being pulled with the same ID already exists in the same directory."""
+
+    def __init__(
+        self, id: str, function_path: str, alternative_command: str | None = None
+    ):
+        error_message = (
+            f"A function with ID '{id}' has already been pulled at '{function_path}'"
+            + (
+                f" Run '{alternative_command}' in that directory to update it."
+                if alternative_command
+                else ""
+            )
+        )
+        super().__init__(error_message)
+
+
+class FunctionWithNameAlreadyExistsError(Exception):
+    """Exception raised when a function is being pulled with the same name already exists in the same directory."""
+
+    def __init__(self, name: str, function_path: str):
+        error_message = (
+            f"A function with name '{name}' already exists at '{function_path}'"
+        )
+        super().__init__(error_message)
+
+
 class TemplateNotFoundError(Exception):
     def __init__(self, language: str, template_file: str):
         error_message = f"Template for '{language}' not found at '{template_file}'."

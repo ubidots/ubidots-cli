@@ -5,7 +5,7 @@ import yaml
 
 from cli.commons.exceptions import NoProfileError
 from cli.commons.utils import exit_with_error_message
-from cli.config.models import ProfileConfigModel 
+from cli.config.models import ProfileConfigModel
 from cli.settings import settings
 
 
@@ -19,14 +19,17 @@ def save_profile_configuration(profile: str, config_model: ProfileConfigModel) -
 def exists_default_profile() -> bool:
     return Path(settings.CONFIG.PROFILES_PATH / "default.yaml").exists()
 
+
 def create_default_profile() -> None:
     file_path: Path = Path(settings.CONFIG.PROFILES_PATH / "default.yaml")
     file_path.parent.mkdir(parents=True, exist_ok=True)
     with file_path.open("w") as config_file:
         yaml.dump(ProfileConfigModel().to_yaml_serializable_format(), config_file)
 
+
 def exist_config_file() -> bool:
     return Path(settings.CONFIG.FILE_PATH).exists()
+
 
 def create_config_file() -> None:
     file_path: Path = Path(settings.CONFIG.FILE_PATH)
@@ -62,6 +65,24 @@ def read_cli_configuration(profile: str) -> ProfileConfigModel:
     with file_path.open() as config_file:
         config_data = yaml.safe_load(config_file)
     return ProfileConfigModel(**config_data)
+
+
+def get_active_profile_configuration() -> ProfileConfigModel:
+    file_path: Path = Path(settings.CONFIG.FILE_PATH)
+    if not file_path.exists():
+        error_message = f"File {file_path} not found"
+        raise FileNotFoundError(error_message)
+    with file_path.open("r") as f:
+        config = yaml.safe_load(f)
+    profiles_path = config["profilesPath"]
+    profile = config["profile"]
+    profile_file = Path(profiles_path) / f"{profile}.yaml"
+    if not profile_file.exists():
+        error_message = f"File {profile_file} not found"
+        raise FileNotFoundError(error_message)
+    with profile_file.open("r") as pf:
+        profile_config = yaml.safe_load(pf)
+    return ProfileConfigModel(**profile_config)
 
 
 def mask_token(

@@ -2,7 +2,6 @@ from enum import Enum
 from enum import auto
 
 from cli.compat import StrEnum
-from cli.settings import settings
 
 
 class FunctionMainFileExtensionEnum(StrEnum):
@@ -113,6 +112,9 @@ class FunctionLanguageEnum(StrEnum):
 
     @property
     def main_file(self):
+        # Import settings locally to avoid circular import at module load time.
+        from cli.settings import settings  # noqa
+
         main_file_name = settings.FUNCTIONS.DEFAULT_MAIN_FILE_NAME
         return f"{main_file_name}.{self.extension}"
 

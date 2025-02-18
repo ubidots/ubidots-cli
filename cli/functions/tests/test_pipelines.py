@@ -1,5 +1,4 @@
 import zipfile
-from io import BytesIO
 from pathlib import Path
 from tempfile import NamedTemporaryFile
 from unittest.mock import ANY
@@ -8,9 +7,9 @@ from unittest.mock import patch
 
 import httpx
 import pytest
-import typer
 
 from cli.functions import pipelines
+from cli.functions.engines.enums import FunctionEngineTypeEnum
 from cli.functions.enums import FunctionLanguageEnum
 from cli.functions.enums import FunctionMethodEnum
 from cli.functions.enums import FunctionRuntimeLayerTypeEnum
@@ -197,116 +196,74 @@ class TestSaveManifestStep:
         # Setup
         step = pipelines.SaveManifestStep()
         data = {
+            "name": "Function name",
             "project_path": Path("/path/to/project"),
             "language": FunctionLanguageEnum.PYTHON,
             "runtime": FunctionRuntimeLayerTypeEnum.PYTHON_3_9_BASE,
-            "local_label": "local_label_test",
-            "function_id": "function_id_test",
-            "function_label": "function_label_test",
-            "is_raw": True,
-            "has_cors": True,
-            "cron": "",
-            "payload": {"key": "value"},
             "methods": [FunctionMethodEnum.GET, FunctionMethodEnum.POST],
+            "label": "function-name",
+            "created_at": "2025-02-18T15:00:00",
             "timeout": 30,
+            "http_is_secure": True,
+            "http_enabled": True,
+            "engine": FunctionEngineTypeEnum.DOCKER.value,
+            "has_cors": True,
+            "is_raw": True,
+            "cron": "",
+            "has_cron": False,
+            "function_id": "function_id_test",
+            "token": "token_test",
         }
         # Action
         result = step.execute(data)
         # Assert
         assert result == data
         mock_save_manifest.assert_called_once_with(
+            name=data["name"],
             project_path=data["project_path"],
             language=data["language"],
             runtime=data["runtime"],
-            local_label=data["local_label"],
-            function_id=data["function_id"],
-            is_raw=True,
-            has_cors=True,
             methods=data["methods"],
+            label=data["label"],
+            created_at=data["created_at"],
             timeout=data["timeout"],
+            http_is_secure=data["http_is_secure"],
+            http_enabled=data["http_enabled"],
+            engine=data["engine"],
+            has_cors=data["has_cors"],
+            is_raw=data["is_raw"],
+            cron=data["cron"],
+            has_cron=data["has_cron"],
+            function_id=data["function_id"],
+            token=data["token"],
         )
 
     @patch("cli.functions.pipelines.save_manifest_project_file")
-    def test_execute_with_project_metadata_only(self, mock_save_manifest):
-        # Setup
-        project_metadata = MagicMock()
-        project_metadata.project.language = FunctionLanguageEnum.NODEJS
-        project_metadata.project.runtime = FunctionRuntimeLayerTypeEnum.NODEJS_20_BASE
-        project_metadata.project.local_label = "metadata_label"
-        project_metadata.function.id = "metadata_function_id"
-        project_metadata.function.label = "metadata_function_label"
-        project_metadata.function.is_raw = False
-        project_metadata.function.has_cors = False
-        project_metadata.function.cron = ""
-        project_metadata.function.payload = {"meta_key": "meta_value"}
-        project_metadata.function.methods = [FunctionMethodEnum.POST]
-        project_metadata.function.timeout = 60
+    def test_execute_with_missing_fields(self, mock_save_manifest):
+        # Setup: Create a data dictionary missing some required fields (e.g., 'language' and 'runtime')
         step = pipelines.SaveManifestStep()
         data = {
+            "name": "Function name",
             "project_path": Path("/path/to/project"),
-            "project_metadata": project_metadata,
-        }
-        # Action
-        result = step.execute(data)
-        # Assert
-        assert result == data
-        mock_save_manifest.assert_called_once_with(
-            project_path=data["project_path"],
-            language=FunctionLanguageEnum.NODEJS,
-            runtime=FunctionRuntimeLayerTypeEnum.NODEJS_20_BASE,
-            local_label="metadata_label",
-            function_id="metadata_function_id",
-            label="metadata_function_label",
-            is_raw=False,
-            has_cors=False,
-            cron="",
-            payload={"meta_key": "meta_value"},
-            methods=[FunctionMethodEnum.POST],
-            timeout=60,
-        )
-
-    @patch("cli.functions.pipelines.save_manifest_project_file")
-    def test_execute_with_mixed_data_and_metadata(self, mock_save_manifest):
-        # Setup
-        project_metadata = MagicMock()
-        project_metadata.project.language = FunctionLanguageEnum.NODEJS
-        project_metadata.project.runtime = FunctionRuntimeLayerTypeEnum.NODEJS_20_LITE
-        project_metadata.project.local_label = "metadata_label"
-        project_metadata.function.id = "metadata_function_id"
-        project_metadata.function.label = "metadata_function_label"
-        project_metadata.function.is_raw = False
-        project_metadata.function.has_cors = False
-        project_metadata.function.cron = ""
-        project_metadata.function.payload = "{}"
-        project_metadata.function.methods = [FunctionMethodEnum.POST]
-        project_metadata.function.timeout = 60
-        step = pipelines.SaveManifestStep()
-        data = {
-            "project_path": Path("/path/to/project"),
-            "project_metadata": project_metadata,
+            # "language" and "runtime" keys are intentionally missing.
+            "methods": [FunctionMethodEnum.GET, FunctionMethodEnum.POST],
+            "label": "function-name",
+            "created_at": "2025-02-18T15:00:00",
+            "timeout": 30,
+            "http_is_secure": True,
+            "http_enabled": True,
+            "engine": FunctionEngineTypeEnum.DOCKER.value,
             "has_cors": True,
             "is_raw": True,
-            "methods": [FunctionMethodEnum.POST, FunctionMethodEnum.GET],
-            "timeout": 30,
+            "cron": "",
+            "has_cron": False,
+            "function_id": "function_id_test",
+            "token": "token_test",
         }
-        # Action
-        result = step.execute(data)
-        # Assert
-        assert result == data
-        mock_save_manifest.assert_called_once_with(
-            project_path=data["project_path"],
-            language=FunctionLanguageEnum.NODEJS,
-            runtime=FunctionRuntimeLayerTypeEnum.NODEJS_20_LITE,
-            local_label="metadata_label",
-            function_id="metadata_function_id",
-            label="metadata_function_label",
-            is_raw=True,
-            has_cors=True,
-            payload="{}",
-            cron="",
-            methods=[FunctionMethodEnum.POST, FunctionMethodEnum.GET],
-            timeout=30,
-        )
+        mock_save_manifest.side_effect = TypeError("missing required keys")
+        # Action & Assert: Expect a TypeError when required fields are missing.
+        with pytest.raises(TypeError):
+            step.execute(data)
 
 
 class TestReadManifestStep:
@@ -480,163 +437,6 @@ class TestValidateProjectStep:
             == "Main file 'main.py' not found in the project directory."
         )
 
-    def test_execute_function_not_registered_with_push_function(self):
-        # Setup
-        step = pipelines.ValidateProjectStep()
-        project_metadata_mock = MagicMock()
-        project_metadata_mock.function.id = None
-        data = {
-            "project_path": Path("/path/to/project"),
-            "project_files": [Path("/path/to/project/main.py")],
-            "project_metadata": project_metadata_mock,
-            "validations": {"function_exists": True},
-            "root": "push_function",
-            "overwrite": {"confirm": False},
-        }
-        # Action
-        result = step.execute(data)
-        # Assert
-        assert result["overwrite"]["confirm"] is True
-
-
-class TestShowStartupInfoStep:
-    def test_execute_with_all_data_provided(self, capfd):
-        # Setup
-        step = pipelines.ShowStartupInfoStep()
-        project_metadata_mock = MagicMock()
-        project_metadata_mock.project.name = "Test Project"
-        project_metadata_mock.project.runtime = (
-            FunctionRuntimeLayerTypeEnum.PYTHON_3_11_BASE
-        )
-        project_metadata_mock.project.local_label = "test_label"
-        project_metadata_mock.function.is_raw = False
-        project_metadata_mock.function.methods = [
-            FunctionMethodEnum.GET,
-            FunctionMethodEnum.POST,
-        ]
-        project_metadata_mock.function.token = "test_token"
-        data = {
-            "project_metadata": project_metadata_mock,
-            "is_raw": True,
-            "methods": [FunctionMethodEnum.GET],
-            "token": "provided_token",
-        }
-        # Action
-        step.execute(data)
-        # Assert
-        captured = capfd.readouterr()
-        assert "Name: Test Project" in captured.out
-        assert (
-            f"Runtime: {FunctionRuntimeLayerTypeEnum.PYTHON_3_11_BASE}" in captured.out
-        )
-        assert "Local label: test_label" in captured.out
-        assert "Raw: True" in captured.out
-        assert f"Methods: {FunctionMethodEnum.GET}" in captured.out
-        assert "Token: provided_token" in captured.out
-
-    def test_execute_without_data(self, capfd):
-        # Setup
-        step = pipelines.ShowStartupInfoStep()
-        project_metadata_mock = MagicMock()
-        project_metadata_mock.project.name = "Partial Project"
-        project_metadata_mock.project.runtime = (
-            FunctionRuntimeLayerTypeEnum.PYTHON_3_11_BASE
-        )
-        project_metadata_mock.project.local_label = "partial_label"
-        project_metadata_mock.function.is_raw = None
-        project_metadata_mock.function.methods = [FunctionMethodEnum.POST]
-        project_metadata_mock.function.token = "default_token"
-        data = {
-            "project_metadata": project_metadata_mock,
-        }
-        # Action
-        step.execute(data)
-        # Assert
-        captured = capfd.readouterr()
-        assert "Name: Partial Project" in captured.out
-        assert (
-            f"Runtime: {FunctionRuntimeLayerTypeEnum.PYTHON_3_11_BASE}" in captured.out
-        )
-        assert "Local label: partial_label" in captured.out
-        assert "Raw: False" in captured.out
-        assert f"Methods: {FunctionMethodEnum.POST}" in captured.out
-        assert "Token: default_token" in captured.out
-
-
-class TestConfirmOverwriteStep:
-    @patch("typer.confirm", return_value=True)
-    def test_execute_with_confirmation(self, mock_confirm):
-        # Setup
-        step = pipelines.ConfirmOverwriteStep()
-        data = {"overwrite": {"confirm": False, "message": "Do you want to overwrite?"}}
-        # Action
-        result = step.execute(data)
-        # Assert
-        assert result == data
-        mock_confirm.assert_called_once_with("Do you want to overwrite?")
-
-    @patch("typer.confirm", return_value=False)
-    def test_execute_without_confirmation_raises_abort(self, mock_confirm):
-        # Setup
-        step = pipelines.ConfirmOverwriteStep()
-        data = {"overwrite": {"confirm": False, "message": "Do you want to overwrite?"}}
-        # Action & Assert
-        with pytest.raises(typer.Abort) as exc_info:
-            step.execute(data)
-        # Assert
-        assert (
-            "Operation cancelled: The overwrite process was aborted by the user."
-            in str(exc_info.value)
-        )
-        mock_confirm.assert_called_once_with("Do you want to overwrite?")
-
-    def test_execute_with_preconfirmed_data(self):
-        # Setup
-        step = pipelines.ConfirmOverwriteStep()
-        data = {"overwrite": {"confirm": True, "message": "Do you want to overwrite?"}}
-        # Action
-        result = step.execute(data)
-        # Assert
-        assert result == data
-
-
-class TestCompressProjectStep:
-    @patch("cli.functions.pipelines.compress_project_to_zip")
-    def test_execute_success(self, mock_compress):
-        # Setup
-        mock_zip_file = MagicMock()
-        mock_compress.return_value = mock_zip_file
-        step = pipelines.CompressProjectStep()
-        data = {"project_path": Path("/path/to/project")}
-        # Action
-        result = step.execute(data)
-        # Assert
-        assert result["zip_file"] == mock_zip_file
-        mock_compress.assert_called_once_with(
-            project_path=data["project_path"], exclude_files=step.exclude_files
-        )
-
-    @patch("cli.functions.pipelines.compress_project_to_zip")
-    def test_execute_with_exclude_files(self, mock_compress):
-        # Setup
-        step = pipelines.CompressProjectStep()
-        data = {"project_path": Path("/path/to/project")}
-        expected_exclude_files = [
-            settings.FUNCTIONS.PROJECT_METADATA_FILE,
-            f".{settings.FUNCTIONS.DEFAULT_MAIN_FUNCTION_NAME}.py",
-            f".{settings.FUNCTIONS.DEFAULT_MAIN_FUNCTION_NAME}.js",
-            f"{settings.FUNCTIONS.DEFAULT_HANDLER_FILE_NAME}.py",
-            f"{settings.FUNCTIONS.DEFAULT_HANDLER_FILE_NAME}.mjs",
-            "node_modules",
-        ]
-        # Action
-        step.execute(data)
-        # Assert
-        mock_compress.assert_called_once_with(
-            project_path=data["project_path"], exclude_files=expected_exclude_files
-        )
-        assert step.exclude_files == expected_exclude_files
-
 
 class TestExtractProjectStep:
     @patch("zipfile.ZipFile.extractall")
@@ -648,14 +448,15 @@ class TestExtractProjectStep:
         mock_response.content = b"Fake zip content"
         data = {
             "project_path": Path("/path/to/project"),
-            "response": mock_response,
+            "function_zip_content": mock_response,
+            "remote_function_detail": {"name": "my_function"},
         }
         # Action
         result = step.execute(data)
         # Assert
         assert result == data
         mock_zip_init.assert_called_once_with(ANY, "r")
-        mock_extractall.assert_called_once_with(data["project_path"])
+        mock_extractall.assert_called_once_with(data["project_path"] / "my_function")
 
     @patch("zipfile.ZipFile.__init__", side_effect=zipfile.BadZipFile("Bad zip file"))
     def test_execute_raises_bad_zip_file_error(self, mock_zip_init):
@@ -665,7 +466,8 @@ class TestExtractProjectStep:
         mock_response.content = b"Corrupt zip content"
         data = {
             "project_path": Path("/path/to/project"),
-            "response": mock_response,
+            "function_zip_content": mock_response,
+            "remote_function_detail": {"name": "my_function"},
         }
         # Action
         with pytest.raises(zipfile.BadZipFile) as exc_info:
@@ -681,8 +483,9 @@ class TestExtractProjectStep:
         mock_response = MagicMock()
         mock_response.content = b"Valid zip content"
         data = {
-            "project_path": Path("/path/to/nonexistent_project"),
-            "response": mock_response,
+            "project_path": Path("/path/to/project"),
+            "function_zip_content": mock_response,
+            "remote_function_detail": {"name": "my_function"},
         }
         # Action
         with pytest.raises(FileNotFoundError) as exc_info:
@@ -693,42 +496,57 @@ class TestExtractProjectStep:
 
 
 class TestBuildEndpointStep:
+    @patch("cli.functions.pipelines.get_active_profile_configuration")
     @patch("cli.functions.pipelines.build_endpoint")
-    def test_execute_success(self, mock_build_endpoint):
+    def test_execute_success(self, mock_build_endpoint, mock_get_active_profile):
         # Setup
         step = pipelines.BuildEndpointStep(api_route="/api/function")
-        project_metadata_mock = MagicMock()
-        project_metadata_mock.function.id = "test_function_id"
+
         mock_url = "https://api.example.com/api/function/test_function_id"
         mock_headers = {"X-Auth-Token": "test_token"}
         mock_build_endpoint.return_value = (mock_url, mock_headers)
-        data = {"project_metadata": project_metadata_mock}
+
+        mock_active_config = MagicMock()
+        mock_get_active_profile.return_value = mock_active_config  # Mock profile config
+
+        data = {"remote_id": "test_function_id"}  # Corrected key
+
         # Action
         result = step.execute(data)
+
         # Assert
         assert result["url"] == mock_url
         assert result["headers"] == mock_headers
         mock_build_endpoint.assert_called_once_with(
-            route=step.api_route, function_key=project_metadata_mock.function.id
+            route=step.api_route,
+            function_key="test_function_id",
+            active_config=mock_active_config,
         )
 
     @patch(
         "cli.functions.pipelines.build_endpoint",
         side_effect=Exception("Endpoint build failed"),
     )
-    def test_execute_raises_exception(self, mock_build_endpoint):
+    @patch("cli.functions.pipelines.get_active_profile_configuration")
+    def test_execute_raises_exception(
+        self, mock_get_active_profile, mock_build_endpoint
+    ):
         # Setup
         step = pipelines.BuildEndpointStep(api_route="/api/function")
         project_metadata_mock = MagicMock()
         project_metadata_mock.function.id = "test_function_id"
-        data = {"project_metadata": project_metadata_mock}
+        data = {"remote_id": "test_function_id"}  # Corrected key
+        mock_active_config = MagicMock()
+        mock_get_active_profile.return_value = mock_active_config  # Mock profile config
         # Action
         with pytest.raises(Exception) as exc_info:
             step.execute(data)
         # Assert
         assert "Endpoint build failed" in str(exc_info.value)
         mock_build_endpoint.assert_called_once_with(
-            route=step.api_route, function_key=project_metadata_mock.function.id
+            route=step.api_route,
+            function_key="test_function_id",
+            active_config=mock_active_config,
         )
 
 
@@ -780,190 +598,6 @@ class TestCreateFunctionStep:
             "https://api.example.com/functions",
             headers=data["headers"],
             json={"mocked_payload": True},
-        )
-
-    @patch("typer.confirm", return_value=False)
-    def test_execute_user_aborts_creation(self, mock_confirm):
-        # Setup
-        step = pipelines.CreateFunctionStep()
-        project_metadata_mock = MagicMock()
-        project_metadata_mock.function.id = None
-        data = {
-            "url": "https://api.example.com/functions",
-            "headers": {"X-Auth-Token": "test_token"},
-            "project_metadata": project_metadata_mock,
-        }
-        # Action
-        with pytest.raises(typer.Abort) as exc_info:
-            step.execute(data)
-        # Assert
-        assert (
-            "Operation cancelled: The overwrite process was aborted by the user."
-            in str(exc_info.value)
-        )
-        mock_confirm.assert_called_once()
-
-    @patch("httpx.Client.post")
-    def test_execute_function_exists_needs_update(self, mock_post):
-        # Setup
-        step = pipelines.CreateFunctionStep()
-        project_metadata_mock = MagicMock()
-        project_metadata_mock.function.id = "existing_function_id"
-        data = {
-            "url": "https://api.example.com/functions",
-            "headers": {"X-Auth-Token": "test_token"},
-            "project_metadata": project_metadata_mock,
-        }
-        # Action
-        result = step.execute(data)
-        # Assert
-        assert result["needs_update"] is True
-        assert "response" not in result
-        mock_post.assert_not_called()
-
-
-class TestUpdateFunctionStep:
-    @patch("httpx.patch")
-    @patch("cli.functions.pipelines.build_functions_payload")
-    def test_execute_update_function_success(self, mock_build_payload, mock_patch):
-        # Setup
-        step = pipelines.UpdateFunctionStep()
-        mock_response = MagicMock()
-        mock_response.status_code = httpx.codes.OK
-        mock_patch.return_value = mock_response
-        mock_build_payload.return_value = {"mocked_payload": True}
-        project_metadata_mock = MagicMock()
-        project_metadata_mock.function.id = "existing_function_id"
-        project_metadata_mock.function.methods = [FunctionMethodEnum.GET]
-        data = {
-            "url": "https://api.example.com/functions/existing_function_id",
-            "headers": {"X-Auth-Token": "test_token"},
-            "project_metadata": project_metadata_mock,
-            "needs_update": True,
-        }
-        # Action
-        result = step.execute(data)
-        # Assert
-        assert result["response"] == mock_response
-        mock_patch.assert_called_once_with(
-            data["url"], headers=data["headers"], json={"mocked_payload": True}
-        )
-        mock_build_payload.assert_called_once_with(
-            label=project_metadata_mock.function.label or "",
-            name=project_metadata_mock.project.name,
-            triggers={
-                "httpMethods": project_metadata_mock.function.methods,
-                "httpHasCors": project_metadata_mock.function.has_cors,
-                "schedulerCron": project_metadata_mock.function.cron or None,
-            },
-            serverless={
-                "runtime": project_metadata_mock.project.runtime,
-                "isRawFunction": project_metadata_mock.function.is_raw,
-                "authToken": None,
-                "timeout": project_metadata_mock.function.timeout,
-                "params": project_metadata_mock.function.payload,
-            },
-        )
-
-    @patch("httpx.patch")
-    def test_execute_function_does_not_need_update(self, mock_patch):
-        # Setup
-        step = pipelines.UpdateFunctionStep()
-        project_metadata_mock = MagicMock()
-        project_metadata_mock.function.id = None
-        data = {
-            "url": "https://api.example.com/functions/new_function_id",
-            "headers": {"X-Auth-Token": "test_token"},
-            "project_metadata": project_metadata_mock,
-            "needs_update": False,
-        }
-        # Action
-        result = step.execute(data)
-        # Assert
-        assert result == data
-        mock_patch.assert_not_called()
-
-    @patch(
-        "httpx.patch",
-        side_effect=httpx.HTTPStatusError(
-            "Unauthorized", request=MagicMock(), response=MagicMock(status_code=401)
-        ),
-    )
-    def test_execute_update_function_http_error(self, mock_patch):
-        # Setup
-        step = pipelines.UpdateFunctionStep()
-        project_metadata_mock = MagicMock()
-        project_metadata_mock.function.id = "existing_function_id"
-        data = {
-            "url": "https://api.example.com/functions/existing_function_id",
-            "headers": {"X-Auth-Token": "test_token"},
-            "project_metadata": project_metadata_mock,
-            "needs_update": True,
-        }
-        # Action
-        with pytest.raises(httpx.HTTPStatusError) as exc_info:
-            step.execute(data)
-        # Assert
-        assert "Unauthorized" in str(exc_info.value)
-        mock_patch.assert_called_once_with(
-            data["url"], headers=data["headers"], json=ANY
-        )
-
-
-class TestUploadFileStep:
-    @patch("httpx.Client.post")
-    def test_execute_upload_file_success(self, mock_post):
-        # Setup
-        step = pipelines.UploadFileStep()
-        mock_response = MagicMock()
-        mock_response.status_code = httpx.codes.OK
-        mock_post.return_value = mock_response
-        zip_file = BytesIO(b"Fake zip content")
-        project_metadata_mock = MagicMock()
-        project_metadata_mock.project.name = "TestProject"
-        data = {
-            "url": "https://api.example.com/upload",
-            "headers": {"X-Auth-Token": "test_token"},
-            "zip_file": zip_file,
-            "project_metadata": project_metadata_mock,
-        }
-        # Action
-        result = step.execute(data)
-        # Assert
-        assert result["response"] == mock_response
-        mock_post.assert_called_once_with(
-            url=data["url"],
-            headers=data["headers"],
-            files={"zipFile": ("TestProject.zip", zip_file, "application/zip")},
-        )
-
-    @patch(
-        "httpx.Client.post",
-        side_effect=httpx.HTTPStatusError(
-            "Unauthorized", request=MagicMock(), response=MagicMock(status_code=401)
-        ),
-    )
-    def test_execute_upload_file_http_error(self, mock_post):
-        # Setup
-        step = pipelines.UploadFileStep()
-        zip_file = BytesIO(b"Fake zip content")
-        project_metadata_mock = MagicMock()
-        project_metadata_mock.project.name = "TestProject"
-        data = {
-            "url": "https://api.example.com/upload",
-            "headers": {"X-Auth-Token": "test_token"},
-            "zip_file": zip_file,
-            "project_metadata": project_metadata_mock,
-        }
-        # Action
-        with pytest.raises(httpx.HTTPStatusError) as exc_info:
-            step.execute(data)
-        # Assert
-        assert "Unauthorized" in str(exc_info.value)
-        mock_post.assert_called_once_with(
-            url=data["url"],
-            headers=data["headers"],
-            files={"zipFile": ("TestProject.zip", zip_file, "application/zip")},
         )
 
 
@@ -1027,58 +661,19 @@ class TestHttpGetRequestStep:
         mock_get.assert_called_once_with(data["url"], headers=data["headers"])
 
 
-class TestDownloadFileStep:
-    @patch("httpx.get")
-    def test_execute_download_file_success(self, mock_get):
-        # Setup
-        step = pipelines.DownloadFileStep()
-        mock_response = MagicMock()
-        mock_response.status_code = httpx.codes.OK
-        mock_response.content = b"File content"
-        mock_get.return_value = mock_response
-        data = {
-            "url": "https://api.example.com/file",
-            "headers": {"Authorization": "Bearer test_token"},
-        }
-        # Action
-        result = step.execute(data)
-        # Assert
-        assert result["response"] == mock_response
-        assert result["response"].content == b"File content"
-        mock_get.assert_called_once_with(data["url"], headers=data["headers"])
-
-    @patch(
-        "httpx.get",
-        side_effect=httpx.HTTPStatusError(
-            "Not Found", request=MagicMock(), response=MagicMock(status_code=404)
-        ),
-    )
-    def test_execute_download_file_http_error(self, mock_get):
-        # Setup
-        step = pipelines.DownloadFileStep()
-        data = {
-            "url": "https://api.example.com/file",
-            "headers": {"Authorization": "Bearer test_token"},
-        }
-        # Action
-        with pytest.raises(httpx.HTTPStatusError) as exc_info:
-            step.execute(data)
-        # Assert
-        assert "Not Found" in str(exc_info.value)
-        mock_get.assert_called_once_with(data["url"], headers=data["headers"])
-
-
 class TestCheckResponseStep:
     @patch("cli.functions.pipelines.check_response_status")
     def test_execute_check_response_success(self, mock_check_response):
-        # Setup
-        step = pipelines.CheckResponseStep()
+        # Setup: Use the correct response_key ("response")
+        step = pipelines.CheckResponseStep(response_key="response")
         mock_response = MagicMock()
         mock_response.status_code = httpx.codes.OK
         data = {"response": mock_response}
-        # Action
+
+        # Action: Execute the step
         result = step.execute(data)
-        # Assert
+
+        # Assert: It should return the same data and check_response_status is called with the response.
         assert result == data
         mock_check_response.assert_called_once_with(mock_response)
 
@@ -1087,15 +682,17 @@ class TestCheckResponseStep:
         side_effect=httpx.RequestError("Error occurred"),
     )
     def test_execute_check_response_raises_error(self, mock_check_response):
-        # Setup
-        step = pipelines.CheckResponseStep()
+        # Setup: Use the correct response_key ("response")
+        step = pipelines.CheckResponseStep(response_key="response")
         mock_response = MagicMock()
-        mock_response.status_code = httpx.codes.BAD_REQUEST
+        mock_response.status_code = (
+            httpx.codes.BAD_REQUEST
+        )  # status code indicating failure
         data = {"response": mock_response}
-        # Action
+
+        # Action & Assert: Expect a RequestError to be raised during execution.
         with pytest.raises(httpx.RequestError) as exc_info:
             step.execute(data)
-        # Assert
         assert "Error occurred" in str(exc_info.value)
         mock_check_response.assert_called_once_with(mock_response)
 

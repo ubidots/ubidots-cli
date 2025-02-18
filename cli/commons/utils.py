@@ -1,18 +1,20 @@
+import re
+
 import httpx
 import typer
 
 from cli.commons.enums import MessageColorEnum
 from cli.commons.validators import is_valid_object_id
+from cli.config.models import ProfileConfigModel
 
 
 def build_endpoint(
-    route: str, query_params: dict | None = None, **kwargs
+    route: str,
+    active_config: ProfileConfigModel,
+    query_params: dict | None = None,
+    **kwargs,
 ) -> tuple[str, dict]:
-    from cli.config.helpers import read_cli_configuration  # noqa: PLC0415
-
-    # This was added to avoid validation errors but it is required to refactor in upcoming PRs
-    access_config = read_cli_configuration("dummy-profile")
-    url = f"{access_config.api_domain}{route.format(**kwargs)}"
+    url = f"{active_config.api_domain}{route.format(**kwargs)}"
     if query_params:
         filter_string = query_params.pop("filter", None)
         query_string = "&".join(
@@ -23,17 +25,19 @@ def build_endpoint(
         if filter_string:
             url += f"&{filter_string}"
 
-    headers = {access_config.auth_method: access_config.access_token}
+    headers = {active_config.auth_method: active_config.access_token}
     return url, headers
 
 
-def check_response_status(response: httpx.Response):
+def check_response_status(response: httpx.Response, custom_message: str | None = None):
     if response.status_code not in [httpx.codes.OK, httpx.codes.ACCEPTED]:
         response_json = response.json()
         error_message = response_json.get("detail") or response_json.get(
             "message", "Unknown error"
         )
-        raise httpx.RequestError(error_message)
+        raise httpx.RequestError(
+            error_message + " " + custom_message if custom_message else error_message
+        )
 
 
 def get_instance_key(id: str | None = None, label: str | None = None) -> str:
@@ -77,3 +81,11 @@ def exit_with_success_message(message: str = "Operation completed successfully."
         )
     )
     raise typer.Exit(0)
+
+
+def sanitize_function_name(name: str) -> str:
+    return re.sub(
+        r"^[^a-z0-9]+",
+        "",
+        re.sub(r"[^a-z0-9:._-]", "", re.sub(r"\s+", "-", name.strip().lower())),
+    )

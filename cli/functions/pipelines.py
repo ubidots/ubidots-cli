@@ -1,3 +1,4 @@
+import json
 import shutil
 import time
 import zipfile
@@ -13,6 +14,7 @@ from cli.commons.pipelines import PipelineStep
 from cli.commons.styles import print_colored_table
 from cli.commons.utils import build_endpoint
 from cli.commons.utils import check_response_status
+from cli.config.helpers import get_active_profile_configuration
 from cli.functions.engines.enums import FunctionEngineTypeEnum
 from cli.functions.engines.manager import FunctionEngineClientManager
 from cli.functions.engines.settings import engine_settings
@@ -20,6 +22,8 @@ from cli.functions.enums import FunctionHandlerFileExtensionEnum
 from cli.functions.enums import FunctionMainFileExtensionEnum
 from cli.functions.enums import FunctionMethodEnum
 from cli.functions.exceptions import FolderAlreadyExistsError
+from cli.functions.exceptions import FunctionWithIdAlreadyExistsError
+from cli.functions.exceptions import FunctionWithNameAlreadyExistsError
 from cli.functions.exceptions import PermissionDeniedError
 from cli.functions.exceptions import TemplateNotFoundError
 from cli.functions.helpers import argo_container_manager
@@ -29,6 +33,7 @@ from cli.functions.helpers import create_handler_file
 from cli.functions.helpers import enumerate_project_files
 from cli.functions.helpers import frie_container_manager
 from cli.functions.helpers import get_argo_input_adapter
+from cli.functions.helpers import get_language_from_runtime
 from cli.functions.helpers import get_or_create_network
 from cli.functions.helpers import read_manifest_project_file
 from cli.functions.helpers import save_manifest_project_file
@@ -76,76 +81,46 @@ class ExtractTemplateStep(PipelineStep):
 
 class SaveManifestStep(PipelineStep):
     def execute(self, data):
+        save_manifest_project_file(**data)
+        return data
+
+
+class ValidateRuntimeAgaisntLanguageStep(PipelineStep):
+    def execute(self, data):
+        language = data["language"]
+        runtime = data["runtime"]
+        if not runtime.startswith(language):
+            error_message = f"Runtime '{runtime}' does not match language '{language}'"
+            raise ValueError(error_message)
+        return data
+
+
+class ValidateAllowedRuntimeStep(PipelineStep):
+    def execute(self, data):
+        runtime = data["runtime"]
+        profile_config = get_active_profile_configuration()
+        allowed_runtimes = profile_config.runtimes
+        if runtime not in allowed_runtimes:
+            error_message = f"Runtime '{runtime}' is not allowed"
+            raise ValueError(error_message)
+        return data
+
+
+class GetTokenFromProfileStep(PipelineStep):
+    def execute(self, data):
+        profile_config = get_active_profile_configuration()
+        data["token"] = profile_config.access_token
+        return data
+
+
+class SetTokenInManifestStep(PipelineStep):
+    def execute(self, data):
         project_path = data["project_path"]
-        project_metadata = data.get("project_metadata")
+        data["project_metadata"] = read_manifest_project_file(project_path)
+        # project_metadata = data["project_metadata"]
+        # token = data["token"]
 
-        language = data.get("language")
-        runtime = data.get("runtime")
-        local_label = data.get("local_label")
-        function_id = data.get("function_id", "")
-
-        if project_metadata and not language:
-            language = project_metadata.project.language
-
-        if project_metadata and not runtime:
-            runtime = project_metadata.project.runtime
-
-        if project_metadata and not local_label:
-            local_label = project_metadata.project.local_label
-
-        if project_metadata and not function_id:
-            function_id = project_metadata.function.id
-
-        kwargs = {}
-        label = data.get("function_label")
-        cron = data.get("cron")
-        is_raw = data.get("is_raw")
-        has_cors = data.get("has_cors")
-        payload = data.get("payload")
-        methods = data.get("methods")
-        timeout = data.get("timeout")
-
-        if project_metadata and not label:
-            kwargs["label"] = project_metadata.function.label
-
-        if project_metadata and not cron:
-            kwargs["cron"] = project_metadata.function.cron
-
-        if project_metadata and not payload:
-            kwargs["payload"] = project_metadata.function.payload
-
-        methods = (
-            project_metadata.function.methods
-            if not data.get("methods") and project_metadata
-            else data.get("methods")
-        )
-        if methods:
-            kwargs["methods"] = methods
-
-        timeout = (
-            None if timeout is settings.FUNCTIONS.DEFAULT_TIMEOUT_SECONDS else timeout
-        )
-        if project_metadata and not timeout:
-            timeout = project_metadata.function.timeout
-        if timeout:
-            kwargs["timeout"] = timeout
-
-        if project_metadata and is_raw is None:
-            is_raw = project_metadata.function.is_raw
-        kwargs["is_raw"] = False if is_raw is None else is_raw
-
-        if project_metadata and has_cors is None:
-            has_cors = project_metadata.function.has_cors
-        kwargs["has_cors"] = False if has_cors is None else has_cors
-
-        save_manifest_project_file(
-            project_path=project_path,
-            language=language,
-            runtime=runtime,
-            local_label=local_label,
-            function_id=function_id,
-            **kwargs,
-        )
+        # project_metadata.function.token = token
         return data
 
 
@@ -165,13 +140,108 @@ class GetProjectFilesStep(PipelineStep):
         return data
 
 
+class GetProjectMetadataStep(PipelineStep):
+    def execute(self, data):
+        project_path = data["project_path"]
+        remote_function_name = data["remote_function_detail"]["name"]
+        function_path = Path(project_path / remote_function_name)
+        function_yaml_file = Path(
+            project_path
+            / remote_function_name
+            / settings.FUNCTIONS.PROJECT_METADATA_FILE
+        )
+        if function_yaml_file.exists():
+            data["existing_project_metadata"] = read_manifest_project_file(
+                function_path
+            )
+        return data
+
+
+class GetFunctionParametersStep(PipelineStep):
+    def execute(self, data):
+        remote_function_details = data["remote_function_detail"]
+        data["name"] = (name := remote_function_details["name"])
+        data["language"] = get_language_from_runtime(
+            runtime := remote_function_details["serverless"]["runtime"]
+        )
+        data["runtime"] = runtime
+        data["methods"] = remote_function_details["triggers"]["httpMethods"]
+        data["label"] = remote_function_details["label"]
+        data["created_at"] = remote_function_details["createdAt"]
+        data["timeout"] = remote_function_details["serverless"]["timeout"]
+        data["http_is_secure"] = remote_function_details["serverless"]["httpIsSecure"]
+        data["http_enabled"] = remote_function_details["serverless"]["httpEnabled"]
+        data["engine"] = settings.CONFIG.DEFAULT_CONTAINER_ENGINE
+        data["has_cors"] = remote_function_details["serverless"]["httpHasCors"]
+        data["is_raw"] = remote_function_details["serverless"]["isRawFunction"]
+        data["cron"] = remote_function_details["serverless"]["schedulerCron"]
+        data["has_cron"] = remote_function_details["serverless"]["schedulerEnabled"]
+        data["function_id"] = remote_function_details["id"]
+        data["token"] = remote_function_details["serverless"]["authToken"]
+        data["params"] = remote_function_details["serverless"]["params"]
+        data["project_path"] = data["project_path"] / name
+        return data
+
+
+class ValidateFunctionAlreadyExistsStep(PipelineStep):
+    def execute(self, data):
+        if not data.get("existing_project_metadata"):
+            return data
+        remote_function_id = data["remote_id"]
+        remote_function_name = data["remote_function_detail"]["name"]
+        existing_function_name = data["existing_project_metadata"].project.name
+        project_path = data["project_path"]
+        function_path = Path(project_path / remote_function_name)
+        if not function_path.exists():
+            return data
+        existing_metadata_function_id = data["existing_project_metadata"].function.id
+        if existing_metadata_function_id == remote_function_id:
+            raise FunctionWithIdAlreadyExistsError(
+                id=remote_function_id,
+                function_path=function_path,
+                alternative_command="ubidots functions update",
+            )
+        if remote_function_name == existing_function_name:
+            raise FunctionWithNameAlreadyExistsError(
+                name=remote_function_name,
+                function_path=function_path,
+            )
+        return data
+
+
+# class ValidateExistingFunctionStep(PipelineStep):
+#    def execute(self, data):
+#        remote_function_id = data['remote_id']
+#        remote_function_name = data["name"]
+#        #remote_function_details = data['function_detail']
+#        #existing_metadata_function_id = data["project_metadata"].function.id
+#        #function_path = Path(data["project_path"] + remote_function_name)
+#        print(data)
+#        #if not existing_metadata_function_id:
+#        #    return data
+#        #if function_id == existing_metadata_function_id:
+#        #    raise FunctionAlreadyExistsError(
+#        #        id=remote_function_id,
+#        #        alternative_command="ubidots functions update"
+#        #    )
+#        return data
+#        #try:
+#        #except ValueError as error:
+#        #    if data["root"] in ["push_function"]:
+#        #        data["overwrite"]["confirm"] = True
+#        #    else:
+#        #        raise error
+#        #return data
+
+# class ExistingFunctionStep(PipelineStep):
+
+
 class ValidateProjectStep(PipelineStep):
     def execute(self, data):
         project_path = data["project_path"]
         project_files = data["project_files"]
         project_metadata = data["project_metadata"]
         validations = data.get("validations", {})
-
         if validations.get("manifest_file"):
             validate_main_file_exists(
                 project_path=project_path,
@@ -179,13 +249,7 @@ class ValidateProjectStep(PipelineStep):
                 main_file=project_metadata.project.language.main_file,
             )
         if validations.get("function_exists"):
-            try:
-                validate_function_exists(project_metadata.function.id)
-            except ValueError as error:
-                if data["root"] in ["push_function"]:
-                    data["overwrite"]["confirm"] = True
-                else:
-                    raise error
+            validate_function_exists(project_metadata.function.id)
         return data
 
 
@@ -263,10 +327,12 @@ class CompressProjectStep(PipelineStep):
 class ExtractProjectStep(PipelineStep):
     def execute(self, data):
         project_path = data["project_path"]
-        response = data["response"]
+        response = data["function_zip_content"]
+        remote_function_name = data["remote_function_detail"]["name"]
+        function_path = Path(project_path / remote_function_name)
 
         with zipfile.ZipFile(BytesIO(response.content), "r") as zip_ref:
-            zip_ref.extractall(project_path)
+            zip_ref.extractall(function_path)
         return data
 
 
@@ -275,11 +341,10 @@ class BuildEndpointStep(PipelineStep):
     api_route: str
 
     def execute(self, data):
-        project_metadata = data["project_metadata"]
-
+        function_key = data["remote_id"]
+        active_config = get_active_profile_configuration()
         url, headers = build_endpoint(
-            route=self.api_route,
-            function_key=project_metadata.function.id,
+            route=self.api_route, function_key=function_key, active_config=active_config
         )
         data["url"] = url
         data["headers"] = headers
@@ -418,15 +483,81 @@ class DownloadFileStep(PipelineStep):
         headers = data["headers"]
 
         response = httpx.get(url, headers=headers)
-        data["response"] = response
+        data["function_zip_content"] = response
         return data
 
 
+@dataclass
 class CheckResponseStep(PipelineStep):
-    def execute(self, data):
-        response = data["response"]
+    response_key: str
 
+    def execute(self, data):
+        response = data[self.response_key]
         check_response_status(response)
+        return data
+
+
+class CheckFunctionDetailResponse(PipelineStep):
+    def execute(self, data):
+        response = data["remote_function_detail"]
+        remote_id = data["remote_id"]
+        error_message = f"Function with id '{remote_id}' not found."
+        check_response_status(response=response, custom_message=error_message)
+        return data
+
+
+class ParseFunctionDetailsResponse(PipelineStep):
+    def execute(self, data):
+        response = data["remote_function_detail"].json()
+        serverless_resp = response.get("serverless", {})
+        triggers_resp = response.get("triggers", {})
+        params = serverless_resp.get("params")
+
+        if isinstance(params, str):
+            try:
+                params = json.loads(params)
+            except Exception:
+                params = {}
+
+        serverless_data = {
+            "runtime": serverless_resp.get("runtime"),
+            "params": params,
+            "authToken": serverless_resp.get("authToken") or "",
+            "isRawFunction": serverless_resp.get("isRawFunction"),
+            "timeout": serverless_resp.get("timeout"),
+            "httpHasCors": triggers_resp.get("httpHasCors"),
+            "httpIsSecure": not triggers_resp.get("httpIsInsecure", False),
+            "httpEnabled": triggers_resp.get("httpEnabled"),
+            "schedulerCron": triggers_resp.get("schedulerCron"),
+            "schedulerEnabled": triggers_resp.get("schedulerEnabled"),
+        }
+        triggers_data = {"httpMethods": triggers_resp.get("httpMethods")}
+        function_model_data = {
+            "id": response.get("id"),
+            "label": response.get("label"),
+            "serverless": serverless_data,
+            "triggers": triggers_data,
+        }
+        data["remote_function_detail"] = function_model_data
+        data["remote_function_detail"]["label"] = response.get("label")
+        data["remote_function_detail"]["name"] = response.get("name")
+        data["remote_function_detail"]["createdAt"] = response.get("createdAt")
+        return data
+
+
+@dataclass
+class GetFunctionDetailSteps(PipelineStep):
+    api_route: str
+
+    def execute(self, data):
+        active_config = get_active_profile_configuration()
+        url, headers = build_endpoint(
+            route=self.api_route,
+            function_key=data["remote_id"],
+            active_config=active_config,
+        )
+        response = httpx.get(url, headers=headers)
+        data["remote_function_detail"] = response
         return data
 
 
