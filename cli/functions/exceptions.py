@@ -5,7 +5,6 @@ class FolderAlreadyExistsError(Exception):
 
 
 class FunctionWithIdAlreadyExistsError(Exception):
-    """Exception raised when a function is being pulled with the same ID already exists in the same directory."""
 
     def __init__(
         self, id: str, function_path: str, alternative_command: str | None = None
@@ -22,7 +21,6 @@ class FunctionWithIdAlreadyExistsError(Exception):
 
 
 class FunctionWithNameAlreadyExistsError(Exception):
-    """Exception raised when a function is being pulled with the same name already exists in the same directory."""
 
     def __init__(self, name: str, function_path: str):
         error_message = (

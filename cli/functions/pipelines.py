@@ -528,7 +528,7 @@ class ParseFunctionDetailsResponse(PipelineStep):
             "httpHasCors": triggers_resp.get("httpHasCors"),
             "httpIsSecure": not triggers_resp.get("httpIsInsecure", False),
             "httpEnabled": triggers_resp.get("httpEnabled"),
-            "schedulerCron": triggers_resp.get("schedulerCron"),
+            "schedulerCron": triggers_resp.get("schedulerCron") or "",
             "schedulerEnabled": triggers_resp.get("schedulerEnabled"),
         }
         triggers_data = {"httpMethods": triggers_resp.get("httpMethods")}
@@ -542,6 +542,7 @@ class ParseFunctionDetailsResponse(PipelineStep):
         data["remote_function_detail"]["label"] = response.get("label")
         data["remote_function_detail"]["name"] = response.get("name")
         data["remote_function_detail"]["createdAt"] = response.get("createdAt")
+
         return data
 
 

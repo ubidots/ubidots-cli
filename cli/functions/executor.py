@@ -31,8 +31,7 @@ def create_function(
     is_secure: bool = settings.FUNCTIONS.DEFAULT_IS_SECURE,
     http_enabled: bool = settings.FUNCTIONS.DEFAULT_HTTP_ENABLED,
 ):
-    if params is None:
-        params = {}
+    params = params if params else {}
     label = sanitize_function_name(name)
     project_path = Path.cwd() / name if not Path(name).is_absolute() else Path(name)
     steps = [
@@ -284,9 +283,9 @@ def pull_function(
         pipelines.ExtractProjectStep(),
         pipelines.GetFunctionParametersStep(),
         pipelines.SaveManifestStep(),
-        pipelines.ReadManifestStep(),
-        pipelines.GetProjectFilesStep(),
-        pipelines.ValidateProjectStep(),
+        # pipelines.ReadManifestStep(),
+        # pipelines.GetProjectFilesStep(),
+        # pipelines.ValidateProjectStep(),
     ]
     pipeline = Pipeline(steps, success_message="Function downloaded successfully.")
     pipeline.run(

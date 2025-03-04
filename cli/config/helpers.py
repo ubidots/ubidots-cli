@@ -1,10 +1,13 @@
 from pathlib import Path
+from typing import tuple
 
 import requests
 import yaml
+from pydantic import ValidationError
 
 from cli.commons.exceptions import NoProfileError
 from cli.commons.utils import exit_with_error_message
+from cli.commons.utils import load_yaml
 from cli.config.models import ProfileConfigModel
 from cli.settings import settings
 
@@ -61,28 +64,28 @@ def overwrite_default_profile(profile: str) -> None:
 
 
 def read_cli_configuration(profile: str) -> ProfileConfigModel:
-    file_path: Path = Path(settings.CONFIG.PROFILES_PATH / f"{profile}.yaml")
+    file_path = Path(settings.CONFIG.PROFILES_PATH / f"{profile}.yaml")
     with file_path.open() as config_file:
         config_data = yaml.safe_load(config_file)
     return ProfileConfigModel(**config_data)
 
 
 def get_active_profile_configuration() -> ProfileConfigModel:
-    file_path: Path = Path(settings.CONFIG.FILE_PATH)
-    if not file_path.exists():
-        error_message = f"File {file_path} not found"
-        raise FileNotFoundError(error_message)
-    with file_path.open("r") as f:
-        config = yaml.safe_load(f)
-    profiles_path = config["profilesPath"]
-    profile = config["profile"]
+    config = load_yaml(settings.CONFIG.FILE_PATH)
+
+    profiles_path, profile = extract_profile_paths(config, settings.CONFIG.FILE_PATH)
     profile_file = Path(profiles_path) / f"{profile}.yaml"
-    if not profile_file.exists():
-        error_message = f"File {profile_file} not found"
-        raise FileNotFoundError(error_message)
-    with profile_file.open("r") as pf:
-        profile_config = yaml.safe_load(pf)
-    return ProfileConfigModel(**profile_config)
+
+    profile_config = load_yaml(profile_file)
+    is_valid, missing_fields = validate_required_fields(profile_config, profile_file)
+
+    if not is_valid:
+        error_msg = (
+            f"Missing required fields in {profile_file}: {', '.join(missing_fields)}"
+        )
+        raise ValueError(error_msg)
+
+    return validate_profile_config(profile_config, profile_file)
 
 
 def mask_token(
@@ -110,3 +113,33 @@ def get_runtimes_from_api(access_token: str) -> list[dict]:
 
 def profile_exists(profile: str) -> bool:
     return Path(settings.CONFIG.PROFILES_PATH / f"{profile}.yaml").exists()
+
+
+def extract_profile_paths(config: dict, config_file: Path) -> tuple[str, str]:
+    profiles_path = config.get("profilesPath")
+    profile = config.get("profile")
+
+    if not profiles_path or not profile:
+        error_message = f"Invalid configuration: Missing 'profilesPath' or 'profile' in {config_file}"
+        raise ValueError(error_message)
+    return profiles_path, profile
+
+
+def validate_required_fields(
+    profile_config: dict, profile_file: Path
+) -> tuple[bool, set]:
+    required_fields = set(ProfileConfigModel.model_fields.keys())
+    missing_fields = required_fields - profile_config.keys()
+    if missing_fields:
+        return False, missing_fields
+    return True, set()
+
+
+def validate_profile_config(
+    profile_config: dict, profile_file: Path
+) -> ProfileConfigModel:
+    try:
+        return ProfileConfigModel(**profile_config)
+    except ValidationError as e:
+        error_message = f"Invalid profile configuration in {profile_file}:\n{e}"
+        raise ValueError(error_message) from e

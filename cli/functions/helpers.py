@@ -87,6 +87,10 @@ def save_manifest_project_file(
     **kwargs,
 ) -> None:
 
+    if has_cron and not cron:
+        error_msg = "Cron expression is required when scheduler is enabled."
+        raise ValueError(error_msg)
+
     globals_instance = FunctionGlobalsModel(engine=engine, label=label)
     project_instance = FunctionProjectModel(
         language=language, runtime=runtime, name=name, createdAt=created_at

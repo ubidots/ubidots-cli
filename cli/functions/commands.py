@@ -28,7 +28,6 @@ from cli.functions.enums import FunctionRuntimeLayerTypeEnum
 from cli.settings import settings
 
 DEFAULT_METHODS = FunctionMethodEnum.get_default_method()
-
 FIELDS_FUNCTION_HELP_TEXT = (
     "Comma-separated fields to process * e.g. field1,field2,field3. "
     "* Available fields: (url, id, label, name, isActive, createdAt, serverless, "
@@ -110,22 +109,21 @@ def init(
             remote_id=remote_id,
             verbose=verbose,
         )
-        return
-    executor.create_function(
-        name=name,
-        language=language,
-        runtime=runtime,
-        methods=methods,
-        is_raw=raw,
-        cron=cron,
-        cors=cors,
-        verbose=verbose,
-        timeout=timeout,
-        created_at=datetime.now().isoformat(),
-        engine=settings.CONFIG.DEFAULT_CONTAINER_ENGINE,
-        token=token,
-    )
-    return
+    else:
+        executor.create_function(
+            name=name,
+            language=language,
+            runtime=runtime,
+            methods=methods,
+            is_raw=raw,
+            cron=cron,
+            cors=cors,
+            verbose=verbose,
+            timeout=timeout,
+            created_at=datetime.now().isoformat(),
+            engine=settings.CONFIG.DEFAULT_CONTAINER_ENGINE,
+            token=token,
+        )
 
 
 @app.command(help="Create a new local function.", hidden=True)

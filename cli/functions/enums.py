@@ -112,8 +112,8 @@ class FunctionLanguageEnum(StrEnum):
 
     @property
     def main_file(self):
-        # Import settings locally to avoid circular import at module load time.
-        from cli.settings import settings  # noqa
+        from cli.settings import \
+            settings  # noqa: PLC0415  # Avoid circular import
 
         main_file_name = settings.FUNCTIONS.DEFAULT_MAIN_FILE_NAME
         return f"{main_file_name}.{self.extension}"

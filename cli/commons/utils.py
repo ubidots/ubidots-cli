@@ -1,7 +1,9 @@
 import re
+from pathlib import Path
 
 import httpx
 import typer
+import yaml
 
 from cli.commons.enums import MessageColorEnum
 from cli.commons.validators import is_valid_object_id
@@ -36,7 +38,7 @@ def check_response_status(response: httpx.Response, custom_message: str | None =
             "message", "Unknown error"
         )
         raise httpx.RequestError(
-            error_message + " " + custom_message if custom_message else error_message
+            f"{error_message} {custom_message}" if custom_message else error_message
         )
 
 
@@ -89,3 +91,30 @@ def sanitize_function_name(name: str) -> str:
         "",
         re.sub(r"[^a-z0-9:._-]", "", re.sub(r"\s+", "-", name.strip().lower())),
     )
+
+
+def load_yaml(file_path: str | Path) -> dict:
+    file_path = Path(file_path)
+
+    if not file_path.exists():
+        error_message = f"File {file_path} not found"
+        raise FileNotFoundError(error_message)
+
+    try:
+        with file_path.open("r") as f:
+            content = f.read().strip()  # Remove extra spaces/newlines
+            if not content:
+                error_message = f"File {file_path} is empty or not valid YAML"
+                raise ValueError(error_message)
+
+            parsed_data = yaml.safe_load(content)
+
+            if not isinstance(parsed_data, dict):
+                error_message = f"Invalid YAML format in {file_path}"
+                raise ValueError(error_message)
+
+            return parsed_data
+
+    except yaml.YAMLError as e:
+        error_message = f"Error parsing YAML file {file_path}: {e}"
+        raise ValueError(error_message) from e
