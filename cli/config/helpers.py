@@ -1,5 +1,4 @@
 from pathlib import Path
-from typing import tuple
 
 import requests
 import yaml
@@ -128,6 +127,7 @@ def extract_profile_paths(config: dict, config_file: Path) -> tuple[str, str]:
 def validate_required_fields(
     profile_config: dict, profile_file: Path
 ) -> tuple[bool, set]:
+    del profile_file  # unused
     required_fields = set(ProfileConfigModel.model_fields.keys())
     missing_fields = required_fields - profile_config.keys()
     if missing_fields:

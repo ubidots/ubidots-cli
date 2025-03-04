@@ -117,10 +117,6 @@ class SetTokenInManifestStep(PipelineStep):
     def execute(self, data):
         project_path = data["project_path"]
         data["project_metadata"] = read_manifest_project_file(project_path)
-        # project_metadata = data["project_metadata"]
-        # token = data["token"]
-
-        # project_metadata.function.token = token
         return data
 
 
@@ -207,33 +203,6 @@ class ValidateFunctionAlreadyExistsStep(PipelineStep):
                 function_path=function_path,
             )
         return data
-
-
-# class ValidateExistingFunctionStep(PipelineStep):
-#    def execute(self, data):
-#        remote_function_id = data['remote_id']
-#        remote_function_name = data["name"]
-#        #remote_function_details = data['function_detail']
-#        #existing_metadata_function_id = data["project_metadata"].function.id
-#        #function_path = Path(data["project_path"] + remote_function_name)
-#        print(data)
-#        #if not existing_metadata_function_id:
-#        #    return data
-#        #if function_id == existing_metadata_function_id:
-#        #    raise FunctionAlreadyExistsError(
-#        #        id=remote_function_id,
-#        #        alternative_command="ubidots functions update"
-#        #    )
-#        return data
-#        #try:
-#        #except ValueError as error:
-#        #    if data["root"] in ["push_function"]:
-#        #        data["overwrite"]["confirm"] = True
-#        #    else:
-#        #        raise error
-#        #return data
-
-# class ExistingFunctionStep(PipelineStep):
 
 
 class ValidateProjectStep(PipelineStep):

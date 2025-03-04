@@ -283,9 +283,9 @@ def pull_function(
         pipelines.ExtractProjectStep(),
         pipelines.GetFunctionParametersStep(),
         pipelines.SaveManifestStep(),
-        # pipelines.ReadManifestStep(),
-        # pipelines.GetProjectFilesStep(),
-        # pipelines.ValidateProjectStep(),
+        pipelines.ReadManifestStep(),
+        pipelines.GetProjectFilesStep(),
+        pipelines.ValidateProjectStep(),
     ]
     pipeline = Pipeline(steps, success_message="Function downloaded successfully.")
     pipeline.run(
