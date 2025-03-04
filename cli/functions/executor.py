@@ -1,13 +1,13 @@
 from pathlib import Path
+from typing import Any
 
 from cli.commons.pipelines import Pipeline
+from cli.commons.utils import sanitize_function_name
 from cli.functions import FUNCTION_API_ROUTES
 from cli.functions import pipelines
 from cli.functions.engines.enums import FunctionEngineTypeEnum
 from cli.functions.enums import FunctionLanguageEnum
 from cli.functions.enums import FunctionMethodEnum
-from cli.functions.enums import FunctionNodejsRuntimeLayerTypeEnum
-from cli.functions.enums import FunctionPythonRuntimeLayerTypeEnum
 from cli.functions.enums import FunctionRuntimeLayerTypeEnum
 from cli.settings import settings
 
@@ -15,19 +15,28 @@ from cli.settings import settings
 def create_function(
     name: str,
     language: FunctionLanguageEnum,
-    runtime: (
-        FunctionRuntimeLayerTypeEnum
-        | FunctionPythonRuntimeLayerTypeEnum
-        | FunctionNodejsRuntimeLayerTypeEnum
-    ),
+    runtime: FunctionRuntimeLayerTypeEnum,
     methods: list[FunctionMethodEnum],
     is_raw: bool,
+    engine: FunctionEngineTypeEnum,
     cron: str,
     cors: bool,
     verbose: bool,
+    timeout: int,
+    created_at: str,
+    token: str = "",
+    function_id: str = "",
+    params: dict[str, Any] | None = None,
+    has_cors: bool = settings.FUNCTIONS.DEFAULT_HAS_CORS,
+    is_secure: bool = settings.FUNCTIONS.DEFAULT_IS_SECURE,
+    http_enabled: bool = settings.FUNCTIONS.DEFAULT_HTTP_ENABLED,
 ):
+    params = params if params else {}
+    label = sanitize_function_name(name)
     project_path = Path.cwd() / name if not Path(name).is_absolute() else Path(name)
     steps = [
+        pipelines.ValidateAllowedRuntimeStep(),
+        pipelines.ValidateRuntimeAgaisntLanguageStep(),
         pipelines.ValidateTemplateStep(),
         pipelines.CreateProjectFolderStep(),
         pipelines.ExtractTemplateStep(),
@@ -39,15 +48,27 @@ def create_function(
     pipeline.run(
         {
             "project_path": project_path,
+            "name": name,
             "template_file": settings.FUNCTIONS.TEMPLATES_PATH / f"{language}.zip",
             "language": language,
             "runtime": runtime,
-            "is_raw": is_raw,
             "methods": methods,
-            "has_cors": cors,
+            "label": label,
+            "function_id": function_id,
             "cron": cron,
-            "verbose": verbose,
+            "has_cron": cron != "",
+            "has_cors": cors,
+            "is_raw": is_raw,
+            "timeout": timeout,
+            "params": params,
+            "engine": engine,
+            "token": token,
+            "http_has_cors": has_cors,
+            "http_is_secure": is_secure,
+            "http_enabled": http_enabled,
+            "created_at": created_at,
             "root": create_function.__name__,
+            "verbose": verbose,
         }
     )
 
@@ -246,33 +267,37 @@ def push_function(
 
 
 def pull_function(
-    confirm: bool,
-    verbose: bool,
+    remote_id: str,
+    verbose: bool = False,
 ):
     steps = [
+        pipelines.GetFunctionDetailSteps(FUNCTION_API_ROUTES["detail"]),
+        pipelines.CheckFunctionDetailResponse(),
+        pipelines.ParseFunctionDetailsResponse(),
+        pipelines.GetTokenFromProfileStep(),
+        pipelines.GetProjectMetadataStep(),
+        pipelines.ValidateFunctionAlreadyExistsStep(),
+        pipelines.BuildEndpointStep(FUNCTION_API_ROUTES["zip_file"]),
+        pipelines.DownloadFileStep(),
+        pipelines.CheckResponseStep("function_zip_content"),
+        pipelines.ExtractProjectStep(),
+        pipelines.GetFunctionParametersStep(),
+        pipelines.SaveManifestStep(),
         pipelines.ReadManifestStep(),
         pipelines.GetProjectFilesStep(),
         pipelines.ValidateProjectStep(),
-        pipelines.ConfirmOverwriteStep(),
-        pipelines.BuildEndpointStep(FUNCTION_API_ROUTES["zip_file"]),
-        pipelines.DownloadFileStep(),
-        pipelines.CheckResponseStep(),
-        pipelines.ExtractProjectStep(),
     ]
     pipeline = Pipeline(steps, success_message="Function downloaded successfully.")
     pipeline.run(
         {
             "project_path": Path.cwd(),
-            "overwrite": {
-                "confirm": confirm,
-                "message": "Are you sure you want to overwrite the local files?",
-            },
+            "remote_id": remote_id,
+            "verbose": verbose,
+            "root": pull_function.__name__,
             "validations": {
                 "manifest_file_exists": True,
                 "function_exists": True,
             },
-            "verbose": verbose,
-            "root": pull_function.__name__,
         }
     )
 

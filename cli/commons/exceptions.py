@@ -34,6 +34,7 @@ class NoProfileError(Exception):
 class UnexistentProfileError(Exception):
     def __init__(self, profile: str):
         self.profile = profile
+
     def __str__(self):
         return f"Profile {self.profile} does not exist yet. Please provide a valid profile name."
 

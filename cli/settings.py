@@ -5,6 +5,10 @@ from pydantic import BaseModel
 from pydantic_settings import BaseSettings
 
 from cli.commons.enums import OutputFormatFieldsEnum
+from cli.functions.engines.enums import FunctionEngineTypeEnum
+from cli.functions.enums import FunctionLanguageEnum
+from cli.functions.enums import FunctionMethodEnum
+from cli.functions.enums import FunctionRuntimeLayerTypeEnum
 
 
 class ConfigSettings(BaseModel):
@@ -22,7 +26,9 @@ class ConfigSettings(BaseModel):
     DEFAULT_INTERACTIVE: bool = True
     IGNORE_FUNCTIONS_FILE: Path = DIRECTORY_PATH / "functions.ignore"
     DEFAULT_CONTAINER_REPOSITORY: str = "https://registry.hub.docker.com/library/"
+    DEFAULT_CONTAINER_ENGINE: str = FunctionEngineTypeEnum.DOCKER.value
     DEFAULT_RUNTIMES: list[str] = []
+    ENABLED_LANGUAGES: list[str] = [e.value for e in FunctionLanguageEnum]
 
 
 class FunctionSettings(BaseModel):
@@ -41,6 +47,12 @@ class FunctionSettings(BaseModel):
     DEFAULT_HAS_CORS: bool = False
     DEFAULT_IS_RAW: bool = False
     CONTAINER_STARTUP_DELAY_SECONDS: float = 3
+    ENABLED_LANGUAGES: list[str] = [e.value for e in FunctionLanguageEnum]
+    DEFAULT_LANGUAGE: str = FunctionLanguageEnum.NODEJS.value
+    DEFAULT_RUNTIME: str = FunctionRuntimeLayerTypeEnum.NODEJS_20_LITE.value
+    DEFAULT_IS_SECURE: bool = False
+    DEFAULT_HTTP_ENABLED: bool = False
+    DEFAULT_METHODS: list[FunctionMethodEnum] = [FunctionMethodEnum.GET]
 
 
 class Settings(BaseSettings):

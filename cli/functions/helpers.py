@@ -1,5 +1,6 @@
 import io
 import os
+import re
 import shutil
 import socket
 import zipfile
@@ -40,13 +41,13 @@ from cli.functions.engines.podman.container import \
 from cli.functions.engines.settings import engine_settings
 from cli.functions.enums import FunctionLanguageEnum
 from cli.functions.enums import FunctionMethodEnum
-from cli.functions.enums import FunctionNodejsRuntimeLayerTypeEnum
-from cli.functions.enums import FunctionPythonRuntimeLayerTypeEnum
 from cli.functions.enums import FunctionRuntimeLayerTypeEnum
-from cli.functions.models import FunctionGlobals
-from cli.functions.models import FunctionInfo
-from cli.functions.models import FunctionProjectInfo
+from cli.functions.models import FunctionGlobalsModel
+from cli.functions.models import FunctionModel
 from cli.functions.models import FunctionProjectMetadata
+from cli.functions.models import FunctionProjectModel
+from cli.functions.models import FunctionServerlessModel
+from cli.functions.models import FunctionTriggersModel
 from cli.settings import settings
 
 
@@ -65,36 +66,57 @@ def build_functions_payload(**kwargs) -> dict:
 
 
 def save_manifest_project_file(
+    name: str,
     project_path: Path,
     language: FunctionLanguageEnum,
-    runtime: (
-        FunctionRuntimeLayerTypeEnum
-        | FunctionPythonRuntimeLayerTypeEnum
-        | FunctionNodejsRuntimeLayerTypeEnum
-    ),
-    local_label: str = "",
-    engine: FunctionEngineTypeEnum = engine_settings.CONTAINER.DEFAULT_ENGINE,
-    function_id: str = "",
+    runtime: FunctionRuntimeLayerTypeEnum,
+    methods: list[FunctionMethodEnum],
+    label: str,
+    created_at: str,
+    timeout: int,
+    http_is_secure: bool,
+    http_enabled: bool,
+    engine: FunctionEngineTypeEnum,
+    has_cors: bool,
+    is_raw: bool,
+    cron: str,
+    has_cron: bool,
+    function_id: str,
+    token: str,
+    params: dict[str, Any],
     **kwargs,
 ) -> None:
-    globals_instance = FunctionGlobals(engine=engine)
-    project_instance = FunctionProjectInfo(
-        name=project_path.name,
-        language=language,
-        runtime=runtime,
-        local_label=local_label,
-    )
-    function_instance = FunctionInfo(
-        id=function_id,
-        **kwargs,
-    )
 
+    if has_cron and not cron:
+        error_msg = "Cron expression is required when scheduler is enabled."
+        raise ValueError(error_msg)
+
+    globals_instance = FunctionGlobalsModel(engine=engine, label=label)
+    project_instance = FunctionProjectModel(
+        language=language, runtime=runtime, name=name, createdAt=created_at
+    )
+    function_instance = FunctionModel(
+        label=label,
+        id=function_id,
+        serverless=FunctionServerlessModel(
+            runtime=runtime,
+            params=params,
+            authToken=token,
+            isRawFunction=is_raw,
+            timeout=timeout,
+            httpHasCors=has_cors,
+            httpIsSecure=http_is_secure,
+            httpEnabled=http_enabled,
+            schedulerCron=cron,
+            schedulerEnabled=has_cron,
+        ),
+        triggers=FunctionTriggersModel(httpMethods=methods),
+    )
     metadata = FunctionProjectMetadata(
         globals=globals_instance,
         project=project_instance,
         function=function_instance,
     )
-
     metadata_file = project_path / settings.FUNCTIONS.PROJECT_METADATA_FILE
     with open(metadata_file, "w") as file:
         yaml.dump(metadata.to_yaml_serializable_format(), file)
@@ -411,3 +433,8 @@ def get_argo_input_adapter(
         ),
     )
     return url, data.model_dump()
+
+
+def get_language_from_runtime(runtime: str) -> str:
+    match = re.match(r"([a-z]+)", runtime)
+    return match.group(1) if match else ""

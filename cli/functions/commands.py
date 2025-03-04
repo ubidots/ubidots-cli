@@ -1,4 +1,5 @@
 from builtins import list as BuiltinList
+from datetime import datetime
 from typing import Annotated
 from typing import no_type_check
 
@@ -26,19 +27,108 @@ from cli.functions.enums import FunctionPythonRuntimeLayerTypeEnum
 from cli.functions.enums import FunctionRuntimeLayerTypeEnum
 from cli.settings import settings
 
+DEFAULT_METHODS = FunctionMethodEnum.get_default_method()
 FIELDS_FUNCTION_HELP_TEXT = (
     "Comma-separated fields to process * e.g. field1,field2,field3. "
     "* Available fields: (url, id, label, name, isActive, createdAt, serverless, "
     "triggers, environment, zipFileProperties)."
 )
-DEFAULT_METHODS = FunctionMethodEnum.get_default_method()
+
 
 app = typer.Typer(help="Tool for managing and deploying functions.")
 
 
 @app.command(help="Create a new local function.", hidden=True)
 @add_verbose_option()
-def new(
+def init(
+    name: Annotated[
+        str,
+        typer.Option(help="The name for the function."),
+    ] = settings.FUNCTIONS.DEFAULT_PROJECT_NAME,
+    language: Annotated[
+        FunctionLanguageEnum,
+        typer.Option(
+            help="The programming language for the function.",
+        ),
+    ] = settings.FUNCTIONS.DEFAULT_LANGUAGE,
+    remote_id: Annotated[
+        str,
+        typer.Option(
+            "--remote-id",
+            help="The remote function ID.",
+        ),
+    ] = "",
+    runtime: Annotated[
+        FunctionRuntimeLayerTypeEnum,
+        typer.Option(
+            help="The runtime for the function.",
+        ),
+    ] = settings.FUNCTIONS.DEFAULT_RUNTIME,
+    cors: Annotated[
+        bool,
+        typer.Option(
+            help="Flag to enable Cross-Origin Resource Sharing (CORS) for the function.",
+        ),
+    ] = settings.FUNCTIONS.DEFAULT_HAS_CORS,
+    cron: Annotated[
+        str,
+        typer.Option(
+            help="Cron expression to schedule the function for periodic execution.",
+            hidden=True,
+        ),
+    ] = settings.FUNCTIONS.DEFAULT_CRON,
+    timeout: Annotated[
+        int,
+        typer.Option(
+            help="Timeout for the function in seconds.",
+            hidden=True,
+        ),
+    ] = settings.FUNCTIONS.DEFAULT_TIMEOUT_SECONDS,
+    methods: Annotated[
+        list[FunctionMethodEnum],
+        typer.Option(
+            help="The HTTP methods the function will respond to.",
+        ),
+    ] = settings.FUNCTIONS.DEFAULT_METHODS,
+    raw: Annotated[
+        bool,
+        typer.Option(
+            help="Flag to determine if the output should be in raw format.",
+        ),
+    ] = settings.FUNCTIONS.DEFAULT_IS_RAW,
+    token: Annotated[
+        str,
+        typer.Option(
+            help="Token used to invoke the function.",
+        ),
+    ] = "",
+    verbose: bool = False,
+):
+    if remote_id:
+        executor.pull_function(
+            remote_id=remote_id,
+            verbose=verbose,
+        )
+    else:
+        executor.create_function(
+            name=name,
+            language=language,
+            runtime=runtime,
+            methods=methods,
+            is_raw=raw,
+            cron=cron,
+            cors=cors,
+            verbose=verbose,
+            timeout=timeout,
+            created_at=datetime.now().isoformat(),
+            engine=settings.CONFIG.DEFAULT_CONTAINER_ENGINE,
+            token=token,
+        )
+
+
+@app.command(help="Create a new local function.", hidden=True)
+@add_verbose_option()
+def start(
     name: Annotated[
         str, typer.Option(help="The name of the project folder.")
     ] = settings.FUNCTIONS.DEFAULT_PROJECT_NAME,
@@ -62,9 +152,9 @@ def new(
         ),
     ] = settings.FUNCTIONS.DEFAULT_CRON,
     methods: Annotated[
-        str,
+        FunctionMethodEnum,
         typer.Option(help="The HTTP methods the function will respond to."),
-    ] = FunctionMethodEnum.get_default_method(),
+    ] = FunctionMethodEnum.GET,
     raw: Annotated[
         bool,
         typer.Option(help="Flag to determine if the output should be in raw format."),
@@ -133,67 +223,6 @@ def new(
         is_raw=selected_raw,
         cron=selected_cron,
         cors=selected_cors,
-        verbose=verbose,
-    )
-
-
-@app.command(
-    help="Initialize the function container environment for execution.",
-)
-@add_verbose_option()
-def start(
-    engine: Annotated[
-        FunctionEngineTypeEnum,
-        typer.Option(help="The engine used to serve the function.", hidden=True),
-    ] = engine_settings.CONTAINER.DEFAULT_ENGINE,
-    cors: Annotated[
-        bool,  # noqa: RUF013
-        typer.Option(
-            help="Flag to enable Cross-Origin Resource Sharing (CORS) for the function.",
-        ),
-    ] = None,  # type: ignore
-    cron: Annotated[
-        str,
-        typer.Option(
-            help="Cron expression to schedule the function for periodic execution.",
-            hidden=True,
-        ),
-    ] = settings.FUNCTIONS.DEFAULT_CRON,
-    methods: Annotated[
-        str,
-        typer.Option(help="The HTTP methods the function will respond to."),
-    ] = DEFAULT_METHODS,
-    raw: Annotated[
-        bool,  # noqa: RUF013
-        typer.Option(help="Flag to determine if the output should be in raw format."),
-    ] = None,  # type: ignore
-    timeout: Annotated[
-        int,
-        typer.Option(
-            help=(
-                "Maximum time (in seconds) the function is allowed to run before being terminated. "
-                f"[max: {settings.FUNCTIONS.MAX_TIMEOUT_SECONDS}]"
-            )
-        ),
-    ] = settings.FUNCTIONS.DEFAULT_TIMEOUT_SECONDS,
-    token: Annotated[
-        str, typer.Option(help="Optional authentication token to invoke the function.")
-    ] = "",
-    verbose: bool = False,
-):
-    parse_methods = (
-        None
-        if methods is DEFAULT_METHODS
-        else FunctionMethodEnum.parse_methods_to_enum_list(methods)
-    )
-    executor.start_function(
-        engine=engine,
-        methods=parse_methods,
-        is_raw=raw,
-        token=token,
-        cors=cors,
-        cron=cron,
-        timeout=timeout,
         verbose=verbose,
     )
 

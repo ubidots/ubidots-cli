@@ -6,17 +6,17 @@ from cli.commons.utils import exit_with_error_message
 from cli.commons.utils import exit_with_success_message
 from cli.config.helpers import create_config_file
 from cli.config.helpers import create_default_profile
+from cli.config.helpers import exist_config_file
+from cli.config.helpers import exists_default_profile
 from cli.config.helpers import get_runtimes_from_api
 from cli.config.helpers import mask_token
 from cli.config.helpers import overwrite_default_profile
 from cli.config.helpers import profile_exists
 from cli.config.helpers import read_cli_configuration
-from cli.config.helpers import save_profile_configuration 
+from cli.config.helpers import save_profile_configuration
 from cli.config.helpers import validate_profile
-from cli.config.helpers import exist_config_file 
-from cli.config.helpers import exists_default_profile 
-from cli.config.models import ProfileConfigModel 
 from cli.config.models import AuthHeaderTypeEnum
+from cli.config.models import ProfileConfigModel
 
 
 def existing_profile(profile: str):
