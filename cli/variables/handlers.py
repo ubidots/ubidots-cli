@@ -8,6 +8,7 @@ from cli.commons.styles import print_colored_table
 from cli.commons.utils import build_endpoint
 from cli.commons.utils import exit_with_error_message
 from cli.commons.utils import exit_with_success_message
+from cli.config.models import ProfileConfigModel
 from cli.variables.helpers import build_variables_payload
 
 
@@ -18,6 +19,7 @@ def list_variable(
     page_size: int,
     page: int,
     format: OutputFormatFieldsEnum,
+    active_config: ProfileConfigModel,
 ):
     url, headers = build_endpoint(
         route="/api/v2.0/variables/",
@@ -28,6 +30,7 @@ def list_variable(
             "page_size": page_size,
             "page": page,
         },
+        active_config=active_config,
     )
     response = httpx.get(url, headers=headers)
     if format == OutputFormatFieldsEnum.JSON:
@@ -36,11 +39,17 @@ def list_variable(
         print_colored_table(results=response.json()["results"])
 
 
-def retrieve_variable(variable_key: str, fields: str, format: OutputFormatFieldsEnum):
+def retrieve_variable(
+    variable_key: str,
+    fields: str,
+    format: OutputFormatFieldsEnum,
+    active_config: ProfileConfigModel,
+):
     url, headers = build_endpoint(
         route="/api/v2.0/variables/{variable_key}/",
         variable_key=variable_key,
         query_params={"fields": fields},
+        active_config=active_config,
     )
     response = httpx.get(url, headers=headers)
     if format == OutputFormatFieldsEnum.JSON:
@@ -49,10 +58,11 @@ def retrieve_variable(variable_key: str, fields: str, format: OutputFormatFields
         print_colored_table(results=[response.json()])
 
 
-def add_variable(**kwargs):
+def add_variable(active_config: ProfileConfigModel, **kwargs):
     data = build_variables_payload(**kwargs)
     url, headers = build_endpoint(
         route="/api/v2.0/variables/",
+        active_config=active_config,
     )
     client = httpx.Client(follow_redirects=True)
     response = client.post(url, headers=headers, json=data)
@@ -72,11 +82,12 @@ def add_variable(**kwargs):
         )
 
 
-def update_variable(variable_key: str, **kwargs):
+def update_variable(variable_key: str, active_config: ProfileConfigModel, **kwargs):
     data = build_variables_payload(**kwargs)
     url, headers = build_endpoint(
         route="/api/v2.0/variables/{variable_key}/",
         variable_key=variable_key,
+        active_config=active_config,
     )
     response = httpx.patch(url, headers=headers, json=data)
     if response.status_code == httpx.codes.OK:
@@ -94,10 +105,11 @@ def update_variable(variable_key: str, **kwargs):
         )
 
 
-def delete_variable(variable_key: str):
+def delete_variable(variable_key: str, active_config: ProfileConfigModel):
     url, headers = build_endpoint(
         route="/api/v2.0/variables/{variable_key}/",
         variable_key=variable_key,
+        active_config=active_config,
     )
     httpx.delete(url, headers=headers)
     exit_with_success_message(

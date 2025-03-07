@@ -1,6 +1,6 @@
 from pathlib import Path
-from typing import Any
 
+from cli.commons.enums import OutputFormatFieldsEnum
 from cli.commons.pipelines import Pipeline
 from cli.commons.utils import sanitize_function_name
 from cli.functions import FUNCTION_API_ROUTES
@@ -24,14 +24,14 @@ def create_function(
     verbose: bool,
     timeout: int,
     created_at: str,
+    profile: str,
     token: str = "",
     function_id: str = "",
-    params: dict[str, Any] | None = None,
+    params: str = "{}",
     has_cors: bool = settings.FUNCTIONS.DEFAULT_HAS_CORS,
     is_secure: bool = settings.FUNCTIONS.DEFAULT_IS_SECURE,
     http_enabled: bool = settings.FUNCTIONS.DEFAULT_HTTP_ENABLED,
 ):
-    params = params if params else {}
     label = sanitize_function_name(name)
     project_path = Path.cwd() / name if not Path(name).is_absolute() else Path(name)
     steps = [
@@ -48,6 +48,7 @@ def create_function(
     pipeline.run(
         {
             "project_path": project_path,
+            "profile": profile,
             "name": name,
             "template_file": settings.FUNCTIONS.TEMPLATES_PATH / f"{language}.zip",
             "language": language,
@@ -74,20 +75,13 @@ def create_function(
 
 
 def start_function(
-    engine: FunctionEngineTypeEnum,
-    methods: list[FunctionMethodEnum] | None,
-    is_raw: bool | None,
-    token: str,
-    cors: bool | None,
-    cron: str,
-    timeout: int,
     verbose: bool,
 ):
     steps = [
         pipelines.ReadManifestStep(),
         pipelines.GetProjectFilesStep(),
         pipelines.ValidateProjectStep(),
-        pipelines.GetClientStep(engine=engine),
+        pipelines.GetClientStep(),
         pipelines.GetImageNamesStep(),
         pipelines.ValidateImageNamesStep(),
         pipelines.ShowStartupInfoStep(),
@@ -98,7 +92,6 @@ def start_function(
         pipelines.CreateArgoContainerAdapterStep(),
         pipelines.CreateHandlerFRIEStep(),
         pipelines.GetFRIEContainerTargetStep(),
-        pipelines.SaveManifestStep(),
         pipelines.PrintkeyStep(key="target_url"),
     ]
     pipeline = Pipeline(steps, success_message="Function started successfully.")
@@ -106,15 +99,9 @@ def start_function(
         {
             "project_path": Path.cwd(),
             "validations": {
-                "manifest_file_exists": True,
+                "manifest_file": True,
                 "function_exists": False,
             },
-            "is_raw": is_raw,
-            "methods": methods,
-            "has_cors": cors,
-            "token": token,
-            "cron": cron,
-            "timeout": timeout,
             "verbose": verbose,
             "root": start_function.__name__,
         }
@@ -122,14 +109,12 @@ def start_function(
 
 
 def stop_function(
-    engine: FunctionEngineTypeEnum,
-    label: str,
     verbose: bool,
 ):
     steps = [
-        pipelines.GetClientStep(engine=engine),
-        pipelines.GetContainerManagerStep(),
         pipelines.ReadManifestStep(),
+        pipelines.GetClientStep(),
+        pipelines.GetContainerManagerStep(),
         pipelines.GetContainerKeyStep(),
         pipelines.RemoveNonDeployableFilesStep(),
         pipelines.StopFunctionStep(),
@@ -139,7 +124,6 @@ def stop_function(
     pipeline.run(
         {
             "project_path": Path.cwd(),
-            "container_key": label,
             "verbose": verbose,
             "root": stop_function.__name__,
         }
@@ -147,13 +131,12 @@ def stop_function(
 
 
 def restart_function(
-    engine: FunctionEngineTypeEnum,
     verbose: bool,
 ):
     steps = [
-        pipelines.GetClientStep(engine=engine),
-        pipelines.GetContainerManagerStep(),
         pipelines.ReadManifestStep(),
+        pipelines.GetClientStep(),
+        pipelines.GetContainerManagerStep(),
         pipelines.GetContainerKeyStep(),
         pipelines.RestartFunctionStep(),
     ]
@@ -168,24 +151,29 @@ def restart_function(
 
 
 def status_function(
-    engine: FunctionEngineTypeEnum,
     verbose: bool,
 ):
     steps = [
-        pipelines.GetClientStep(engine=engine),
+        pipelines.ReadManifestStep(),
+        pipelines.GetClientStep(),
         pipelines.GetContainerManagerStep(),
         pipelines.GetFunctionStatusStep(),
         pipelines.PrintColoredTableStep(key="status"),
     ]
     pipeline = Pipeline(steps)
-    pipeline.run({"verbose": verbose, "root": status_function.__name__})
+    pipeline.run(
+        {
+            "verbose": verbose,
+            "root": status_function.__name__,
+            "project_path": Path.cwd(),
+        }
+    )
 
 
 def logs_function(
-    engine: FunctionEngineTypeEnum,
-    label: str,
     tail: str,
     follow: bool,
+    profile: str,
     remote: bool,
     verbose: bool,
 ):
@@ -194,15 +182,18 @@ def logs_function(
             pipelines.ReadManifestStep(),
             pipelines.GetProjectFilesStep(),
             pipelines.ValidateProjectStep(),
+            pipelines.GetFunctionIdFromManifestStep(),
+            pipelines.GetActiveConfigStep(),
             pipelines.BuildEndpointStep(FUNCTION_API_ROUTES["logs"]),
             pipelines.HttpGetRequestStep(),
-            pipelines.CheckResponseStep(),
+            pipelines.CheckResponseStep("response"),
             pipelines.PrintColoredTableStep(key="results"),
         ]
         pipeline = Pipeline(steps)
         pipeline.run(
             {
                 "project_path": Path.cwd(),
+                "profile": profile,
                 "validations": {
                     "manifest_file_exists": True,
                     "function_exists": True,
@@ -213,52 +204,57 @@ def logs_function(
         )
     else:
         steps = [
-            pipelines.GetClientStep(engine=engine),
+            pipelines.ReadManifestStep(),
+            pipelines.GetClientStep(),
             pipelines.GetContainerManagerStep(),
+            pipelines.GetContainerKeyStep(),
             pipelines.GetFunctionLogsStep(tail=tail, follow=follow),
             pipelines.PrintkeyStep(key="logs"),
         ]
         pipeline = Pipeline(steps)
         pipeline.run(
             {
-                "container_key": label,
                 "verbose": verbose,
                 "root": logs_function.__name__,
+                "project_path": Path.cwd(),
             }
         )
 
 
 def push_function(
     confirm: bool,
+    profile: str,
     verbose: bool,
 ):
     steps = [
+        pipelines.GetActiveConfigStep(),
         pipelines.ReadManifestStep(),
         pipelines.GetProjectFilesStep(),
         pipelines.ValidateProjectStep(),
-        pipelines.ConfirmOverwriteStep(),
+        pipelines.ValidateRemoteFunctionExistStep(),
         pipelines.BuildEndpointStep(FUNCTION_API_ROUTES["base"]),
         pipelines.CreateFunctionStep(),
-        pipelines.SaveManifestStep(),
+        pipelines.SaveFunctionIDStep(),
+        pipelines.ConfirmOverwritePushFunctionStep(),
         pipelines.BuildEndpointStep(FUNCTION_API_ROUTES["detail"]),
-        pipelines.UpdateFunctionStep(),
-        pipelines.ReadManifestStep(),
-        pipelines.CompressProjectStep(),
+        pipelines.UpdateFunctionSettings(),
         pipelines.BuildEndpointStep(FUNCTION_API_ROUTES["zip_file"]),
+        pipelines.CompressProjectStep(),
         pipelines.UploadFileStep(),
-        pipelines.CheckResponseStep(),
+        pipelines.CheckResponseStep(response_key="response"),
     ]
     pipeline = Pipeline(steps, success_message="Function uploaded successfully.")
     pipeline.run(
         {
             "project_path": Path.cwd(),
+            "profile": profile,
             "overwrite": {
                 "confirm": confirm,
                 "message": "Are you sure you want to overwrite the remote files?",
             },
             "validations": {
-                "manifest_file_exists": True,
-                "function_exists": True,
+                "manifest_file": True,
+                "function_exists": False,
             },
             "verbose": verbose,
             "root": push_function.__name__,
@@ -268,15 +264,18 @@ def push_function(
 
 def pull_function(
     remote_id: str,
+    profile: str,
+    confirm: bool = False,
     verbose: bool = False,
 ):
     steps = [
-        pipelines.GetFunctionDetailSteps(FUNCTION_API_ROUTES["detail"]),
+        pipelines.GetActiveConfigStep(),
+        pipelines.GetRemoteFunctionDetailSteps(FUNCTION_API_ROUTES["detail"]),
         pipelines.CheckFunctionDetailResponse(),
         pipelines.ParseFunctionDetailsResponse(),
-        pipelines.GetTokenFromProfileStep(),
-        pipelines.GetProjectMetadataStep(),
-        pipelines.ValidateFunctionAlreadyExistsStep(),
+        pipelines.GetRemoteFunctionLocalMetadataStep(),
+        pipelines.ValidateFunctionHasAlreadyBeenPulled(),
+        pipelines.ConfirmOverwritePullFunctionStep(),
         pipelines.BuildEndpointStep(FUNCTION_API_ROUTES["zip_file"]),
         pipelines.DownloadFileStep(),
         pipelines.CheckResponseStep("function_zip_content"),
@@ -286,11 +285,14 @@ def pull_function(
         pipelines.ReadManifestStep(),
         pipelines.GetProjectFilesStep(),
         pipelines.ValidateProjectStep(),
+        pipelines.PrintFunctionPath(),
     ]
-    pipeline = Pipeline(steps, success_message="Function downloaded successfully.")
+    pipeline = Pipeline(steps, success_message="")
     pipeline.run(
         {
             "project_path": Path.cwd(),
+            "confirm": confirm,
+            "profile": profile,
             "remote_id": remote_id,
             "verbose": verbose,
             "root": pull_function.__name__,
@@ -303,13 +305,13 @@ def pull_function(
 
 
 def clean_functions(
-    engine: FunctionEngineTypeEnum,
     confirm: bool,
     verbose: bool,
 ):
     steps = [
+        pipelines.ReadManifestStep(),
         pipelines.ConfirmOverwriteStep(),
-        pipelines.GetClientStep(engine=engine),
+        pipelines.GetClientStep(),
         pipelines.GetContainerManagerStep(),
         pipelines.CleanFunctionsStep(),
     ]
@@ -323,7 +325,180 @@ def clean_functions(
                     "This will remove all unused images, containers, and networks, which cannot be undone."
                 ),
             },
+            "project_path": Path.cwd(),
             "verbose": verbose,
             "root": clean_functions.__name__,
+        }
+    )
+
+
+def add_function(
+    profile: str,
+    name: str,
+    label: str,
+    runtime: str,
+    is_raw: bool,
+    http_methods: list[str],
+    http_has_cors: bool,
+    scheduler_cron: str,
+    timeout: int,
+    environment: str,
+):
+    steps = [
+        pipelines.GetActiveConfigStep(),
+        pipelines.CreateFunctionRemoteServerStep(),
+    ]
+    pipeline = Pipeline(steps)
+    pipeline.run(
+        {
+            "profile": profile,
+            "name": name,
+            "label": label,
+            "runtime": runtime,
+            "is_raw": is_raw,
+            "http_methods": http_methods,
+            "http_has_cors": http_has_cors,
+            "scheduler_cron": scheduler_cron,
+            "timeout": timeout,
+            "environment": environment,
+            "root": add_function.__name__,
+        }
+    )
+
+
+def delete_function(
+    function_key: str,
+    profile: str,
+    confirm: bool,
+    verbose: bool,
+):
+    steps = [
+        pipelines.GetActiveConfigStep(),
+        pipelines.ConfirmOverwriteStep(),
+        pipelines.DeleteFunctionStep(),
+    ]
+    pipeline = Pipeline(
+        steps, success_message=f"Function {function_key} deleted successfully."
+    )
+    pipeline.run(
+        {
+            "overwrite": {
+                "confirm": confirm,
+                "message": "Are you sure you want to delete the function?",
+            },
+            "profile": profile,
+            "function_key": function_key,
+            "verbose": verbose,
+            "root": delete_function.__name__,
+        }
+    )
+
+
+def get_function(
+    function_key: str,
+    profile: str,
+    verbose: bool,
+    format: OutputFormatFieldsEnum,
+    fields: str,
+):
+    steps = [
+        pipelines.GetActiveConfigStep(),
+        pipelines.GetFunctionFromRemoteServerStep(),
+    ]
+    pipeline = Pipeline(steps)
+    pipeline.run(
+        {
+            "profile": profile,
+            "function_key": function_key,
+            "format": format,
+            "fields": fields,
+            "verbose": verbose,
+            "root": get_function.__name__,
+        }
+    )
+
+
+def list_functions(
+    profile: str,
+    fields: str,
+    filter: str,
+    sort_by: str,
+    page_size: int,
+    page: int,
+    format: OutputFormatFieldsEnum,
+):
+    steps = [
+        pipelines.GetActiveConfigStep(),
+        pipelines.ListFunctionsFromRemoteServerStep(),
+    ]
+    pipeline = Pipeline(
+        steps, success_message="Functions retrieved from remote server successfully."
+    )
+    pipeline.run(
+        {
+            "profile": profile,
+            "format": format,
+            "fields": fields,
+            "filter": filter,
+            "sort_by": sort_by,
+            "page_size": page_size,
+            "page": page,
+            "root": list_functions.__name__,
+        }
+    )
+
+
+def update_function(
+    function_key: str,
+    profile: str,
+    name: str,
+    label: str,
+    http_methods: list[str] | None,
+    http_has_cors: bool | None,
+    scheduler_cron: str | None,
+    runtime: str | None,
+    is_raw: bool | None,
+    timeout: int | None,
+    environment: str | None,
+):
+    steps = [
+        pipelines.GetActiveConfigStep(),
+        pipelines.GetRemoteFunctionDetailSteps(FUNCTION_API_ROUTES["detail"]),
+        pipelines.CheckFunctionDetailResponse(),
+        pipelines.ParseFunctionDetailsResponse(),
+        pipelines.UpdateFunctionStep(),
+    ]
+    pipeline = Pipeline(
+        steps, success_message=f"Function {function_key} updated successfully."
+    )
+    pipeline.run(
+        {
+            "profile": profile,
+            "remote_id": function_key,
+            "update_data": {
+                "name": name,
+                "label": label,
+                "serverless": {
+                    "runtime": runtime,
+                    "params": None,
+                    "authToken": None,
+                    "isRawFunction": is_raw,
+                    "timeout": timeout,
+                },
+                "triggers": {
+                    "httpMethods": http_methods,
+                    "httpHasCors": http_has_cors,
+                    "schedulerCron": scheduler_cron,
+                    "schedulerEnabled": (
+                        False
+                        if scheduler_cron == ""
+                        else (True if scheduler_cron is not None else None)
+                    ),
+                },
+                "environment": environment,
+            },
+            "name": name,
+            "label": label,
+            "root": update_function.__name__,
         }
     )

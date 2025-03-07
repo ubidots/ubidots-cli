@@ -1,4 +1,5 @@
 from unittest import TestCase
+from unittest.mock import ANY
 from unittest.mock import patch
 
 from typer.testing import CliRunner
@@ -22,7 +23,10 @@ class TestDeleteCommand(TestCase):
         # Expected
         self.assertEqual(result.exit_code, 0)
         mock_get_instance_key.assert_called_once_with(id="variable123")
-        mock_delete_variable.assert_called_once_with(variable_key="variable_id")
+        mock_delete_variable.assert_called_once_with(
+            active_config=ANY,
+            variable_key="variable_id",
+        )
 
 
 @patch("cli.variables.commands.get_instance_key")
@@ -37,6 +41,7 @@ class TestGetCommand(TestCase):
         self.assertEqual(result.exit_code, 0)
         mock_get_instance_key.assert_called_once_with(id="variable123")
         mock_retrieve_variable.assert_called_once_with(
+            active_config=ANY,
             variable_key="variable_id",
             fields=DefaultInstanceFieldEnum.get_default_fields(),
             format=settings.CONFIG.DEFAULT_OUTPUT_FORMAT,
@@ -56,6 +61,7 @@ class TestGetCommand(TestCase):
         self.assertEqual(result.exit_code, 0)
         mock_get_instance_key.assert_called_once_with(id="variable123")
         mock_retrieve_variable.assert_called_once_with(
+            active_config=ANY,
             variable_key="variable_id",
             fields=custom_fields,
             format=settings.CONFIG.DEFAULT_OUTPUT_FORMAT,
@@ -70,6 +76,7 @@ class TestListCommand(TestCase):
         # Expected
         self.assertEqual(result.exit_code, 0)
         mock_list_variables.assert_called_once_with(
+            active_config=ANY,
             fields=DefaultInstanceFieldEnum.get_default_fields(),
             filter=None,
             sort_by=None,
@@ -86,6 +93,7 @@ class TestListCommand(TestCase):
         # Expected
         self.assertEqual(result.exit_code, 0)
         mock_list_variables.assert_called_once_with(
+            active_config=ANY,
             fields=custom_fields,
             filter=None,
             sort_by=None,
@@ -106,6 +114,7 @@ class TestAddCommand(TestCase):
         # Expected
         self.assertEqual(result.exit_code, 0)
         mock_add_variable.assert_called_once_with(
+            active_config=ANY,
             label=variable_label,
             name="",
             description="",
@@ -153,6 +162,7 @@ class TestAddCommand(TestCase):
         # Expected
         self.assertEqual(result.exit_code, 0)
         mock_add_variable.assert_called_once_with(
+            active_config=ANY,
             label="variableLabel",
             name="VariableName",
             description="Test variable description",
@@ -182,6 +192,7 @@ class TestUpdateCommand(TestCase):
         self.assertEqual(result.exit_code, 0)
         mock_get_instance_key.assert_called_once_with(id=variable_id)
         mock_update_variable.assert_called_once_with(
+            active_config=ANY,
             variable_key="variable_key",
             label="",
             name="",
@@ -233,6 +244,7 @@ class TestUpdateCommand(TestCase):
         self.assertEqual(result.exit_code, 0)
         mock_get_instance_key.assert_called_once_with(id="variable123")
         mock_update_variable.assert_called_once_with(
+            active_config=ANY,
             variable_key="variable_key",
             label="newVariableLabel",
             name="UpdatedVariableName",

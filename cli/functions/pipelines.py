@@ -10,22 +10,27 @@ from pathlib import Path
 import httpx
 import typer
 
+from cli.commons.enums import MessageColorEnum
 from cli.commons.pipelines import PipelineStep
 from cli.commons.styles import print_colored_table
 from cli.commons.utils import build_endpoint
 from cli.commons.utils import check_response_status
 from cli.config.helpers import get_active_profile_configuration
-from cli.functions.engines.enums import FunctionEngineTypeEnum
+from cli.config.helpers import get_profile_configuration
+from cli.functions import FUNCTION_API_ROUTES
 from cli.functions.engines.manager import FunctionEngineClientManager
 from cli.functions.engines.settings import engine_settings
 from cli.functions.enums import FunctionHandlerFileExtensionEnum
 from cli.functions.enums import FunctionMainFileExtensionEnum
 from cli.functions.enums import FunctionMethodEnum
 from cli.functions.exceptions import FolderAlreadyExistsError
-from cli.functions.exceptions import FunctionWithIdAlreadyExistsError
-from cli.functions.exceptions import FunctionWithNameAlreadyExistsError
 from cli.functions.exceptions import PermissionDeniedError
 from cli.functions.exceptions import TemplateNotFoundError
+from cli.functions.handlers import add_function
+from cli.functions.handlers import delete_function
+from cli.functions.handlers import list_functions
+from cli.functions.handlers import retrieve_function
+from cli.functions.handlers import update_function
 from cli.functions.helpers import argo_container_manager
 from cli.functions.helpers import build_functions_payload
 from cli.functions.helpers import compress_project_to_zip
@@ -35,6 +40,7 @@ from cli.functions.helpers import frie_container_manager
 from cli.functions.helpers import get_argo_input_adapter
 from cli.functions.helpers import get_language_from_runtime
 from cli.functions.helpers import get_or_create_network
+from cli.functions.helpers import merge_update_data
 from cli.functions.helpers import read_manifest_project_file
 from cli.functions.helpers import save_manifest_project_file
 from cli.functions.helpers import verify_and_fetch_images
@@ -79,6 +85,40 @@ class ExtractTemplateStep(PipelineStep):
         return data
 
 
+class SaveFunctionIDStep(PipelineStep):
+    def execute(self, data):
+
+        if data["needs_update"]:
+            return data
+
+        project_metada = data["project_metadata"]
+        project_path = data["project_path"]
+
+        kwargs = {
+            "label": project_metada.function.label,
+            "name": project_metada.project.name,
+            "language": project_metada.project.language,
+            "runtime": project_metada.function.serverless.runtime,
+            "methods": project_metada.function.triggers.httpMethods,
+            "timeout": project_metada.function.serverless.timeout,
+            "http_is_secure": project_metada.function.triggers.httpIsSecure,
+            "http_enabled": project_metada.function.triggers.httpEnabled,
+            "engine": project_metada.globals.engine,
+            "has_cors": project_metada.function.triggers.httpHasCors,
+            "is_raw": project_metada.function.serverless.isRawFunction,
+            "cron": project_metada.function.triggers.schedulerCron,
+            "has_cron": project_metada.function.triggers.schedulerEnabled,
+            "created_at": project_metada.project.createdAt,
+            "function_id": data["remote_id"],
+            "token": project_metada.function.serverless.authToken,
+            "params": project_metada.function.serverless.params,
+        }
+
+        save_manifest_project_file(project_path=project_path, **kwargs)
+
+        return data
+
+
 class SaveManifestStep(PipelineStep):
     def execute(self, data):
         save_manifest_project_file(**data)
@@ -98,7 +138,12 @@ class ValidateRuntimeAgaisntLanguageStep(PipelineStep):
 class ValidateAllowedRuntimeStep(PipelineStep):
     def execute(self, data):
         runtime = data["runtime"]
-        profile_config = get_active_profile_configuration()
+        profile = data.get("profile", "")
+        profile_config = (
+            get_profile_configuration(profile=profile)
+            if profile
+            else get_active_profile_configuration()
+        )
         allowed_runtimes = profile_config.runtimes
         if runtime not in allowed_runtimes:
             error_message = f"Runtime '{runtime}' is not allowed"
@@ -106,17 +151,20 @@ class ValidateAllowedRuntimeStep(PipelineStep):
         return data
 
 
-class GetTokenFromProfileStep(PipelineStep):
+class GetFunctionIdFromManifestStep(PipelineStep):
     def execute(self, data):
-        profile_config = get_active_profile_configuration()
-        data["token"] = profile_config.access_token
+        data["remote_id"] = data["project_metadata"].function.id
         return data
 
 
-class SetTokenInManifestStep(PipelineStep):
+class GetActiveConfigStep(PipelineStep):
     def execute(self, data):
-        project_path = data["project_path"]
-        data["project_metadata"] = read_manifest_project_file(project_path)
+        profile = data.get("profile", "")
+        data["active_config"] = (
+            get_profile_configuration(profile=profile)
+            if profile
+            else get_active_profile_configuration()
+        )
         return data
 
 
@@ -136,7 +184,7 @@ class GetProjectFilesStep(PipelineStep):
         return data
 
 
-class GetProjectMetadataStep(PipelineStep):
+class GetRemoteFunctionLocalMetadataStep(PipelineStep):
     def execute(self, data):
         project_path = data["project_path"]
         remote_function_name = data["remote_function_detail"]["name"]
@@ -165,24 +213,45 @@ class GetFunctionParametersStep(PipelineStep):
         data["label"] = remote_function_details["label"]
         data["created_at"] = remote_function_details["createdAt"]
         data["timeout"] = remote_function_details["serverless"]["timeout"]
-        data["http_is_secure"] = remote_function_details["serverless"]["httpIsSecure"]
-        data["http_enabled"] = remote_function_details["serverless"]["httpEnabled"]
+        data["http_is_secure"] = remote_function_details["triggers"]["httpIsSecure"]
+        data["http_enabled"] = remote_function_details["triggers"]["httpEnabled"]
         data["engine"] = settings.CONFIG.DEFAULT_CONTAINER_ENGINE
-        data["has_cors"] = remote_function_details["serverless"]["httpHasCors"]
+        data["has_cors"] = remote_function_details["triggers"]["httpHasCors"]
         data["is_raw"] = remote_function_details["serverless"]["isRawFunction"]
-        data["cron"] = remote_function_details["serverless"]["schedulerCron"]
-        data["has_cron"] = remote_function_details["serverless"]["schedulerEnabled"]
+        data["cron"] = remote_function_details["triggers"]["schedulerCron"]
+        data["has_cron"] = remote_function_details["triggers"]["schedulerEnabled"]
         data["function_id"] = remote_function_details["id"]
-        data["token"] = remote_function_details["serverless"]["authToken"]
+        data["token"] = remote_function_details["serverless"]["authToken"].get(
+            "token", ""
+        )
         data["params"] = remote_function_details["serverless"]["params"]
         data["project_path"] = data["project_path"] / name
         return data
 
 
-class ValidateFunctionAlreadyExistsStep(PipelineStep):
+class ConfirmOverwritePushFunctionStep(PipelineStep):
     def execute(self, data):
+        needs_update = data["needs_update"]
+        confirm = data.get("confirm", False)
+
+        if not needs_update:
+            return data
+        message = "This function has already been pushed. Would you like to overwrite the remote function?"
+        if not confirm and not typer.confirm(message):
+            error_message = (
+                "Operation cancelled: The pushing process was aborted by the user."
+            )
+            raise typer.Abort(error_message)
+        return data
+
+
+class ValidateFunctionHasAlreadyBeenPulled(PipelineStep):
+    def execute(self, data):
+
+        data["needs_update"] = False
         if not data.get("existing_project_metadata"):
             return data
+
         remote_function_id = data["remote_id"]
         remote_function_name = data["remote_function_detail"]["name"]
         existing_function_name = data["existing_project_metadata"].project.name
@@ -192,16 +261,81 @@ class ValidateFunctionAlreadyExistsStep(PipelineStep):
             return data
         existing_metadata_function_id = data["existing_project_metadata"].function.id
         if existing_metadata_function_id == remote_function_id:
-            raise FunctionWithIdAlreadyExistsError(
-                id=remote_function_id,
-                function_path=function_path,
-                alternative_command="ubidots functions update",
-            )
+            data["needs_update"] = True
         if remote_function_name == existing_function_name:
-            raise FunctionWithNameAlreadyExistsError(
-                name=remote_function_name,
-                function_path=function_path,
+            data["needs_update"] = True
+        return data
+
+
+class CreateFunctionRemoteServerStep(PipelineStep):
+    def execute(self, data):
+        active_config = data["active_config"]
+        create_function_payload = {
+            "serverless": {
+                "runtime": data["runtime"],
+                "isRawFunction": data["is_raw"],
+                "timeout": data["timeout"],
+            },
+            "triggers": {
+                "httpMethods": data["http_methods"],
+                "httpHasCors": data["http_has_cors"],
+                "schedulerEnabled": bool(data["scheduler_cron"]),
+            },
+            "environment": data["environment"],
+            "name": data["name"],
+            "label": data["label"],
+        }
+        if data["scheduler_cron"]:
+            create_function_payload["triggers"]["schedulerCron"] = data[
+                "scheduler_cron"
+            ]
+
+        result = add_function(active_config=active_config, **create_function_payload)
+
+        if not result["success"]:
+            error_msg = f"Failed to create function: {result['error']}"
+            raise RuntimeError(error_msg)
+
+        id = result["function_id"]
+        label = result["label"]
+        typer.echo(
+            typer.style(
+                text=f"\n> [DONE]: Function with id {id} and label {label} created successfully.\n",
+                fg=MessageColorEnum.SUCCESS,
+                bold=True,
             )
+        )
+        return data
+
+
+class ConfirmOverwritePullFunctionStep(PipelineStep):
+    def execute(self, data):
+        needs_update = data["needs_update"]
+        confirm = data.get("confirm", False)
+
+        if not needs_update:
+            return data
+        message = (
+            "This function has already been pulled. Would you like to overwrite it?"
+        )
+        if not confirm and not typer.confirm(message):
+            error_message = (
+                "Operation cancelled: The overwrite process was aborted by the user."
+            )
+            raise typer.Abort(error_message)
+        return data
+
+
+class PrintFunctionPath(PipelineStep):
+    def execute(self, data):
+        project_path = data["project_path"]
+        typer.echo(
+            typer.style(
+                text=f"\n> [DONE]: Function downloaded successfully at {project_path}\n",
+                fg=MessageColorEnum.SUCCESS,
+                bold=True,
+            )
+        )
         return data
 
 
@@ -225,31 +359,26 @@ class ValidateProjectStep(PipelineStep):
 class ShowStartupInfoStep(PipelineStep):
     def execute(self, data):
         project_metadata = data["project_metadata"]
-        info_project = project_metadata.project
-        is_raw = data.get("is_raw")
-        if project_metadata and is_raw is None:
-            is_raw = project_metadata.function.is_raw
-        is_raw = False if is_raw is None else is_raw
-        methods = (
-            project_metadata.function.methods
-            if not data.get("methods") and project_metadata
-            else data.get("methods")
-        )
-        token = data.get("token") or project_metadata.function.token
+        is_raw_function = project_metadata.function.serverless.isRawFunction
+        methods = project_metadata.function.triggers.httpMethods
+        function_label = project_metadata.function.label
+        function_name = project_metadata.project.name
+        runtime = project_metadata.function.serverless.runtime
+        token = project_metadata.function.serverless.authToken
 
         typer.echo(
             f"""
 ------------------
 Starting Function:
 ------------------
-Name: {info_project.name}
-Runtime: {info_project.runtime}
-Local label: {info_project.local_label}
-
+Name: {function_name}
+Local label: {function_label}
+Runtime: {runtime}
+#
 -------
 INPUTS:
 -------
-Raw: {is_raw}
+Raw: {is_raw_function}
 Methods: {", ".join(methods)}
 Token: {token}
     """
@@ -310,8 +439,10 @@ class BuildEndpointStep(PipelineStep):
     api_route: str
 
     def execute(self, data):
-        function_key = data["remote_id"]
-        active_config = get_active_profile_configuration()
+        function_key = (
+            data["remote_id"] if self.api_route != FUNCTION_API_ROUTES["base"] else None
+        )
+        active_config = data["active_config"]
         url, headers = build_endpoint(
             route=self.api_route, function_key=function_key, active_config=active_config
         )
@@ -325,38 +456,46 @@ class CreateFunctionStep(PipelineStep):
         url = data["url"]
         headers = data["headers"]
         project_metadata = data["project_metadata"]
-        data["needs_update"] = False
+        needs_update = data["needs_update"]
 
-        if project_metadata.function.id:
-            data["needs_update"] = True
+        if needs_update:
             return data
 
         message = "This function is not created. Would you like to create a new function and push it?"
         if not typer.confirm(message):
             error_message = (
-                "Operation cancelled: The overwrite process was aborted by the user."
+                "Operation cancelled: Function pushing was aborted by the user."
             )
             raise typer.Abort(error_message)
 
-        json = build_functions_payload(
-            label=project_metadata.function.label or "",
-            name=project_metadata.project.name,
-            triggers={
-                "httpMethods": FunctionMethodEnum.enum_list_to_str_list(
-                    project_metadata.function.methods
-                ),
-                "httpHasCors": project_metadata.function.has_cors,
-                "schedulerCron": project_metadata.function.cron or None,
-            },
-            serverless={
-                "runtime": project_metadata.project.runtime,
-                "isRawFunction": project_metadata.function.is_raw,
-                "authToken": None,
-                "timeout": project_metadata.function.timeout,
-                "params": project_metadata.function.payload,
-            },
-        )
+        triggers = {
+            "httpMethods": FunctionMethodEnum.enum_list_to_str_list(
+                project_metadata.function.triggers.httpMethods
+            ),
+            "httpHasCors": project_metadata.function.triggers.httpHasCors,
+        }
 
+        if project_metadata.function.triggers.schedulerCron:
+            triggers["schedulerCron"] = project_metadata.function.triggers.schedulerCron
+
+        serverless = {
+            "runtime": project_metadata.function.serverless.runtime.value,
+            "isRawFunction": project_metadata.function.serverless.isRawFunction,
+            "timeout": project_metadata.function.serverless.timeout,
+        }
+
+        if project_metadata.function.serverless.authToken:
+            serverless["authToken"] = project_metadata.function.serverless.authToken
+
+        if project_metadata.function.serverless.params:
+            serverless["params"] = project_metadata.function.serverless.params
+
+        json = build_functions_payload(
+            label=project_metadata.function.label,
+            name=project_metadata.project.name,
+            triggers=triggers,
+            serverless=serverless,
+        )
         client = httpx.Client(follow_redirects=True)
         response = client.post(url, headers=headers, json=json)
 
@@ -369,48 +508,111 @@ class CreateFunctionStep(PipelineStep):
                 )
             )
         data["response"] = response
-        data["function_id"] = response.json()["id"]
+        data["remote_id"] = response.json()["id"]
         data["function_label"] = response.json()["label"]
+        return data
+
+
+class UpdateFunctionSettings(PipelineStep):
+    def execute(self, data):
+        needs_update = data["needs_update"]
+        if not needs_update:
+            return data
+
+        active_config = data["active_config"]
+        function_key = data["remote_id"]
+        project_metadata = data["project_metadata"]
+        url, headers = build_endpoint(
+            route=FUNCTION_API_ROUTES["detail"],
+            function_key=function_key,
+            active_config=active_config,
+        )
+        payload = {
+            "label": project_metadata.function.label,
+            "name": project_metadata.project.name,
+            "serverless": {
+                "runtime": project_metadata.function.serverless.runtime,
+                "isRawFunction": project_metadata.function.serverless.isRawFunction,
+                "timeout": project_metadata.function.serverless.timeout,
+            },
+            "triggers": {
+                "httpMethods": project_metadata.function.triggers.httpMethods,
+                "httpHasCors": project_metadata.function.triggers.httpHasCors,
+                "schedulerEnabled": (
+                    bool(project_metadata.function.triggers.schedulerCron)
+                ),
+            },
+        }
+
+        if project_metadata.function.triggers.schedulerCron:
+            payload["triggers"][
+                "schedulerCron"
+            ] = project_metadata.function.triggers.schedulerCron
+
+        if project_metadata.function.serverless.params:
+            payload["serverless"][
+                "params"
+            ] = project_metadata.function.serverless.params
+
+        response = update_function(
+            url=url, headers=headers, data=payload, function_key=function_key
+        )
+        data["response"] = response
+        return data
+
+
+class ValidateRemoteFunctionExistStep(PipelineStep):
+    def execute(self, data):
+
+        data["needs_update"] = False
+
+        project_metadata = data["project_metadata"]
+        remote_id = project_metadata.function.id
+        if not remote_id:
+            return data
+
+        url, headers = build_endpoint(
+            route=FUNCTION_API_ROUTES["detail"],
+            function_key=remote_id,
+            active_config=data["active_config"],
+        )
+        try:
+            response = httpx.get(url=url, headers=headers)
+            response.raise_for_status()
+        except httpx.HTTPStatusError as error:
+            if error.response.status_code == httpx.codes.NOT_FOUND:
+                return data
+            raise error
+        data["needs_update"] = True
+        data["remote_id"] = remote_id
         return data
 
 
 class UpdateFunctionStep(PipelineStep):
     def execute(self, data):
-        url = data["url"]
-        headers = data["headers"]
-        project_metadata = data["project_metadata"]
 
-        if not project_metadata.function.id and not data.get("needs_update"):
-            return data
+        update_data = data["update_data"]
+        remote_function_details = data["remote_function_detail"]
+        merged_payload = merge_update_data(remote_function_details, update_data)
 
-        json = build_functions_payload(
-            label=project_metadata.function.label or "",
-            name=project_metadata.project.name,
-            triggers={
-                "httpMethods": FunctionMethodEnum.enum_list_to_str_list(
-                    project_metadata.function.methods
-                ),
-                "httpHasCors": project_metadata.function.has_cors,
-                "schedulerCron": project_metadata.function.cron or None,
-            },
-            serverless={
-                "runtime": project_metadata.project.runtime,
-                "isRawFunction": project_metadata.function.is_raw,
-                "authToken": None,
-                "timeout": project_metadata.function.timeout,
-                "params": project_metadata.function.payload,
-            },
+        function_key = data["remote_id"]
+        active_config = data["active_config"]
+        url, headers = build_endpoint(
+            route=FUNCTION_API_ROUTES["detail"],
+            function_key=function_key,
+            active_config=active_config,
         )
 
-        response = httpx.patch(url, headers=headers, json=json)
-        if response.status_code != httpx.codes.OK:
-            raise (
-                httpx.HTTPStatusError(
-                    message=response._content.decode("utf-8"),
-                    request=response.request,
-                    response=response,
-                )
-            )
+        if merged_payload["triggers"]["schedulerCron"] == "":
+            del merged_payload["triggers"]["schedulerCron"]
+        if merged_payload["serverless"]["params"] == {}:
+            del merged_payload["serverless"]["params"]
+        if merged_payload["serverless"]["authToken"] == {}:
+            del merged_payload["serverless"]["authToken"]
+
+        response = update_function(
+            url=url, headers=headers, data=merged_payload, function_key=function_key
+        )
         data["response"] = response
         return data
 
@@ -442,7 +644,11 @@ class HttpGetRequestStep(PipelineStep):
 
         response = httpx.get(url, headers=headers)
         data["response"] = response
-        data["results"] = response.json()["results"]
+        try:
+            data["results"] = response.json()["results"]
+        except KeyError as error:
+            error_msg = "Invalid response from the server."
+            raise KeyError(error_msg) from error
         return data
 
 
@@ -468,7 +674,7 @@ class CheckResponseStep(PipelineStep):
 
 class CheckFunctionDetailResponse(PipelineStep):
     def execute(self, data):
-        response = data["remote_function_detail"]
+        response = data["remote_function_detail_response"]
         remote_id = data["remote_id"]
         error_message = f"Function with id '{remote_id}' not found."
         check_response_status(response=response, custom_message=error_message)
@@ -477,7 +683,7 @@ class CheckFunctionDetailResponse(PipelineStep):
 
 class ParseFunctionDetailsResponse(PipelineStep):
     def execute(self, data):
-        response = data["remote_function_detail"].json()
+        response = data["remote_function_detail_response"].json()
         serverless_resp = response.get("serverless", {})
         triggers_resp = response.get("triggers", {})
         params = serverless_resp.get("params")
@@ -491,16 +697,18 @@ class ParseFunctionDetailsResponse(PipelineStep):
         serverless_data = {
             "runtime": serverless_resp.get("runtime"),
             "params": params,
-            "authToken": serverless_resp.get("authToken") or "",
+            "authToken": serverless_resp.get("authToken") or {},
             "isRawFunction": serverless_resp.get("isRawFunction"),
             "timeout": serverless_resp.get("timeout"),
+        }
+        triggers_data = {
+            "httpMethods": triggers_resp.get("httpMethods"),
             "httpHasCors": triggers_resp.get("httpHasCors"),
             "httpIsSecure": not triggers_resp.get("httpIsInsecure", False),
             "httpEnabled": triggers_resp.get("httpEnabled"),
             "schedulerCron": triggers_resp.get("schedulerCron") or "",
             "schedulerEnabled": triggers_resp.get("schedulerEnabled"),
         }
-        triggers_data = {"httpMethods": triggers_resp.get("httpMethods")}
         function_model_data = {
             "id": response.get("id"),
             "label": response.get("label"),
@@ -516,18 +724,17 @@ class ParseFunctionDetailsResponse(PipelineStep):
 
 
 @dataclass
-class GetFunctionDetailSteps(PipelineStep):
+class GetRemoteFunctionDetailSteps(PipelineStep):
     api_route: str
 
     def execute(self, data):
-        active_config = get_active_profile_configuration()
         url, headers = build_endpoint(
             route=self.api_route,
             function_key=data["remote_id"],
-            active_config=active_config,
+            active_config=data["active_config"],
         )
         response = httpx.get(url, headers=headers)
-        data["remote_function_detail"] = response
+        data["remote_function_detail_response"] = response
         return data
 
 
@@ -555,10 +762,9 @@ class PrintkeyStep(PipelineStep):
 
 @dataclass
 class GetClientStep(PipelineStep):
-    engine: FunctionEngineTypeEnum = engine_settings.CONTAINER.DEFAULT_ENGINE
-
     def execute(self, data):
-        engine_manager = FunctionEngineClientManager(self.engine)
+        engine = data["project_metadata"].globals.engine
+        engine_manager = FunctionEngineClientManager(engine)
         data["client"] = engine_manager.get_client()
         return data
 
@@ -623,7 +829,7 @@ class GetArgoContainerManagerStep(PipelineStep):
             client=client,
             network=network,
             image_name=image_name,
-            frie_label=project_metadata.project.local_label,
+            frie_label=project_metadata.function.label,
         )
         data["argo_container"] = container
         data["argo_adapter_port"] = argo_adapter_port
@@ -637,25 +843,15 @@ class GetArgoContainerInputAdapterStep(PipelineStep):
         project_metadata = data["project_metadata"]
         argo_adapter_port = data["argo_adapter_port"]
 
-        is_raw = data.get("is_raw")
-        if project_metadata and is_raw is None:
-            is_raw = project_metadata.function.is_raw
-        is_raw = False if is_raw is None else is_raw
-        has_cors = data.get("has_cors")
-        if project_metadata and has_cors is None:
-            has_cors = project_metadata.function.has_cors
-        has_cors = False if has_cors is None else has_cors
-        token = data.get("token") or project_metadata.function.token
-        methods = (
-            project_metadata.function.methods
-            if not data.get("methods") and project_metadata
-            else data.get("methods")
-        )
+        is_raw = project_metadata.function.serverless.isRawFunction
+        has_cors = project_metadata.function.triggers.httpHasCors
+        token = project_metadata.function.serverless.authToken
+        methods = project_metadata.function.triggers.httpMethods
 
         adapter_url, adapter_data = get_argo_input_adapter(
             client=client,
             network=network,
-            frie_label=project_metadata.project.local_label,
+            frie_label=project_metadata.function.label,
             argo_adapter_port=argo_adapter_port,
             is_raw=is_raw,
             token=token,
@@ -695,7 +891,7 @@ class GetContainerKeyStep(PipelineStep):
             return data
 
         project_metadata = data["project_metadata"]
-        data["container_key"] = project_metadata.project.local_label
+        data["container_key"] = project_metadata.function.label
         return data
 
 
@@ -729,16 +925,10 @@ class GetFRIEContainerTargetStep(PipelineStep):
         container_manager = data["container_manager"]
         function_image_name = data["function_image_name"]
         network = data["network"]
-        is_raw = data.get("is_raw")
-        if project_metadata and is_raw is None:
-            is_raw = project_metadata.function.is_raw
-        is_raw = False if is_raw is None else is_raw
-        timeout = data.get("timeout")
-        if project_metadata and not timeout:
-            timeout = project_metadata.function.timeout
+        is_raw = project_metadata.function.serverless.isRawFunction
+        timeout = project_metadata.function.serverless.timeout
         language = project_metadata.project.language
-
-        label = project_metadata.project.local_label
+        label = project_metadata.function.label
         argo_target_port = engine_settings.CONTAINER.ARGO.INTERNAL_TARGET_PORT.split(
             "/"
         )[0]
@@ -816,7 +1006,6 @@ class CleanFunctionsStep(PipelineStep):
     def execute(self, data):
         client = data["client"]
         container_manager = data["container_manager"]
-
         for container in container_manager.list(
             label=engine_settings.CONTAINER.FRIE.LABEL_KEY
         ):
@@ -838,4 +1027,59 @@ class CleanFunctionsStep(PipelineStep):
             prefix_name = engine_settings.CONTAINER.NETWORK_NAME
             if network.name.startswith(prefix_name):
                 network.remove()
+        return data
+
+
+class DeleteFunctionStep(PipelineStep):
+    def execute(self, data):
+        active_config = data["active_config"]
+        function_key = data["function_key"]
+        url, headers = build_endpoint(
+            route=FUNCTION_API_ROUTES["detail"],
+            function_key=function_key,
+            active_config=active_config,
+        )
+        response = delete_function(url, headers, function_key)
+        data["response"] = response
+        return data
+
+
+class GetFunctionFromRemoteServerStep(PipelineStep):
+    def execute(self, data):
+        function_key = data["function_key"]
+        active_config = data["active_config"]
+        format = data["format"]
+        fields = data["fields"]
+        url, headers = build_endpoint(
+            route=FUNCTION_API_ROUTES["detail"],
+            function_key=function_key,
+            active_config=active_config,
+            query_params={"fields": fields},
+        )
+        response = retrieve_function(format=format, url=url, headers=headers)
+        data["remote_function_detail"] = response
+        return data
+
+
+class ListFunctionsFromRemoteServerStep(PipelineStep):
+    def execute(self, data):
+        active_config = data["active_config"]
+        format = data["format"]
+        fields = data["fields"]
+        filter = data["filter"]
+        page_size = data["page_size"]
+        page = data["page"]
+        sort_by = data["sort_by"]
+        url, headers = build_endpoint(
+            route=FUNCTION_API_ROUTES["base"],
+            active_config=active_config,
+            query_params={
+                "fields": fields,
+                "filter": filter,
+                "sort_by": sort_by,
+                "page_size": page_size,
+                "page": page,
+            },
+        )
+        list_functions(url, headers, format)
         return data

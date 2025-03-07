@@ -51,6 +51,24 @@ from cli.functions.models import FunctionTriggersModel
 from cli.settings import settings
 
 
+def merge_update_data(original_data: dict, update_data: dict) -> dict:
+
+    def deep_merge(original: dict, update: dict):
+        for key, value in update.items():
+            if (
+                isinstance(value, dict)
+                and key in original
+                and isinstance(original[key], dict)
+            ):
+                deep_merge(original[key], value)
+            elif value not in [None, "", {}, []]:
+                original[key] = value
+
+    merged_data = original_data.copy()
+    deep_merge(merged_data, update_data)
+    return merged_data
+
+
 def build_functions_payload(**kwargs) -> dict:
     data = {
         "triggers": kwargs.get("triggers", {}),
@@ -83,7 +101,7 @@ def save_manifest_project_file(
     has_cron: bool,
     function_id: str,
     token: str,
-    params: dict[str, Any],
+    params: str,
     **kwargs,
 ) -> None:
 
@@ -104,13 +122,15 @@ def save_manifest_project_file(
             authToken=token,
             isRawFunction=is_raw,
             timeout=timeout,
+        ),
+        triggers=FunctionTriggersModel(
+            httpMethods=methods,
             httpHasCors=has_cors,
             httpIsSecure=http_is_secure,
             httpEnabled=http_enabled,
             schedulerCron=cron,
             schedulerEnabled=has_cron,
         ),
-        triggers=FunctionTriggersModel(httpMethods=methods),
     )
     metadata = FunctionProjectMetadata(
         globals=globals_instance,

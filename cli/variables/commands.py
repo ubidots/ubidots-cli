@@ -13,6 +13,8 @@ from cli.commons.enums import EntityNameEnum
 from cli.commons.enums import OutputFormatFieldsEnum
 from cli.commons.utils import get_instance_key
 from cli.commons.validators import is_valid_json_string
+from cli.config.helpers import get_active_profile_configuration
+from cli.config.helpers import get_profile_configuration
 from cli.settings import settings
 from cli.variables import handlers
 from cli.variables.enums import VariableTypeEnum
@@ -30,9 +32,20 @@ app = typer.Typer(help="Variable management and operations.")
 
 @app.command(short_help="Deletes a specific variable using its id")
 @simple_lookup_key(entity_name=EntityNameEnum.VARIABLE)
-def delete(id: str):
+def delete(
+    id: str,
+    profile: Annotated[
+        str,
+        typer.Option(help="Name of the profile to use for remote server communication."),
+    ] = "",
+):
+    active_config = (
+        get_profile_configuration(profile=profile)
+        if profile
+        else get_active_profile_configuration()
+    )
     variable_key = get_instance_key(id=id)
-    handlers.delete_variable(variable_key=variable_key)
+    handlers.delete_variable(variable_key=variable_key, active_config=active_config)
 
 
 @app.command(short_help="Retrieves a specific variable using its id.")
@@ -40,14 +53,24 @@ def delete(id: str):
 @no_type_check
 def get(
     id: str,
+    profile: Annotated[
+        str,
+        typer.Option(help="Name of the profile to use for remote server communication."),
+    ] = "",
     fields: Annotated[
         str,
         typer.Option(help=FIELDS_VARIABLE_HELP_TEXT),
     ] = DefaultInstanceFieldEnum.get_default_fields(),
     format: OutputFormatFieldsEnum = settings.CONFIG.DEFAULT_OUTPUT_FORMAT,
 ):
+    active_config = (
+        get_profile_configuration(profile=profile)
+        if profile
+        else get_active_profile_configuration()
+    )
     variable_key = get_instance_key(id=id)
     handlers.retrieve_variable(
+        active_config=active_config,
         variable_key=variable_key,
         fields=fields,
         format=format,
@@ -68,9 +91,19 @@ def list(
     sort_by: str | None = None,
     page_size: int | None = None,
     page: int | None = None,
+    profile: Annotated[
+        str,
+        typer.Option(help="Name of the profile to use for remote server communication."),
+    ] = "",
     format: OutputFormatFieldsEnum = settings.CONFIG.DEFAULT_OUTPUT_FORMAT,
 ):
+    active_config = (
+        get_profile_configuration(profile=profile)
+        if profile
+        else get_active_profile_configuration()
+    )
     handlers.list_variable(
+        active_config=active_config,
         fields=fields,
         filter=filter,
         sort_by=sort_by,
@@ -125,25 +158,35 @@ def add(
         ),
     ] = "{}",
     min: Annotated[
-        Optional[int],  # noqa: UP007
+        Optional[int],
         typer.Option(
             help="Lowest value allowed.",
             show_default=False,
         ),
     ] = None,
     max: Annotated[
-        Optional[int],  # noqa: UP007
+        Optional[int],
         typer.Option(
             help="Highest value allowed.",
             show_default=False,
         ),
     ] = None,
+    profile: Annotated[
+        str,
+        typer.Option(help="Name of the profile to use for remote server communication."),
+    ] = "",
 ):
+    active_config = (
+        get_profile_configuration(profile=profile)
+        if profile
+        else get_active_profile_configuration()
+    )
     if not label and not name:
         error_message = "Either 'label' or 'name' must be provided."
         raise typer.BadParameter(error_message)
 
     handlers.add_variable(
+        active_config=active_config,
         label=label,
         name=name,
         description=description,
@@ -198,23 +241,34 @@ def update(
         ),
     ] = "{}",
     min: Annotated[
-        Optional[int],  # noqa: UP007
+        Optional[int],
         typer.Option(
             help="Lowest value allowed.",
             show_default=False,
         ),
     ] = None,
     max: Annotated[
-        Optional[int],  # noqa: UP007
+        Optional[int],
         typer.Option(
             help="Highest value allowed.",
             show_default=False,
         ),
     ] = None,
+    profile: Annotated[
+        str,
+        typer.Option(
+            help="Profile to use.",
+        ),
+    ] = "",
 ):
-
+    active_config = (
+        get_profile_configuration(profile=profile)
+        if profile
+        else get_active_profile_configuration()
+    )
     variable_key = get_instance_key(id=id)
     handlers.update_variable(
+        active_config=active_config,
         variable_key=variable_key,
         label=new_label,
         name=new_name,

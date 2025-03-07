@@ -12,6 +12,8 @@ from cli.commons.enums import EntityNameEnum
 from cli.commons.enums import OutputFormatFieldsEnum
 from cli.commons.utils import get_instance_key
 from cli.commons.validators import is_valid_json_string
+from cli.config.helpers import get_active_profile_configuration
+from cli.config.helpers import get_profile_configuration
 from cli.devices import handlers
 from cli.settings import settings
 
@@ -28,9 +30,21 @@ app = typer.Typer(help="Device management and operations.")
 
 @app.command(short_help="Deletes a specific device using its id or label.")
 @simple_lookup_key(entity_name=EntityNameEnum.DEVICE)
-def delete(id: str | None = None, label: str | None = None):
+def delete(
+    id: str | None = None,
+    label: str | None = None,
+    profile: Annotated[
+        str,
+        typer.Option(help="Name of the profile to use for remote server communication."),
+    ] = "",
+):
+    active_config = (
+        get_profile_configuration(profile=profile)
+        if profile
+        else get_active_profile_configuration()
+    )
     device_key = get_instance_key(id=id, label=label)
-    handlers.delete_device(device_key=device_key)
+    handlers.delete_device(device_key=device_key, active_config=active_config)
 
 
 @app.command(short_help="Retrieves a specific device using its id or label.")
@@ -39,17 +53,24 @@ def delete(id: str | None = None, label: str | None = None):
 def get(
     id: str | None = None,
     label: str | None = None,
+    profile: Annotated[
+        str,
+        typer.Option(help="Name of the profile to use for remote server communication."),
+    ] = "",
     fields: Annotated[
         str,
         typer.Option(help=FIELDS_DEVICE_HELP_TEXT),
     ] = DefaultInstanceFieldEnum.get_default_fields(),
     format: OutputFormatFieldsEnum = settings.CONFIG.DEFAULT_OUTPUT_FORMAT,
 ):
+    active_config = (
+        get_profile_configuration(profile=profile)
+        if profile
+        else get_active_profile_configuration()
+    )
     device_key = get_instance_key(id=id, label=label)
     handlers.retrieve_device(
-        device_key=device_key,
-        fields=fields,
-        format=format,
+        device_key=device_key, fields=fields, format=format, active_config=active_config
     )
 
 
@@ -68,7 +89,16 @@ def list(
     page_size: int | None = None,
     page: int | None = None,
     format: OutputFormatFieldsEnum = settings.CONFIG.DEFAULT_OUTPUT_FORMAT,
+    profile: Annotated[
+        str,
+        typer.Option(help="Name of the profile to use for remote server communication."),
+    ] = "",
 ):
+    active_config = (
+        get_profile_configuration(profile=profile)
+        if profile
+        else get_active_profile_configuration()
+    )
     handlers.list_devices(
         fields=fields,
         filter=filter,
@@ -76,6 +106,7 @@ def list(
         page_size=page_size,
         page=page,
         format=format,
+        active_config=active_config,
     )
 
 
@@ -104,8 +135,18 @@ def add(
             help="Device properties in JSON format.", callback=is_valid_json_string
         ),
     ] = "{}",
+    profile: Annotated[
+        str,
+        typer.Option(help="Name of the profile to use for remote server communication."),
+    ] = "",
 ):
+    active_config = (
+        get_profile_configuration(profile=profile)
+        if profile
+        else get_active_profile_configuration()
+    )
     handlers.add_device(
+        active_config=active_config,
         label=label,
         name=name,
         description=description,
@@ -141,9 +182,19 @@ def update(
             help="Device properties in JSON format.", callback=is_valid_json_string
         ),
     ] = "{}",
+    profile: Annotated[
+        str,
+        typer.Option(help="Name of the profile to use for remote server communication."),
+    ] = "",
 ):
+    active_config = (
+        get_profile_configuration(profile=profile)
+        if profile
+        else get_active_profile_configuration()
+    )
     device_key = get_instance_key(id=id, label=label)
     handlers.update_device(
+        active_config=active_config,
         device_key=device_key,
         label=new_label,
         name=new_name,

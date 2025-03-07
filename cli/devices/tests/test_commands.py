@@ -1,5 +1,6 @@
 import json
 from unittest import TestCase
+from unittest.mock import ANY
 from unittest.mock import patch
 
 from typer.testing import CliRunner
@@ -22,7 +23,9 @@ class TestDeleteCommand(TestCase):
         # Expected
         self.assertEqual(result.exit_code, 0)
         mock_get_instance_key.assert_called_once_with(id="device123", label=None)
-        mock_delete_device.assert_called_once_with(device_key="device_key_from_id")
+        mock_delete_device.assert_called_once_with(
+            active_config=ANY, device_key="device_key_from_id"
+        )
 
     def test_delete_device_by_label(self, mock_delete_device, mock_get_instance_key):
         # Setup
@@ -32,7 +35,9 @@ class TestDeleteCommand(TestCase):
         # Expected
         self.assertEqual(result.exit_code, 0)
         mock_get_instance_key.assert_called_once_with(id=None, label="myDeviceLabel")
-        mock_delete_device.assert_called_once_with(device_key="device_key_from_label")
+        mock_delete_device.assert_called_once_with(
+            active_config=ANY, device_key="device_key_from_label"
+        )
 
     def test_delete_device_both_id_and_label(
         self, mock_delete_device, mock_get_instance_key
@@ -46,9 +51,12 @@ class TestDeleteCommand(TestCase):
         # Expected
         self.assertEqual(result.exit_code, 0)
         mock_get_instance_key.assert_called_once_with(
-            id="device123", label="myDeviceLabel"
+            id="device123",
+            label="myDeviceLabel",
         )
-        mock_delete_device.assert_called_once_with(device_key="device_key_from_id")
+        mock_delete_device.assert_called_once_with(
+            active_config=ANY, device_key="device_key_from_id"
+        )
 
 
 @patch("cli.devices.commands.get_instance_key")
@@ -63,6 +71,7 @@ class TestGetCommand(TestCase):
         self.assertEqual(result.exit_code, 0)
         mock_get_instance_key.assert_called_once_with(id="device123", label=None)
         mock_retrieve_device.assert_called_once_with(
+            active_config=ANY,
             device_key="device_key_from_id",
             fields=DefaultInstanceFieldEnum.get_default_fields(),
             format=settings.CONFIG.DEFAULT_OUTPUT_FORMAT,
@@ -77,6 +86,7 @@ class TestGetCommand(TestCase):
         self.assertEqual(result.exit_code, 0)
         mock_get_instance_key.assert_called_once_with(id=None, label="myDeviceLabel")
         mock_retrieve_device.assert_called_once_with(
+            active_config=ANY,
             device_key="device_key_from_label",
             fields=DefaultInstanceFieldEnum.get_default_fields(),
             format=settings.CONFIG.DEFAULT_OUTPUT_FORMAT,
@@ -97,6 +107,7 @@ class TestGetCommand(TestCase):
             id="device123", label="myDeviceLabel"
         )
         mock_retrieve_device.assert_called_once_with(
+            active_config=ANY,
             device_key="device_key_from_id",
             fields=DefaultInstanceFieldEnum.get_default_fields(),
             format=settings.CONFIG.DEFAULT_OUTPUT_FORMAT,
@@ -116,6 +127,7 @@ class TestGetCommand(TestCase):
         self.assertEqual(result.exit_code, 0)
         mock_get_instance_key.assert_called_once_with(id="device123", label=None)
         mock_retrieve_device.assert_called_once_with(
+            active_config=ANY,
             device_key="device_key_from_id",
             fields=custom_fields,
             format=settings.CONFIG.DEFAULT_OUTPUT_FORMAT,
@@ -130,6 +142,7 @@ class TestListCommand(TestCase):
         # Expected
         self.assertEqual(result.exit_code, 0)
         mock_list_devices.assert_called_once_with(
+            active_config=ANY,
             fields=DefaultInstanceFieldEnum.get_default_fields(),
             filter=None,
             sort_by=None,
@@ -146,6 +159,7 @@ class TestListCommand(TestCase):
         # Expected
         self.assertEqual(result.exit_code, 0)
         mock_list_devices.assert_called_once_with(
+            active_config=ANY,
             fields=custom_fields,
             filter=None,
             sort_by=None,
@@ -162,6 +176,7 @@ class TestListCommand(TestCase):
         # Expected
         self.assertEqual(result.exit_code, 0)
         mock_list_devices.assert_called_once_with(
+            active_config=ANY,
             fields=DefaultInstanceFieldEnum.get_default_fields(),
             filter=filter_value,
             sort_by=None,
@@ -178,6 +193,7 @@ class TestListCommand(TestCase):
         # Expected
         self.assertEqual(result.exit_code, 0)
         mock_list_devices.assert_called_once_with(
+            active_config=ANY,
             fields=DefaultInstanceFieldEnum.get_default_fields(),
             filter=None,
             sort_by=sort_by_value,
@@ -198,6 +214,7 @@ class TestListCommand(TestCase):
         # Expected
         self.assertEqual(result.exit_code, 0)
         mock_list_devices.assert_called_once_with(
+            active_config=ANY,
             fields=DefaultInstanceFieldEnum.get_default_fields(),
             filter=None,
             sort_by=None,
@@ -233,6 +250,7 @@ class TestListCommand(TestCase):
         # Expected
         self.assertEqual(result.exit_code, 0)
         mock_list_devices.assert_called_once_with(
+            active_config=ANY,
             fields=custom_fields,
             filter=filter_value,
             sort_by=sort_by_value,
@@ -250,6 +268,7 @@ class TestAddCommand(TestCase):
         # Expected
         self.assertEqual(result.exit_code, 0)
         mock_add_device.assert_called_once_with(
+            active_config=ANY,
             label="deviceLabel",
             name="",
             description="",
@@ -287,6 +306,7 @@ class TestAddCommand(TestCase):
         # Expected
         self.assertEqual(result.exit_code, 0)
         mock_add_device.assert_called_once_with(
+            active_config=ANY,
             label=label,
             name=name,
             description=description,
@@ -323,6 +343,7 @@ class TestUpdateCommand(TestCase):
         self.assertEqual(result.exit_code, 0)
         mock_get_instance_key.assert_called_once_with(id="device123", label=None)
         mock_update_device.assert_called_once_with(
+            active_config=ANY,
             device_key="device_key_from_id",
             label="",
             name="",
@@ -368,6 +389,7 @@ class TestUpdateCommand(TestCase):
         self.assertEqual(result.exit_code, 0)
         mock_get_instance_key.assert_called_once_with(id=None, label="oldDeviceLabel")
         mock_update_device.assert_called_once_with(
+            active_config=ANY,
             device_key="device_key_from_label",
             label=new_label,
             name=new_name,
@@ -408,6 +430,7 @@ class TestUpdateCommand(TestCase):
             id="device123", label="deviceLabel"
         )
         mock_update_device.assert_called_once_with(
+            active_config=ANY,
             device_key="device_key_from_id",
             label="",
             name="",

@@ -4,7 +4,12 @@ import requests
 import yaml
 from pydantic import ValidationError
 
+from cli.commons.exceptions import CurrentPlanDoesNotIncludeRuntimes
+from cli.commons.exceptions import InvalidProfileError
 from cli.commons.exceptions import NoProfileError
+from cli.commons.exceptions import ProfileConfigEmptyFieldsError
+from cli.commons.exceptions import ProfileConfigMissingFieldsError
+from cli.commons.exceptions import UnexistentProfileError
 from cli.commons.utils import exit_with_error_message
 from cli.commons.utils import load_yaml
 from cli.config.models import ProfileConfigModel
@@ -69,6 +74,14 @@ def read_cli_configuration(profile: str) -> ProfileConfigModel:
     return ProfileConfigModel(**config_data)
 
 
+def get_profile_configuration(profile: str):
+    profile_path = Path(settings.CONFIG.PROFILES_PATH / f"{profile}.yaml")
+    if not profile_path.exists():
+        raise UnexistentProfileError(profile=profile)
+    profile_config = load_yaml(profile_path)
+    return validate_profile_config(profile_config, profile_path)
+
+
 def get_active_profile_configuration() -> ProfileConfigModel:
     config = load_yaml(settings.CONFIG.FILE_PATH)
 
@@ -76,14 +89,6 @@ def get_active_profile_configuration() -> ProfileConfigModel:
     profile_file = Path(profiles_path) / f"{profile}.yaml"
 
     profile_config = load_yaml(profile_file)
-    is_valid, missing_fields = validate_required_fields(profile_config, profile_file)
-
-    if not is_valid:
-        error_msg = (
-            f"Missing required fields in {profile_file}: {', '.join(missing_fields)}"
-        )
-        raise ValueError(error_msg)
-
     return validate_profile_config(profile_config, profile_file)
 
 
@@ -98,15 +103,26 @@ def mask_token(
 
 def get_runtimes_from_api(access_token: str) -> list[dict]:
     headers = {"X-Auth-Token": access_token}
+
     try:
         response = requests.get(settings.CONFIG.RUNTIMES_URL, headers=headers)
         response.raise_for_status()
         runtimes = response.json()
+
         if isinstance(runtimes, list):
             return runtimes
-        error_message = "Unexpected response format"
+
+        error_message = f"Unexpected response format: {type(runtimes)} - {runtimes}"
         raise ValueError(error_message)
-    except (requests.RequestException, ValueError):
+
+    except requests.RequestException as e:
+        if e.response is not None and e.response.status_code == 402:
+            exit_with_error_message(
+                exception=CurrentPlanDoesNotIncludeRuntimes(),
+            )
+        return []  # Log or handle the error as needed
+
+    except ValueError:
         return []
 
 
@@ -124,22 +140,29 @@ def extract_profile_paths(config: dict, config_file: Path) -> tuple[str, str]:
     return profiles_path, profile
 
 
-def validate_required_fields(
-    profile_config: dict, profile_file: Path
-) -> tuple[bool, set]:
-    del profile_file  # unused
-    required_fields = set(ProfileConfigModel.model_fields.keys())
-    missing_fields = required_fields - profile_config.keys()
-    if missing_fields:
-        return False, missing_fields
-    return True, set()
-
-
 def validate_profile_config(
     profile_config: dict, profile_file: Path
 ) -> ProfileConfigModel:
+
+    required_fields = set(ProfileConfigModel.model_fields.keys())
+    missing_fields = required_fields - profile_config.keys()
+    if missing_fields:
+        raise ProfileConfigMissingFieldsError(
+            missing_fields=missing_fields,
+            profile_file=profile_file,
+        )
+
+    empty_fields = {
+        field
+        for field in required_fields
+        if field in profile_config and not profile_config[field]
+    }
+    if empty_fields:
+        raise ProfileConfigEmptyFieldsError(
+            empty_fields=empty_fields, profile_file=profile_file
+        )
+
     try:
         return ProfileConfigModel(**profile_config)
     except ValidationError as e:
-        error_message = f"Invalid profile configuration in {profile_file}:\n{e}"
-        raise ValueError(error_message) from e
+        raise InvalidProfileError(profile=str(profile_file), exception=e) from e

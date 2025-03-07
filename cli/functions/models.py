@@ -1,5 +1,3 @@
-from typing import Any
-
 from pydantic import BaseModel
 
 from cli.commons.models import BaseYAMLDumpModel
@@ -17,19 +15,19 @@ class FunctionGlobalsModel(BaseModel):
 
 class FunctionServerlessModel(BaseModel):
     runtime: FunctionRuntimeLayerTypeEnum
-    params: dict[str, Any]
+    params: str
     authToken: str
     isRawFunction: bool
     timeout: int
+
+
+class FunctionTriggersModel(BaseModel):
+    httpMethods: list[FunctionMethodEnum]
     httpHasCors: bool
     httpIsSecure: bool
     httpEnabled: bool
     schedulerCron: str
     schedulerEnabled: bool
-
-
-class FunctionTriggersModel(BaseModel):
-    httpMethods: list[FunctionMethodEnum]
 
 
 class FunctionProjectModel(BaseModel):
