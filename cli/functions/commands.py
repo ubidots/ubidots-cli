@@ -286,7 +286,9 @@ def clean(
 def list(
     profile: Annotated[
         str,
-        typer.Option(help="Name of the profile to use for remote server communication."),
+        typer.Option(
+            help="Name of the profile to use for remote server communication."
+        ),
     ] = "",
     fields: Annotated[
         str,
@@ -317,7 +319,9 @@ def add(
     ],
     profile: Annotated[
         str,
-        typer.Option(help="Name of the profile to use for remote server communication."),
+        typer.Option(
+            help="Name of the profile to use for remote server communication."
+        ),
     ] = "",
     label: Annotated[str, typer.Option(help="The label for the function.")] = "",
     timeout: Annotated[
@@ -382,7 +386,9 @@ def add(
 def get(
     profile: Annotated[
         str,
-        typer.Option(help="Name of the profile to use for remote server communication."),
+        typer.Option(
+            help="Name of the profile to use for remote server communication."
+        ),
     ] = "",
     id: str | None = None,
     label: str | None = None,
@@ -446,7 +452,9 @@ def update(
     ] = "[]",
     profile: Annotated[
         str,
-        typer.Option(help="Name of the profile to use for remote server communication."),
+        typer.Option(
+            help="Name of the profile to use for remote server communication."
+        ),
     ] = "",
     methods: Annotated[
         Union[BuiltinList[FunctionMethodEnum], None],
@@ -478,7 +486,9 @@ def update(
 def delete(
     profile: Annotated[
         str,
-        typer.Option(help="Name of the profile to use for remote server communication."),
+        typer.Option(
+            help="Name of the profile to use for remote server communication."
+        ),
     ] = "",
     id: str | None = None,
     label: str | None = None,

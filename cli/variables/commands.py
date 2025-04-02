@@ -13,8 +13,7 @@ from cli.commons.enums import EntityNameEnum
 from cli.commons.enums import OutputFormatFieldsEnum
 from cli.commons.utils import get_instance_key
 from cli.commons.validators import is_valid_json_string
-from cli.config.helpers import get_active_profile_configuration
-from cli.config.helpers import get_profile_configuration
+from cli.config.helpers import get_configuration
 from cli.settings import settings
 from cli.variables import handlers
 from cli.variables.enums import VariableTypeEnum
@@ -36,14 +35,12 @@ def delete(
     id: str,
     profile: Annotated[
         str,
-        typer.Option(help="Name of the profile to use for remote server communication."),
+        typer.Option(
+            help="Name of the profile to use for remote server communication."
+        ),
     ] = "",
 ):
-    active_config = (
-        get_profile_configuration(profile=profile)
-        if profile
-        else get_active_profile_configuration()
-    )
+    active_config = get_configuration(profile=profile)
     variable_key = get_instance_key(id=id)
     handlers.delete_variable(variable_key=variable_key, active_config=active_config)
 
@@ -55,7 +52,9 @@ def get(
     id: str,
     profile: Annotated[
         str,
-        typer.Option(help="Name of the profile to use for remote server communication."),
+        typer.Option(
+            help="Name of the profile to use for remote server communication."
+        ),
     ] = "",
     fields: Annotated[
         str,
@@ -63,11 +62,7 @@ def get(
     ] = DefaultInstanceFieldEnum.get_default_fields(),
     format: OutputFormatFieldsEnum = settings.CONFIG.DEFAULT_OUTPUT_FORMAT,
 ):
-    active_config = (
-        get_profile_configuration(profile=profile)
-        if profile
-        else get_active_profile_configuration()
-    )
+    active_config = get_configuration(profile=profile)
     variable_key = get_instance_key(id=id)
     handlers.retrieve_variable(
         active_config=active_config,
@@ -93,15 +88,13 @@ def list(
     page: int | None = None,
     profile: Annotated[
         str,
-        typer.Option(help="Name of the profile to use for remote server communication."),
+        typer.Option(
+            help="Name of the profile to use for remote server communication."
+        ),
     ] = "",
     format: OutputFormatFieldsEnum = settings.CONFIG.DEFAULT_OUTPUT_FORMAT,
 ):
-    active_config = (
-        get_profile_configuration(profile=profile)
-        if profile
-        else get_active_profile_configuration()
-    )
+    active_config = get_configuration(profile=profile)
     handlers.list_variable(
         active_config=active_config,
         fields=fields,
@@ -173,14 +166,12 @@ def add(
     ] = None,
     profile: Annotated[
         str,
-        typer.Option(help="Name of the profile to use for remote server communication."),
+        typer.Option(
+            help="Name of the profile to use for remote server communication."
+        ),
     ] = "",
 ):
-    active_config = (
-        get_profile_configuration(profile=profile)
-        if profile
-        else get_active_profile_configuration()
-    )
+    active_config = get_configuration(profile=profile)
     if not label and not name:
         error_message = "Either 'label' or 'name' must be provided."
         raise typer.BadParameter(error_message)
@@ -261,11 +252,7 @@ def update(
         ),
     ] = "",
 ):
-    active_config = (
-        get_profile_configuration(profile=profile)
-        if profile
-        else get_active_profile_configuration()
-    )
+    active_config = get_configuration(profile=profile)
     variable_key = get_instance_key(id=id)
     handlers.update_variable(
         active_config=active_config,

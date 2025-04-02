@@ -96,25 +96,39 @@ def sanitize_function_name(name: str) -> str:
 def load_yaml(file_path: str | Path) -> dict:
     file_path = Path(file_path)
 
-    if not file_path.exists():
-        error_message = f"File {file_path} not found"
-        raise FileNotFoundError(error_message)
-
     try:
+        if not file_path.exists():
+            error_message = f"File '{file_path}' not found"
+            exit_with_error_message(
+                exception=FileNotFoundError(error_message),
+                message=error_message,
+            )
+
         with file_path.open("r") as f:
-            content = f.read().strip()  # Remove extra spaces/newlines
+            content = f.read().strip()
             if not content:
                 error_message = f"File {file_path} is empty or not valid YAML"
-                raise ValueError(error_message)
+                exit_with_error_message(
+                    exception=ValueError(error_message),
+                    message=error_message,
+                )
 
             parsed_data = yaml.safe_load(content)
 
             if not isinstance(parsed_data, dict):
                 error_message = f"Invalid YAML format in {file_path}"
-                raise ValueError(error_message)
+                exit_with_error_message(
+                    exception=ValueError(error_message),
+                    message=error_message,
+                )
 
             return parsed_data
 
     except yaml.YAMLError as e:
         error_message = f"Error parsing YAML file {file_path}: {e}"
-        raise ValueError(error_message) from e
+        exit_with_error_message(
+            exception=ValueError(error_message),
+            message=error_message,
+        )
+    exception_message = "Unexpected error occurred while loading YAML file."
+    raise AssertionError(exception_message)

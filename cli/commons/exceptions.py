@@ -37,7 +37,7 @@ class UnexistentProfileError(Exception):
         self.profile = profile
 
     def __str__(self):
-        return f"Profile {self.profile} does not exist yet. Please provide a valid profile name."
+        return f"Profile '{self.profile}' does not exist yet. Please provide a valid profile name."
 
 
 class RuntimeNotFoundError(Exception):

@@ -9,7 +9,6 @@ from cli.commons.exceptions import InvalidProfileError
 from cli.commons.exceptions import NoProfileError
 from cli.commons.exceptions import ProfileConfigEmptyFieldsError
 from cli.commons.exceptions import ProfileConfigMissingFieldsError
-from cli.commons.exceptions import UnexistentProfileError
 from cli.commons.utils import exit_with_error_message
 from cli.commons.utils import load_yaml
 from cli.config.models import ProfileConfigModel
@@ -74,22 +73,26 @@ def read_cli_configuration(profile: str) -> ProfileConfigModel:
     return ProfileConfigModel(**config_data)
 
 
-def get_profile_configuration(profile: str):
+def get_profile_configuration(profile: str) -> ProfileConfigModel:
     profile_path = Path(settings.CONFIG.PROFILES_PATH / f"{profile}.yaml")
-    if not profile_path.exists():
-        raise UnexistentProfileError(profile=profile)
     profile_config = load_yaml(profile_path)
     return validate_profile_config(profile_config, profile_path)
 
 
 def get_active_profile_configuration() -> ProfileConfigModel:
     config = load_yaml(settings.CONFIG.FILE_PATH)
-
     profiles_path, profile = extract_profile_paths(config, settings.CONFIG.FILE_PATH)
     profile_file = Path(profiles_path) / f"{profile}.yaml"
-
     profile_config = load_yaml(profile_file)
     return validate_profile_config(profile_config, profile_file)
+
+
+def get_configuration(profile: str | None = None) -> ProfileConfigModel:
+    return (
+        get_profile_configuration(profile=profile)
+        if profile
+        else get_active_profile_configuration()
+    )
 
 
 def mask_token(

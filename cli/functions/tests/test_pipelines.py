@@ -496,16 +496,14 @@ class TestExtractProjectStep:
 
 
 class TestBuildEndpointStep:
-    @patch("cli.functions.pipelines.get_active_profile_configuration")
     @patch("cli.functions.pipelines.build_endpoint")
-    def test_execute_success(self, mock_build_endpoint, mock_get_active_profile):
+    def test_execute_success(self, mock_build_endpoint):
         # Setup
         step = pipelines.BuildEndpointStep(api_route="/api/function")
         mock_url = "https://api.example.com/api/function/test_function_id"
         mock_headers = {"X-Auth-Token": "test_token"}
         mock_build_endpoint.return_value = (mock_url, mock_headers)
         mock_active_config = MagicMock()
-        mock_get_active_profile.return_value = mock_active_config  # Mock profile config
         data = {
             "remote_id": "test_function_id",
             "active_config": mock_active_config,
@@ -525,24 +523,17 @@ class TestBuildEndpointStep:
         "cli.functions.pipelines.build_endpoint",
         side_effect=Exception("Endpoint build failed"),
     )
-    @patch("cli.functions.pipelines.get_active_profile_configuration")
-    def test_execute_raises_exception(
-        self, mock_get_active_profile, mock_build_endpoint
-    ):
+    def test_execute_raises_exception(self, mock_build_endpoint):
         # Setup
         step = pipelines.BuildEndpointStep(api_route="/api/function")
-        project_metadata_mock = MagicMock()
-        project_metadata_mock.function.id = "test_function_id"
         mock_active_config = MagicMock()
-        mock_get_active_profile.return_value = mock_active_config
         data = {
             "remote_id": "test_function_id",
             "active_config": mock_active_config,
         }
-        # Action
+        # Action & Assert
         with pytest.raises(Exception) as exc_info:
             step.execute(data)
-        # Assert
         assert "Endpoint build failed" in str(exc_info.value)
         mock_build_endpoint.assert_called_once_with(
             route=step.api_route,

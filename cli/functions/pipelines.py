@@ -15,8 +15,7 @@ from cli.commons.pipelines import PipelineStep
 from cli.commons.styles import print_colored_table
 from cli.commons.utils import build_endpoint
 from cli.commons.utils import check_response_status
-from cli.config.helpers import get_active_profile_configuration
-from cli.config.helpers import get_profile_configuration
+from cli.config.helpers import get_configuration
 from cli.functions import FUNCTION_API_ROUTES
 from cli.functions.engines.manager import FunctionEngineClientManager
 from cli.functions.engines.settings import engine_settings
@@ -139,11 +138,7 @@ class ValidateAllowedRuntimeStep(PipelineStep):
     def execute(self, data):
         runtime = data["runtime"]
         profile = data.get("profile", "")
-        profile_config = (
-            get_profile_configuration(profile=profile)
-            if profile
-            else get_active_profile_configuration()
-        )
+        profile_config = get_configuration(profile=profile)
         allowed_runtimes = profile_config.runtimes
         if runtime not in allowed_runtimes:
             error_message = f"Runtime '{runtime}' is not allowed"
@@ -160,11 +155,7 @@ class GetFunctionIdFromManifestStep(PipelineStep):
 class GetActiveConfigStep(PipelineStep):
     def execute(self, data):
         profile = data.get("profile", "")
-        data["active_config"] = (
-            get_profile_configuration(profile=profile)
-            if profile
-            else get_active_profile_configuration()
-        )
+        data["active_config"] = get_configuration(profile=profile)
         return data
 
 
