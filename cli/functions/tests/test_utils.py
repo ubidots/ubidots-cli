@@ -51,7 +51,7 @@ class TestFunctionUtils:
         has_cron = False
         function_id = ""
         token = ""
-        params = {}
+        params = "{}"
 
         # Build expected metadata (using your models)
         expected_metadata = FunctionProjectMetadata(
@@ -68,13 +68,15 @@ class TestFunctionUtils:
                     authToken=token,
                     isRawFunction=False,
                     timeout=timeout,
-                    httpHasCors=False,
-                    httpIsSecure=http_is_secure,
-                    httpEnabled=http_enabled,
-                    schedulerCron=cron,
-                    schedulerEnabled=has_cron,
                 ),
-                triggers=FunctionTriggersModel(httpMethods=methods),
+                triggers=FunctionTriggersModel(
+                    httpMethods=methods,
+                    httpHasCors=False,
+                    httpIsSecure=False,
+                    httpEnabled=False,
+                    schedulerCron="",
+                    schedulerEnabled=False,
+                ),
             ),
         )
 
@@ -134,17 +136,19 @@ class TestFunctionUtils:
                 id="",
                 serverless=FunctionServerlessModel(
                     runtime=runtime,
-                    params={},
+                    params="{}",
                     authToken="",
                     isRawFunction=False,
                     timeout=30,
+                ),
+                triggers=FunctionTriggersModel(
+                    httpMethods=[],
                     httpHasCors=False,
                     httpIsSecure=False,
                     httpEnabled=False,
                     schedulerCron="",
                     schedulerEnabled=False,
                 ),
-                triggers=FunctionTriggersModel(httpMethods=[]),
             ),
         )
         metadata_file = project_path / settings.FUNCTIONS.PROJECT_METADATA_FILE

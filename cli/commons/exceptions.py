@@ -1,4 +1,5 @@
 from enum import Enum
+from pathlib import Path
 
 
 class InvalidOptionError(Exception):
@@ -36,7 +37,7 @@ class UnexistentProfileError(Exception):
         self.profile = profile
 
     def __str__(self):
-        return f"Profile {self.profile} does not exist yet. Please provide a valid profile name."
+        return f"Profile '{self.profile}' does not exist yet. Please provide a valid profile name."
 
 
 class RuntimeNotFoundError(Exception):
@@ -46,3 +47,43 @@ class RuntimeNotFoundError(Exception):
             "or an incorrect API domain. Please verify that your token is set correctly and "
             "that you are using the correct API domain."
         )
+
+
+class InvalidProfileError(Exception):
+    def __init__(self, profile: str, exception: Exception):
+        self.profile = profile
+        self.exception = exception
+
+    def __str__(self):
+        return f"Profile {self.profile} is invalid. Make sure the profile is correctly configured. {self.exception}"
+
+
+class ProfileConfigMissingFieldsError(Exception):
+    def __init__(self, profile_file: Path, missing_fields: set):
+        self.profile_file = profile_file
+        self.missing_fields = missing_fields
+
+    def __str__(self):
+        return f"Missing required fields in {self.profile_file}: {', '.join(self.missing_fields)}"
+
+
+class ProfileConfigEmptyFieldsError(Exception):
+    def __init__(self, profile_file: Path, empty_fields: set):
+        self.profile_file = profile_file
+        self.empty_fields = empty_fields
+
+    def __str__(self):
+        return f"Required field(s) empty in {self.profile_file}: {', '.join(self.empty_fields)}"
+
+
+class CurrentPlanDoesNotIncludeRuntimes(Exception):
+    def __str__(self):
+        return (
+            "The current plan does not include the 'runtimes' feature. "
+            "Please upgrade your plan to use this feature."
+        )
+
+
+class EmptyTokenError(Exception):
+    def __str__(self):
+        return "Access token is empty. Please provide a valid access token."

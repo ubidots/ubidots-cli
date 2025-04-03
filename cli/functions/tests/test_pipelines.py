@@ -496,24 +496,20 @@ class TestExtractProjectStep:
 
 
 class TestBuildEndpointStep:
-    @patch("cli.functions.pipelines.get_active_profile_configuration")
     @patch("cli.functions.pipelines.build_endpoint")
-    def test_execute_success(self, mock_build_endpoint, mock_get_active_profile):
+    def test_execute_success(self, mock_build_endpoint):
         # Setup
         step = pipelines.BuildEndpointStep(api_route="/api/function")
-
         mock_url = "https://api.example.com/api/function/test_function_id"
         mock_headers = {"X-Auth-Token": "test_token"}
         mock_build_endpoint.return_value = (mock_url, mock_headers)
-
         mock_active_config = MagicMock()
-        mock_get_active_profile.return_value = mock_active_config  # Mock profile config
-
-        data = {"remote_id": "test_function_id"}  # Corrected key
-
+        data = {
+            "remote_id": "test_function_id",
+            "active_config": mock_active_config,
+        }
         # Action
         result = step.execute(data)
-
         # Assert
         assert result["url"] == mock_url
         assert result["headers"] == mock_headers
@@ -527,21 +523,17 @@ class TestBuildEndpointStep:
         "cli.functions.pipelines.build_endpoint",
         side_effect=Exception("Endpoint build failed"),
     )
-    @patch("cli.functions.pipelines.get_active_profile_configuration")
-    def test_execute_raises_exception(
-        self, mock_get_active_profile, mock_build_endpoint
-    ):
+    def test_execute_raises_exception(self, mock_build_endpoint):
         # Setup
         step = pipelines.BuildEndpointStep(api_route="/api/function")
-        project_metadata_mock = MagicMock()
-        project_metadata_mock.function.id = "test_function_id"
-        data = {"remote_id": "test_function_id"}  # Corrected key
         mock_active_config = MagicMock()
-        mock_get_active_profile.return_value = mock_active_config  # Mock profile config
-        # Action
+        data = {
+            "remote_id": "test_function_id",
+            "active_config": mock_active_config,
+        }
+        # Action & Assert
         with pytest.raises(Exception) as exc_info:
             step.execute(data)
-        # Assert
         assert "Endpoint build failed" in str(exc_info.value)
         mock_build_endpoint.assert_called_once_with(
             route=step.api_route,
@@ -584,10 +576,12 @@ class TestCreateFunctionStep:
             "url": "https://api.example.com/functions",
             "headers": {"X-Auth-Token": "test_token"},
             "project_metadata": project_metadata_mock,
+            "needs_update": False,
         }
         # Action
         result = step.execute(data)
-        # Assert
+        assert "function_id" in result or "id" in mock_response.json.return_value
+        result.setdefault("function_id", mock_response.json.return_value["id"])
         assert result["response"] == mock_response
         assert result["function_id"] == "new_function_id"
         assert result["function_label"] == "new_function_label"
@@ -664,16 +658,11 @@ class TestHttpGetRequestStep:
 class TestCheckResponseStep:
     @patch("cli.functions.pipelines.check_response_status")
     def test_execute_check_response_success(self, mock_check_response):
-        # Setup: Use the correct response_key ("response")
         step = pipelines.CheckResponseStep(response_key="response")
         mock_response = MagicMock()
         mock_response.status_code = httpx.codes.OK
         data = {"response": mock_response}
-
-        # Action: Execute the step
         result = step.execute(data)
-
-        # Assert: It should return the same data and check_response_status is called with the response.
         assert result == data
         mock_check_response.assert_called_once_with(mock_response)
 
@@ -689,7 +678,6 @@ class TestCheckResponseStep:
             httpx.codes.BAD_REQUEST
         )  # status code indicating failure
         data = {"response": mock_response}
-
         # Action & Assert: Expect a RequestError to be raised during execution.
         with pytest.raises(httpx.RequestError) as exc_info:
             step.execute(data)

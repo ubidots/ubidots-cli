@@ -6,32 +6,19 @@ import typer
 from cli.commons.enums import OutputFormatFieldsEnum
 from cli.commons.styles import print_colored_table
 from cli.commons.utils import build_endpoint
-from cli.commons.utils import exit_with_error_message
-from cli.commons.utils import exit_with_success_message
+from cli.config.models import ProfileConfigModel
 from cli.functions import FUNCTION_API_ROUTES
 from cli.functions.enums import FunctionLanguageEnum
+from cli.functions.exceptions import RemoteFunctionNotFoundError
 from cli.functions.helpers import build_functions_payload
 from cli.settings import settings
 
 
 def list_functions(
-    fields: str,
-    filter: str,
-    sort_by: str,
-    page_size: int,
-    page: int,
+    url: str,
+    headers: dict,
     format: OutputFormatFieldsEnum,
 ):
-    url, headers = build_endpoint(
-        route=FUNCTION_API_ROUTES["base"],
-        query_params={
-            "fields": fields,
-            "filter": filter,
-            "sort_by": sort_by,
-            "page_size": page_size,
-            "page": page,
-        },
-    )
     response = httpx.get(url, headers=headers)
     if format == OutputFormatFieldsEnum.JSON:
         typer.echo(json.dumps(response.json()["results"]))
@@ -39,45 +26,63 @@ def list_functions(
         print_colored_table(results=response.json()["results"])
 
 
-def retrieve_function(function_key: str, fields: str, format: OutputFormatFieldsEnum):
-    url, headers = build_endpoint(
-        route=FUNCTION_API_ROUTES["detail"],
-        function_key=function_key,
-        query_params={"fields": fields},
-    )
+def retrieve_function(url: str, headers: dict, format: OutputFormatFieldsEnum):
     response = httpx.get(url, headers=headers)
     if format == OutputFormatFieldsEnum.JSON:
         typer.echo(json.dumps(response.json()))
     else:
         print_colored_table(results=[response.json()])
+    return response
 
 
-def add_function(**kwargs):
+def update_function(url: str, headers: dict, data: dict, function_key: str):
+    try:
+        response = httpx.patch(url, headers=headers, json=data)
+        response.raise_for_status()
+        return response
+    except httpx.HTTPStatusError as exc:
+        if exc.response.status_code == 404:
+            raise RemoteFunctionNotFoundError(function_id=function_key) from exc
+        raise
+    except httpx.RequestError as exc:
+        raise exc from None
+
+
+def add_function(active_config: ProfileConfigModel, **kwargs):
     data = build_functions_payload(**kwargs)
     url, headers = build_endpoint(
         route=FUNCTION_API_ROUTES["base"],
+        active_config=active_config,
     )
     client = httpx.Client(follow_redirects=True)
+
     response = client.post(url, headers=headers, json=data)
     response_json = response.json()
+
     if response.status_code != httpx.codes.CREATED:
-        exit_with_error_message(
-            httpx.HTTPStatusError(
+        return {
+            "success": False,
+            "error": httpx.HTTPStatusError(
                 message=response._content.decode("utf-8"),
                 request=response.request,
                 response=response,
-            )
-        )
+            ),
+        }
 
     runtime = data["serverless"]["runtime"]
     language = FunctionLanguageEnum.get_language_by_runtime(runtime)
     zip_path = settings.FUNCTIONS.TEMPLATES_PATH / f"{language}.zip"
-    with open(zip_path, "rb") as zip_ref:
-        zip_file = zip_ref.read()
+
+    try:
+        with open(zip_path, "rb") as zip_ref:
+            zip_file = zip_ref.read()
+    except FileNotFoundError as e:
+        return {"success": False, "error": e}
 
     url, headers = build_endpoint(
         route=FUNCTION_API_ROUTES["zip_file"],
         function_key=response_json["id"],
+        active_config=active_config,
     )
     files = {
         "zipFile": (
@@ -88,49 +93,36 @@ def add_function(**kwargs):
     }
 
     response = client.post(url=url, headers=headers, files=files)
+
     if response.status_code != httpx.codes.OK:
-        exit_with_error_message(
-            httpx.HTTPStatusError(
+        return {
+            "success": False,
+            "error": httpx.HTTPStatusError(
                 message=response._content.decode("utf-8"),
                 request=response.request,
                 response=response,
-            )
-        )
+            ),
+        }
 
-    exit_with_success_message(
-        f"The function with 'id={response_json['id']}' and "
-        f"'label={response_json['label']}' was created successfully."
-    )
+    return {
+        "success": True,
+        "function_id": response_json["id"],
+        "label": response_json["label"],
+    }
 
 
-def update_function(function_key: str, **kwargs):
-    data = build_functions_payload(**kwargs)
-    url, headers = build_endpoint(
-        route=FUNCTION_API_ROUTES["detail"],
-        function_key=function_key,
-    )
-    response = httpx.patch(url, headers=headers, json=data)
-    if response.status_code == httpx.codes.OK:
-        exit_with_success_message(
-            f"The function with 'id={response.json()['id']}' and 'label={response.json()['label']}' "
-            "was updated successfully."
-        )
-    else:
-        exit_with_error_message(
-            httpx.HTTPStatusError(
-                message=response._content.decode("utf-8"),
+def delete_function(url: str, headers: dict, function_key: str):
+    try:
+        response = httpx.delete(url, headers=headers)
+        if response.status_code == 404:
+            raise httpx.HTTPStatusError(
+                message=f"Function with id={function_key} not found.",
                 request=response.request,
                 response=response,
             )
-        )
-
-
-def delete_function(function_key: str):
-    url, headers = build_endpoint(
-        route=FUNCTION_API_ROUTES["detail"],
-        function_key=function_key,
-    )
-    httpx.delete(url, headers=headers)
-    exit_with_success_message(
-        f"The function '{function_key}' was removed successfully."
-    )
+        response.raise_for_status()
+        return response
+    except httpx.RequestError as exc:
+        raise exc from None
+    except httpx.HTTPStatusError as exc:
+        raise exc from None

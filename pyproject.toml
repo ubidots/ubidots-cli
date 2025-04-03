@@ -52,7 +52,7 @@ force_single_line = true
 [tool.ruff]
 target-version = "py312"
 line-length = 123
-ignore = ["RUF001", "RUF012", "PLC1901", "COM812"]
+ignore = ["RUF001", "RUF012", "PLC1901", "COM812", "UP007"] # Remove UP007 when python version is upgraded to 3.12
 select = [
   "E",
   "F",

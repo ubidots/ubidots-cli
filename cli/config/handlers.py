@@ -1,3 +1,4 @@
+from cli.commons.exceptions import EmptyTokenError
 from cli.commons.exceptions import InvalidOptionError
 from cli.commons.exceptions import RuntimeNotFoundError
 from cli.commons.exceptions import UnexistentProfileError
@@ -81,6 +82,9 @@ def set_configuration(
 
     if not exists_default_profile():
         create_default_profile()
+
+    if not access_token:
+        exit_with_error_message(exception=(EmptyTokenError()))
 
     # Check if a profile was provided and exit with error if not
     validate_profile(profile=profile)

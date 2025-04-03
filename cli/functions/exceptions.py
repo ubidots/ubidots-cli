@@ -39,3 +39,9 @@ class PermissionDeniedError(Exception):
     def __init__(self, error: str):
         error_message = f"Permission denied: {error}."
         super().__init__(error_message)
+
+
+class RemoteFunctionNotFoundError(Exception):
+    def __init__(self, function_id: str):
+        error_message = f"Function with id={function_id} not found."
+        super().__init__(error_message)

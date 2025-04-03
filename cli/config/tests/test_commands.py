@@ -142,5 +142,5 @@ class TestConfigCommand(TestCase):
         )
 
         # Assertions
-        self.assertNotEqual(result.exit_code, 0)  # Ensure the command fails
-        mock_get_runtimes.assert_called_once()  # Ensure get_runtimes() was called
+        self.assertNotEqual(result.exit_code, 0)
+        mock_get_runtimes.assert_not_called()
