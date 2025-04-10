@@ -215,7 +215,7 @@ class GetFunctionParametersStep(PipelineStep):
         data["token"] = remote_function_details["serverless"]["authToken"].get(
             "token", ""
         )
-        data["params"] = remote_function_details["serverless"]["params"]
+        data["params"] = json.dumps(remote_function_details["serverless"]["params"])
         data["project_path"] = data["project_path"] / name
         return data
 
