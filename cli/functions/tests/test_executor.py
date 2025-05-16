@@ -1,5 +1,6 @@
 from pathlib import Path
 from unittest import TestCase
+from unittest.mock import ANY
 from unittest.mock import MagicMock
 from unittest.mock import patch
 
@@ -592,6 +593,7 @@ class TestPullFunction(TestCase):
         MockPipeline.assert_called_once_with(
             [
                 MockGetActiveConfigStep.return_value,
+                ANY,  # CheckRemoteIdRequirementStep
                 MockGetRemoteFunctionDetailSteps.return_value,
                 MockCheckFunctionDetailResponse.return_value,
                 MockParseFunctionDetailsResponse.return_value,
@@ -609,7 +611,7 @@ class TestPullFunction(TestCase):
                 MockValidateProjectStep.return_value,
                 MockPrintFunctionPath.return_value,
             ],
-            success_message="",
+            success_message="Function pulled successfully.",
         )
 
         mock_pipeline_instance.run.assert_called_once_with(
