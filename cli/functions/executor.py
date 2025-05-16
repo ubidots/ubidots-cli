@@ -270,6 +270,7 @@ def pull_function(
 ):
     steps = [
         pipelines.GetActiveConfigStep(),
+        pipelines.CheckRemoteIdRequirementStep(),  # New step to validate remote_id
         pipelines.GetRemoteFunctionDetailSteps(FUNCTION_API_ROUTES["detail"]),
         pipelines.CheckFunctionDetailResponse(),
         pipelines.ParseFunctionDetailsResponse(),
@@ -287,7 +288,7 @@ def pull_function(
         pipelines.ValidateProjectStep(),
         pipelines.PrintFunctionPath(),
     ]
-    pipeline = Pipeline(steps, success_message="")
+    pipeline = Pipeline(steps, success_message="Function pulled successfully.")
     pipeline.run(
         {
             "project_path": Path.cwd(),

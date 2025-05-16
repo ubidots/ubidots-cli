@@ -218,7 +218,8 @@ class GetFunctionParametersStep(PipelineStep):
             "token", ""
         )
         data["params"] = json.dumps(remote_function_details["serverless"]["params"])
-        data["project_path"] = data["project_path"] / name
+        if data["project_path"].name != name:
+            data["project_path"] = data["project_path"] / name
         return data
 
 
@@ -420,10 +421,26 @@ class ExtractProjectStep(PipelineStep):
         project_path = data["project_path"]
         response = data["function_zip_content"]
         remote_function_name = data["remote_function_detail"]["name"]
-        function_path = Path(project_path / remote_function_name)
+
+        # Check if we're already in a function directory
+        metadata_file = project_path / settings.FUNCTIONS.PROJECT_METADATA_FILE
+        in_function_dir = metadata_file.exists()
+
+        # If we're already in a function directory, extract directly to it
+        # Otherwise, create a subdirectory with the function name
+        extract_path = (
+            project_path
+            if in_function_dir
+            else Path(project_path / remote_function_name)
+        )
 
         with zipfile.ZipFile(BytesIO(response.content), "r") as zip_ref:
-            zip_ref.extractall(function_path)
+            zip_ref.extractall(extract_path)
+
+        # Update the project_path in data if we extracted to a subdirectory
+        if not in_function_dir:
+            data["project_path"] = extract_path
+
         return data
 
 
@@ -1089,4 +1106,65 @@ class ListFunctionsFromRemoteServerStep(PipelineStep):
             },
         )
         list_functions(url, headers, format)
+        return data
+
+
+class CheckRemoteIdRequirementStep(PipelineStep):
+    def execute(self, data):
+        remote_id = data.get("remote_id", "")
+        project_path = data["project_path"]
+
+        # Check if we're in a function directory by looking for the metadata file
+        metadata_file = project_path / settings.FUNCTIONS.PROJECT_METADATA_FILE
+
+        if not metadata_file.exists():
+            # Not in a function directory, so remote_id is mandatory
+            if not remote_id:
+                error_message = (
+                    "Error: remote_id is required when not in a function directory."
+                )
+                raise ValueError(error_message)
+        else:
+            # In a function directory, try to get the function ID from metadata
+            try:
+                project_metadata = read_manifest_project_file(project_path)
+                function_id = getattr(project_metadata.function, "id", None)
+
+                if function_id and not remote_id:
+                    # Use the ID from metadata
+                    data["remote_id"] = function_id
+                    self.log(
+                        data=data,
+                        message=f"Using function ID from local metadata: {function_id}",
+                        color=MessageColorEnum.INFO,
+                    )
+                elif function_id and remote_id and function_id != remote_id:
+                    # Prioritize the ID from metadata
+                    self.log(
+                        data=data,
+                        message=(
+                            f"Using function ID from local metadata ({function_id}) "
+                            f"instead of provided remote_id"
+                        ),
+                        color=MessageColorEnum.WARNING,
+                    )
+                    data["remote_id"] = function_id
+                elif not function_id and not remote_id:
+                    # No ID in metadata and no remote_id provided
+                    error_message = (
+                        (
+                            f"Using function ID from local metadata ({function_id}) "
+                            f"instead of provided remote_id"
+                        ),
+                    )
+                    raise ValueError(error_message)
+                # If no function_id but remote_id is provided, use the provided remote_id
+            except Exception as e:
+                # If there's an error reading the metadata, require remote_id
+                if not remote_id:
+                    error_message = (
+                        "The functions has not been registered or synchronized with the platform."
+                        "Please provide a remote_id."
+                    )
+                    raise ValueError(error_message) from e
         return data
