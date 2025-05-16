@@ -68,7 +68,8 @@ def add_pagination_options():
         wrapper.__annotations__["page_size"] = Annotated[
             int,
             typer.Option(
-                help="Defines how many items per page are retrieved.", show_default=False
+                help="Defines how many items per page are retrieved.",
+                show_default=False,
             ),
         ]
         wrapper.__annotations__["page"] = Annotated[

@@ -94,7 +94,10 @@ def add_function(active_config: ProfileConfigModel, **kwargs):
 
     response = client.post(url=url, headers=headers, files=files)
 
-    if response.status_code != httpx.codes.OK and response.status_code != httpx.codes.ACCEPTED:
+    if (
+        response.status_code != httpx.codes.OK
+        and response.status_code != httpx.codes.ACCEPTED
+    ):
         return {
             "success": False,
             "error": httpx.HTTPStatusError(
