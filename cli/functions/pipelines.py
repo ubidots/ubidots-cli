@@ -1,5 +1,6 @@
 import json
 import shutil
+import sys
 import time
 import zipfile
 from dataclasses import dataclass
@@ -17,6 +18,7 @@ from cli.commons.utils import build_endpoint
 from cli.commons.utils import check_response_status
 from cli.config.helpers import get_configuration
 from cli.functions import FUNCTION_API_ROUTES
+from cli.functions.engines.exceptions import ContainerNotFoundException
 from cli.functions.engines.manager import FunctionEngineClientManager
 from cli.functions.engines.settings import engine_settings
 from cli.functions.enums import FunctionHandlerFileExtensionEnum
@@ -891,20 +893,24 @@ class RemoveNonDeployableFilesStep(PipelineStep):
         container_key = data["container_key"]
         container_manager = data["container_manager"]
 
-        container = container_manager.get(
-            f"{engine_settings.CONTAINER.FRIE.LABEL_KEY}={container_key}"
-        )
-        project_path = Path(container.attrs["Mounts"][0]["Source"])
-        for pattern in [
-            f"{settings.FUNCTIONS.DEFAULT_HANDLER_FILE_NAME}.{FunctionHandlerFileExtensionEnum.PYTHON_EXTENSION}",
-            f"{settings.FUNCTIONS.DEFAULT_HANDLER_FILE_NAME}.{FunctionHandlerFileExtensionEnum.NODEJS_EXTENSION}",
-        ]:
-            for handler_file in project_path.glob(pattern):
-                handler_file.unlink()
+        try:
+            container = container_manager.get(
+                f"{engine_settings.CONTAINER.FRIE.LABEL_KEY}={container_key}"
+            )
+            project_path = Path(container.attrs["Mounts"][0]["Source"])
+            for pattern in [
+                f"{settings.FUNCTIONS.DEFAULT_HANDLER_FILE_NAME}.{FunctionHandlerFileExtensionEnum.PYTHON_EXTENSION}",
+                f"{settings.FUNCTIONS.DEFAULT_HANDLER_FILE_NAME}.{FunctionHandlerFileExtensionEnum.NODEJS_EXTENSION}",
+            ]:
+                for handler_file in project_path.glob(pattern):
+                    handler_file.unlink()
 
-        node_modules_path = project_path / "node_modules"
-        if node_modules_path.exists() and node_modules_path.is_dir():
-            shutil.rmtree(node_modules_path)
+            node_modules_path = project_path / "node_modules"
+            if node_modules_path.exists() and node_modules_path.is_dir():
+                shutil.rmtree(node_modules_path)
+        except ContainerNotFoundException:
+            # Container doesn't exist, so there's nothing to clean up
+            pass
 
         return data
 
@@ -975,10 +981,20 @@ class StopFunctionStep(PipelineStep):
         container_key = data["container_key"]
         container_manager = data["container_manager"]
 
-        container_manager.stop(
-            f"{engine_settings.CONTAINER.FRIE.LABEL_KEY}={container_key}"
-        )
-        data["local_label"] = f"\n Local label: {container_key}"
+        try:
+            container_manager.stop(
+                f"{engine_settings.CONTAINER.FRIE.LABEL_KEY}={container_key}"
+            )
+            data["local_label"] = f"\n Local label: {container_key}"
+        except ContainerNotFoundException:
+            typer.echo(
+                typer.style(
+                    text=f"\n> [ERROR]: Function with label '{container_key}' is not running.\n",
+                    fg=MessageColorEnum.ERROR,
+                    bold=True,
+                )
+            )
+            sys.exit(0)
         return data
 
 
