@@ -35,6 +35,7 @@ def create_function(
     label = sanitize_function_name(name)
     project_path = Path.cwd() / name if not Path(name).is_absolute() else Path(name)
     steps = [
+        pipelines.ValidateNotInExistingFunctionDirectoryStep(),
         pipelines.ValidateAllowedRuntimeStep(),
         pipelines.ValidateRuntimeAgaisntLanguageStep(),
         pipelines.ValidateTemplateStep(),

@@ -500,6 +500,41 @@ class TestExtractProjectStep:
         mock_zip_init.assert_called_once_with(ANY, "r")
 
 
+class TestValidateNotInExistingFunctionDirectoryStep:
+    @patch("pathlib.Path.cwd")
+    @patch("pathlib.Path.exists", return_value=False)
+    def test_execute_success_not_in_function_directory(self, mock_exists, mock_cwd):
+        # Setup
+        mock_cwd.return_value = Path("/some/directory")
+        step = pipelines.ValidateNotInExistingFunctionDirectoryStep()
+        data = {"project_path": Path("/some/directory/new_function")}
+
+        # Action
+        result = step.execute(data)
+
+        # Assert
+        assert result == data
+        mock_exists.assert_called_once()
+
+    @patch("pathlib.Path.cwd")
+    @patch("pathlib.Path.exists", return_value=True)
+    def test_execute_raises_error_in_function_directory(self, mock_exists, mock_cwd):
+        # Setup
+        mock_cwd.return_value = Path("/existing/function")
+        step = pipelines.ValidateNotInExistingFunctionDirectoryStep()
+        data = {"project_path": Path("/existing/function/new_function")}
+
+        # Action & Assert
+        with pytest.raises(ValueError) as exc_info:
+            step.execute(data)
+
+        assert "Cannot run 'functions init' from within an existing" in str(
+            exc_info.value
+        )
+        assert "function directory" in str(exc_info.value)
+        mock_exists.assert_called_once()
+
+
 class TestBuildEndpointStep:
     @patch("cli.functions.pipelines.build_endpoint")
     def test_execute_success(self, mock_build_endpoint):
