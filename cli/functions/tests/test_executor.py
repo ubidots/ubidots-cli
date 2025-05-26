@@ -21,6 +21,7 @@ from cli.settings import settings
 
 class TestCreateFunction(TestCase):
     @patch("cli.functions.executor.Pipeline")
+    @patch("cli.functions.pipelines.ValidateNotInExistingFunctionDirectoryStep")
     @patch("cli.functions.pipelines.ValidateAllowedRuntimeStep")
     @patch("cli.functions.pipelines.ValidateRuntimeAgaisntLanguageStep")
     @patch("cli.functions.pipelines.ValidateTemplateStep")
@@ -35,6 +36,7 @@ class TestCreateFunction(TestCase):
         MockValidateTemplateStep,
         MockValidateRuntimeAgaisntLanguageStep,
         MockValidateAllowedRuntimeStep,
+        MockValidateNotInExistingFunctionDirectoryStep,
         MockPipeline,
     ):
         # Setup
@@ -72,6 +74,7 @@ class TestCreateFunction(TestCase):
         )
 
         expected_steps = [
+            MockValidateNotInExistingFunctionDirectoryStep.return_value,
             MockValidateAllowedRuntimeStep.return_value,
             MockValidateRuntimeAgaisntLanguageStep.return_value,
             MockValidateTemplateStep.return_value,
@@ -110,6 +113,42 @@ class TestCreateFunction(TestCase):
             "params": "{}",
         }
         mock_pipeline_instance.run.assert_called_once_with(expected_context)
+
+    @patch("cli.functions.executor.Pipeline")
+    @patch("cli.functions.pipelines.ValidateNotInExistingFunctionDirectoryStep")
+    def test_create_function_fails_in_existing_directory(
+        self,
+        MockValidateNotInExistingFunctionDirectoryStep,
+        MockPipeline,
+    ):
+        # Setup: Mock the validation step to raise an error
+        MockValidateNotInExistingFunctionDirectoryStep.side_effect = ValueError(
+            "Error: Cannot run 'functions init' from within an existing "
+            "function directory. Please navigate to a different directory "
+            "to create a new function."
+        )
+
+        mock_pipeline_instance = MockPipeline.return_value
+        mock_pipeline_instance.run = MagicMock()
+
+        # Action & Assert: Expect ValueError when in existing function directory
+        with self.assertRaises(ValueError) as context:
+            create_function(
+                name="test_function",
+                language=FunctionLanguageEnum.PYTHON,
+                runtime=FunctionRuntimeLayerTypeEnum.PYTHON_3_9_BASE,
+                methods=[FunctionMethodEnum.GET],
+                is_raw=False,
+                engine=settings.CONFIG.DEFAULT_CONTAINER_ENGINE,
+                cron="",
+                cors=False,
+                verbose=False,
+                timeout=settings.FUNCTIONS.DEFAULT_TIMEOUT_SECONDS,
+                created_at="2025-02-18T15:00:00",
+                profile="",
+            )
+
+        self.assertIn("Cannot run 'functions init'", str(context.exception))
 
 
 class TestStartFunction(TestCase):

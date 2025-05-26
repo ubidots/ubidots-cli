@@ -148,6 +148,23 @@ class ValidateAllowedRuntimeStep(PipelineStep):
         return data
 
 
+class ValidateNotInExistingFunctionDirectoryStep(PipelineStep):
+    def execute(self, data):
+        current_dir = Path.cwd()
+
+        # Check if we're currently in a function directory
+        metadata_file = current_dir / settings.FUNCTIONS.PROJECT_METADATA_FILE
+
+        if metadata_file.exists():
+            error_message = (
+                "Error: Cannot run 'functions init' from within an existing "
+                "function directory. Please navigate to a different directory "
+                "to create a new function."
+            )
+            raise ValueError(error_message)
+        return data
+
+
 class GetFunctionIdFromManifestStep(PipelineStep):
     def execute(self, data):
         data["remote_id"] = data["project_metadata"].function.id
