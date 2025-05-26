@@ -340,13 +340,25 @@ class ConfirmOverwritePullFunctionStep(PipelineStep):
 class PrintFunctionPath(PipelineStep):
     def execute(self, data):
         project_path = data["project_path"]
-        typer.echo(
-            typer.style(
-                text=f"\n> [DONE]: Function downloaded successfully at {project_path}\n",
-                fg=MessageColorEnum.SUCCESS,
-                bold=True,
+
+        # Check if this is a new function pull or an existing function update
+        if data.get("is_new_function_pull", False):
+            remote_id = data.get("remote_id", "")
+            typer.echo(
+                typer.style(
+                    text=f"\n> [DONE]: Function with id {remote_id} was downloaded successfully at {project_path}\n",
+                    fg=MessageColorEnum.SUCCESS,
+                    bold=True,
+                )
             )
-        )
+        elif data.get("is_existing_function_pull", False):
+            typer.echo(
+                typer.style(
+                    text="\n> [DONE]: Function was pulled successfully\n",
+                    fg=MessageColorEnum.SUCCESS,
+                    bold=True,
+                )
+            )
         return data
 
 
@@ -1137,51 +1149,42 @@ class CheckRemoteIdRequirementStep(PipelineStep):
         if not metadata_file.exists():
             # Not in a function directory, so remote_id is mandatory
             if not remote_id:
-                error_message = (
-                    "Error: remote_id is required when not in a function directory."
-                )
+                error_message = "Error: '--remote_id <function-id>' is required when not in a function directory."
                 raise ValueError(error_message)
+            # Set a flag to indicate we're pulling to a new directory
+            data["is_new_function_pull"] = True
         else:
-            # In a function directory, try to get the function ID from metadata
+            # In a function directory
             try:
                 project_metadata = read_manifest_project_file(project_path)
                 function_id = getattr(project_metadata.function, "id", None)
 
-                if function_id and not remote_id:
-                    # Use the ID from metadata
+                if function_id:
+                    # Use the ID from metadata without printing the info message
                     data["remote_id"] = function_id
-                    self.log(
-                        data=data,
-                        message=f"Using function ID from local metadata: {function_id}",
-                        color=MessageColorEnum.INFO,
-                    )
-                elif function_id and remote_id and function_id != remote_id:
-                    # Prioritize the ID from metadata
-                    self.log(
-                        data=data,
-                        message=(
-                            f"Using function ID from local metadata ({function_id}) "
-                            f"instead of provided remote_id"
-                        ),
-                        color=MessageColorEnum.WARNING,
-                    )
-                    data["remote_id"] = function_id
-                elif not function_id and not remote_id:
+                    # Set a flag to indicate we're updating an existing function
+                    data["is_existing_function_pull"] = True
+
+                    # If remote_id was provided but we're using the one from metadata
+                    if remote_id and remote_id != function_id:
+                        warning_message = (
+                            f"\n> [WARNING]: Ignoring provided remote ID '{remote_id}'. "
+                            f"Using function ID from local metadata '{function_id}' instead.\n"
+                        )
+                        typer.echo(
+                            typer.style(
+                                text=warning_message,
+                                fg=MessageColorEnum.WARNING,
+                                bold=True,
+                            )
+                        )
+                else:
                     # No ID in metadata and no remote_id provided
-                    error_message = (
-                        (
-                            f"Using function ID from local metadata ({function_id}) "
-                            f"instead of provided remote_id"
-                        ),
-                    )
+                    error_message = "Function metadata is missing an ID."
                     raise ValueError(error_message)
-                # If no function_id but remote_id is provided, use the provided remote_id
             except Exception as e:
                 # If there's an error reading the metadata, require remote_id
                 if not remote_id:
-                    error_message = (
-                        "The functions has not been registered or synchronized with the platform."
-                        "Please provide a remote_id."
-                    )
+                    error_message = "The function has not been registered or synchronized with the platform."
                     raise ValueError(error_message) from e
         return data

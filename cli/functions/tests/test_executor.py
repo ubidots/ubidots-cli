@@ -1,6 +1,5 @@
 from pathlib import Path
 from unittest import TestCase
-from unittest.mock import ANY
 from unittest.mock import MagicMock
 from unittest.mock import patch
 
@@ -578,6 +577,7 @@ class TestPushFunction(TestCase):
 class TestPullFunction(TestCase):
     @patch("cli.functions.executor.Pipeline")
     @patch("cli.functions.pipelines.GetActiveConfigStep")
+    @patch("cli.functions.pipelines.CheckRemoteIdRequirementStep")
     @patch("cli.functions.pipelines.GetRemoteFunctionDetailSteps")
     @patch("cli.functions.pipelines.CheckFunctionDetailResponse")
     @patch("cli.functions.pipelines.ParseFunctionDetailsResponse")
@@ -612,6 +612,7 @@ class TestPullFunction(TestCase):
         MockParseFunctionDetailsResponse,
         MockCheckFunctionDetailResponse,
         MockGetRemoteFunctionDetailSteps,
+        MockCheckRemoteIdRequirementStep,
         MockGetActiveConfigStep,
         MockPipeline,
     ):
@@ -632,7 +633,7 @@ class TestPullFunction(TestCase):
         MockPipeline.assert_called_once_with(
             [
                 MockGetActiveConfigStep.return_value,
-                ANY,  # CheckRemoteIdRequirementStep
+                MockCheckRemoteIdRequirementStep.return_value,
                 MockGetRemoteFunctionDetailSteps.return_value,
                 MockCheckFunctionDetailResponse.return_value,
                 MockParseFunctionDetailsResponse.return_value,
@@ -649,8 +650,7 @@ class TestPullFunction(TestCase):
                 MockGetProjectFilesStep.return_value,
                 MockValidateProjectStep.return_value,
                 MockPrintFunctionPath.return_value,
-            ],
-            success_message="Function pulled successfully.",
+            ]
         )
 
         mock_pipeline_instance.run.assert_called_once_with(

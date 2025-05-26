@@ -289,7 +289,7 @@ def pull_function(
         pipelines.ValidateProjectStep(),
         pipelines.PrintFunctionPath(),
     ]
-    pipeline = Pipeline(steps, success_message="Function pulled successfully.")
+    pipeline = Pipeline(steps)
     pipeline.run(
         {
             "project_path": Path.cwd(),
