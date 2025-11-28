@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        {% if page.description %}<meta name="description" content="{{ page.description }}" />{% endif %}
+        {% if page.keywords %}<meta name="keywords" content="{{ page.keywords }}" />{% endif %}
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+        <title>{{ page.name }}</title>
+        <script id="page-js" type="text/javascript">
+            window.staticUrl = "{{ BASE_URL }}";
+        </script>
+        {# Load the third party libraries added by the user #}
+        <script src="{{ HTML_CANVAS_LIBRARY_URL }}"></script>
+        {% if page.is_react_enabled %}
+            <script crossorigin src="{{ REACT_URL }}"></script>
+            <script crossorigin src="{{ REACT_DOM_URL }}"></script>
+            <script src="{{ BABEL_STANDALONE_URL }}"></script>
+            <script id="vulcanui-js" src="{{ VULCANUI_JS_URL }}"></script>
+            <link id="vulcanui-css" rel="stylesheet" href="{{ VULCANUI_CSS_URL }}" />
+        {% endif %}
+        {% for library in page.js_thirdparty_libraries %}
+            <script {% for key, value in library.items %} {{ key }}{% if value %}="{{ value }}"{% endif %}{% endfor %}></script>
+        {% endfor %}
+        {% for library in page.css_thirdparty_libraries %}
+            <link {% for key, value in library.items %} {{ key }}{% if value %}="{{ value }}"{% endif %}{% endfor %} rel="stylesheet" />
+        {% endfor %}
+        {% for library in page.link_thirdparty_libraries %}
+            <link {% for key, value in library.items %} {{ key }}{% if value %}="{{ value }}"{% endif %}{% endfor %} />
+        {% endfor %}
+        {% for library in page.js_libraries %}
+            <script {% for key, value in library.items %}{% if key == "src" %}src="{{ BASE_URL }}/{{ value }}"{% else %} {{ key }}{% if value %}="{{ value }}"{% endif %}{% endif %}{% endfor %}></script>
+        {% endfor %}
+        {% for library in page.css_libraries %}
+            <link {% for key, value in library.items %}{% if key == "href" %}href="{{ BASE_URL }}/{{ value }}"{% else %} {{ key }}{% if value %}="{{ value }}"{% endif %}{% endif %}{% endfor %} rel="stylesheet" />
+        {% endfor %}
+        {% for library in page.link_libraries %}
+            <link {% for key, value in library.items %}{% if key == "href" %}href="{{ BASE_URL }}/{{ value }}"{% else %} {{ key }}{% if value %}="{{ value }}"{% endif %}{% endif %}{% endfor %} />
+        {% endfor %}
+    </head>
+    <body>{{ page.body|safe }}</body>
+</html>

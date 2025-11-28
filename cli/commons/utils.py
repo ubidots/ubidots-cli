@@ -1,4 +1,5 @@
 import re
+import shutil
 from pathlib import Path
 
 import httpx
@@ -132,3 +133,8 @@ def load_yaml(file_path: str | Path) -> dict:
         )
     exception_message = "Unexpected error occurred while loading YAML file."
     raise AssertionError(exception_message)
+
+
+def cleanup_directory(directory_path: Path) -> None:
+    if directory_path.exists() and directory_path.is_dir():
+        shutil.rmtree(directory_path)
