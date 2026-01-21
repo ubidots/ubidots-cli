@@ -1798,4 +1798,4 @@ simplification = []
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.9,<3.13"
-content-hash = "8f2c4c0d62044c6dc7270e5bfa8fcd4b52825dc2900491101b6db6c4a1a69d8b"
+content-hash = "0485b0dc9e9146f4d8c39af06727915883c0f25f38bab764a14f33943a012032"
