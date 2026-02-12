@@ -414,6 +414,7 @@ def logs(
         tail="all",
         follow=False,
         remote=True,
+        remote_id=remote_id,
         profile=profile,
         verbose=verbose,
     )

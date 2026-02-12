@@ -462,6 +462,7 @@ class TestRootLogsCommand(TestCase):
             tail="all",
             follow=False,
             remote=True,
+            remote_id="abc123",
             profile="test_profile",
             verbose=True,
         )
