@@ -13,14 +13,15 @@ from cli.settings import settings
 runner = CliRunner()
 
 
-class TestInitFunctionCommand(TestCase):
+class TestDevAddFunctionCommand(TestCase):
     @patch("cli.functions.commands.executor.create_function")
-    def test_init_function_with_defaults(self, mock_create_function):
+    def test_dev_add_function_with_defaults(self, mock_create_function):
         # Action
         result = runner.invoke(
             function_app,
             [
-                "init",
+                "dev",
+                "add",
             ],
         )
         self.assertEqual(result.exit_code, 0)
@@ -41,7 +42,7 @@ class TestInitFunctionCommand(TestCase):
         )
 
     @patch("cli.functions.commands.executor.create_function")
-    def test_init_function_with_custom_options(self, mock_create_function):
+    def test_dev_add_function_with_custom_options(self, mock_create_function):
         # Action
         custom_name = "CustomFunctionName"
         language = "python"
@@ -51,7 +52,8 @@ class TestInitFunctionCommand(TestCase):
         result = runner.invoke(
             function_app,
             [
-                "init",
+                "dev",
+                "add",
                 "--name",
                 custom_name,
                 "--runtime",
@@ -89,23 +91,23 @@ class TestInitFunctionCommand(TestCase):
             profile=ANY,
         )
 
-    @patch("cli.functions.commands.executor.pull_function")
-    def test_init_function_with_remote_id_option(self, mock_pull_function):
-        function_id = "1234"
+    def test_dev_add_rejects_remote_id_option(self):
+        """Verify dev add does not accept --remote-id flag."""
         result = runner.invoke(
             function_app,
             [
-                "init",
+                "dev",
+                "add",
                 "--remote-id",
-                function_id,
-                "--verbose",
+                "1234",
             ],
         )
-        self.assertEqual(result.exit_code, 0)
-        mock_pull_function.assert_called_once_with(
-            remote_id=function_id,
-            verbose=True,
-            profile=ANY,
+        # Should fail because --remote-id is not a valid option
+        self.assertNotEqual(result.exit_code, 0)
+        # Error message should indicate the option doesn't exist
+        output = result.stdout
+        self.assertTrue(
+            "--remote-id" in output.lower() or "no such option" in output.lower()
         )
 
 
@@ -361,10 +363,10 @@ class TestUpdateFunctionCommand(TestCase):
 
 
 @patch("cli.functions.commands.executor.start_function")
-class TestStartFunctionCommand(TestCase):
-    def test_start_function(self, mock_start_function):
+class TestDevStartFunctionCommand(TestCase):
+    def test_dev_start_function(self, mock_start_function):
         # Action
-        result = runner.invoke(function_app, ["start", "--verbose"])
+        result = runner.invoke(function_app, ["dev", "start", "--verbose"])
 
         # Expected
         self.assertEqual(result.exit_code, 0)
@@ -372,10 +374,10 @@ class TestStartFunctionCommand(TestCase):
 
 
 @patch("cli.functions.commands.executor.stop_function")
-class TestStopFunctionCommand(TestCase):
-    def test_stop_function(self, mock_stop_function):
+class TestDevStopFunctionCommand(TestCase):
+    def test_dev_stop_function(self, mock_stop_function):
         # Action
-        result = runner.invoke(function_app, ["stop", "--verbose"])
+        result = runner.invoke(function_app, ["dev", "stop", "--verbose"])
 
         # Expected
         self.assertEqual(result.exit_code, 0)
@@ -383,10 +385,10 @@ class TestStopFunctionCommand(TestCase):
 
 
 @patch("cli.functions.commands.executor.restart_function")
-class TestRestartFunctionCommand(TestCase):
-    def test_restart_function_with_defaults(self, mock_restart_function):
+class TestDevRestartFunctionCommand(TestCase):
+    def test_dev_restart_function_with_defaults(self, mock_restart_function):
         # Action
-        result = runner.invoke(function_app, ["restart"])
+        result = runner.invoke(function_app, ["dev", "restart"])
         # Expected
         self.assertEqual(result.exit_code, 0)
         mock_restart_function.assert_called_once_with(
@@ -395,10 +397,10 @@ class TestRestartFunctionCommand(TestCase):
 
 
 @patch("cli.functions.commands.executor.status_function")
-class TestStatusFunctionCommand(TestCase):
-    def test_status_function_with_defaults(self, mock_status_function):
+class TestDevStatusFunctionCommand(TestCase):
+    def test_dev_status_function_with_defaults(self, mock_status_function):
         # Action
-        result = runner.invoke(function_app, ["status"])
+        result = runner.invoke(function_app, ["dev", "status"])
         # Expected
         self.assertEqual(result.exit_code, 0)
         mock_status_function.assert_called_once_with(
@@ -407,10 +409,11 @@ class TestStatusFunctionCommand(TestCase):
 
 
 @patch("cli.functions.commands.executor.logs_function")
-class TestLogsFunctionCommand(TestCase):
-    def test_logs_function_local(self, mock_logs_function):
+class TestDevLogsCommand(TestCase):
+    def test_dev_logs_function_local(self, mock_logs_function):
+        """Test dev logs for local container logs only."""
         # Action
-        result = runner.invoke(function_app, ["logs"])
+        result = runner.invoke(function_app, ["dev", "logs"])
 
         # Expected
         self.assertEqual(result.exit_code, 0)
@@ -418,20 +421,35 @@ class TestLogsFunctionCommand(TestCase):
             tail="all",
             follow=False,
             profile="",
-            remote=False,
+            remote=False,  # Always False for dev logs
             verbose=False,
         )
 
-    def test_logs_function_remote(self, mock_logs_function):
+    def test_dev_logs_rejects_remote_flag(self, mock_logs_function):
+        """Test that dev logs does not accept --remote flag."""
+        # Action
+        result = runner.invoke(
+            function_app,
+            [
+                "dev",
+                "logs",
+                "--remote",
+            ],
+        )
+        # Expected: should fail
+        self.assertNotEqual(result.exit_code, 0)
+
+
+@patch("cli.functions.commands.executor.logs_function")
+class TestRootLogsCommand(TestCase):
+    def test_root_logs_with_explicit_id(self, mock_logs_function):
+        """Test root logs command with explicit function ID."""
         # Action
         result = runner.invoke(
             function_app,
             [
                 "logs",
-                "--follow",
-                "--remote",
-                "--tail",
-                "100",
+                "abc123",
                 "--profile",
                 "test_profile",
                 "--verbose",
@@ -441,10 +459,10 @@ class TestLogsFunctionCommand(TestCase):
         # Expected
         self.assertEqual(result.exit_code, 0)
         mock_logs_function.assert_called_once_with(
-            tail="100",
-            follow=True,
-            profile="test_profile",
+            tail="all",
+            follow=False,
             remote=True,
+            profile="test_profile",
             verbose=True,
         )
 
