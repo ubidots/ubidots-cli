@@ -1,5 +1,6 @@
 from builtins import list as BuiltinList
 from datetime import datetime
+from pathlib import Path
 from typing import Annotated
 from typing import Union
 from typing import no_type_check
@@ -21,6 +22,7 @@ from cli.functions import executor
 from cli.functions.enums import FunctionLanguageEnum
 from cli.functions.enums import FunctionMethodEnum
 from cli.functions.enums import FunctionRuntimeLayerTypeEnum
+from cli.functions.helpers import read_manifest_project_file
 from cli.settings import settings
 
 DEFAULT_METHODS = FunctionMethodEnum.get_default_method()
@@ -29,18 +31,23 @@ FIELDS_FUNCTION_HELP_TEXT = (
     "* Available fields: (url, id, label, name, isActive, createdAt, serverless, "
     "triggers, environment, zipFileProperties)."
 )
-INIT_COMMAND_HELP_TEXT = (
-    "Create a new local function. If the `--remote-id` option is used, "
-    "the corresponding function will be pulled from the remote server instead."
+DEV_ADD_COMMAND_HELP_TEXT = (
+    "Create a new local function project with starter code and configuration."
 )
 
 
 app = typer.Typer(help="Tool for managing and deploying functions.")
+dev_app = typer.Typer(help="Local development commands for functions.")
 
 
-@app.command(help=INIT_COMMAND_HELP_TEXT, hidden=False)
+# ============================================================================
+# DEV COMMANDS (Local Development)
+# ============================================================================
+
+
+@dev_app.command(name="add", help=DEV_ADD_COMMAND_HELP_TEXT)
 @add_verbose_option()
-def init(
+def dev_add(
     name: Annotated[
         str,
         typer.Option(help="The name for the function."),
@@ -51,13 +58,6 @@ def init(
             help="The programming language for the function.",
         ),
     ] = settings.FUNCTIONS.DEFAULT_LANGUAGE,
-    remote_id: Annotated[
-        str,
-        typer.Option(
-            "--remote-id",
-            help="The remote function ID.",
-        ),
-    ] = "",
     runtime: Annotated[
         FunctionRuntimeLayerTypeEnum,
         typer.Option(
@@ -110,31 +110,106 @@ def init(
     ] = "",
     verbose: bool = False,
 ):
-    if remote_id:
-        executor.pull_function(
-            remote_id=remote_id,
-            verbose=verbose,
-            profile=profile,
-        )
-    else:
-        executor.create_function(
-            name=name,
-            language=language,
-            runtime=runtime,
-            methods=methods,
-            is_raw=raw,
-            cron=cron,
-            cors=cors,
-            verbose=verbose,
-            timeout=timeout,
-            created_at=datetime.now().isoformat(),
-            engine=settings.CONFIG.DEFAULT_CONTAINER_ENGINE,
-            token=token,
-            profile=profile,
-        )
+    executor.create_function(
+        name=name,
+        language=language,
+        runtime=runtime,
+        methods=methods,
+        is_raw=raw,
+        cron=cron,
+        cors=cors,
+        verbose=verbose,
+        timeout=timeout,
+        created_at=datetime.now().isoformat(),
+        engine=settings.CONFIG.DEFAULT_CONTAINER_ENGINE,
+        token=token,
+        profile=profile,
+    )
 
 
-@app.command(help="Start Function.", hidden=True)
+@dev_app.command(name="init", hidden=True, help="Deprecated: Use 'dev add' instead.")
+@add_verbose_option()
+def dev_init(
+    name: Annotated[
+        str,
+        typer.Option(help="The name for the function."),
+    ] = settings.FUNCTIONS.DEFAULT_PROJECT_NAME,
+    language: Annotated[
+        FunctionLanguageEnum,
+        typer.Option(
+            help="The programming language for the function.",
+        ),
+    ] = settings.FUNCTIONS.DEFAULT_LANGUAGE,
+    runtime: Annotated[
+        FunctionRuntimeLayerTypeEnum,
+        typer.Option(
+            help="The runtime for the function.",
+        ),
+    ] = settings.FUNCTIONS.DEFAULT_RUNTIME,
+    cors: Annotated[
+        bool,
+        typer.Option(
+            help="Flag to enable Cross-Origin Resource Sharing (CORS) for the function.",
+        ),
+    ] = settings.FUNCTIONS.DEFAULT_HAS_CORS,
+    cron: Annotated[
+        str,
+        typer.Option(
+            help="Cron expression to schedule the function for periodic execution.",
+            hidden=True,
+        ),
+    ] = settings.FUNCTIONS.DEFAULT_CRON,
+    timeout: Annotated[
+        int,
+        typer.Option(
+            help="Timeout for the function in seconds.",
+            hidden=True,
+        ),
+    ] = settings.FUNCTIONS.DEFAULT_TIMEOUT_SECONDS,
+    methods: Annotated[
+        BuiltinList[FunctionMethodEnum],
+        typer.Option(
+            help="The HTTP methods the function will respond to.",
+        ),
+    ] = settings.FUNCTIONS.DEFAULT_METHODS,
+    raw: Annotated[
+        bool,
+        typer.Option(
+            help="Flag to determine if the output should be in raw format.",
+        ),
+    ] = settings.FUNCTIONS.DEFAULT_IS_RAW,
+    token: Annotated[
+        str,
+        typer.Option(
+            help="Token used to invoke the function.",
+        ),
+    ] = "",
+    profile: Annotated[
+        str,
+        typer.Option(
+            help="Profile to use.",
+        ),
+    ] = "",
+    verbose: bool = False,
+):
+    executor.create_function(
+        name=name,
+        language=language,
+        runtime=runtime,
+        methods=methods,
+        is_raw=raw,
+        cron=cron,
+        cors=cors,
+        verbose=verbose,
+        timeout=timeout,
+        created_at=datetime.now().isoformat(),
+        engine=settings.CONFIG.DEFAULT_CONTAINER_ENGINE,
+        token=token,
+        profile=profile,
+    )
+
+
+@dev_app.command(help="Start the local function development server.")
 @add_verbose_option()
 def start(
     verbose: bool = False,
@@ -144,7 +219,7 @@ def start(
     )
 
 
-@app.command(help="Stop the function.")
+@dev_app.command(help="Stop the local function development server.")
 @add_verbose_option()
 def stop(
     verbose: bool = False,
@@ -154,7 +229,7 @@ def stop(
     )
 
 
-@app.command(help="Restart the function.")
+@dev_app.command(help="Restart the local function development server.")
 @add_verbose_option()
 def restart(
     verbose: bool = False,
@@ -164,7 +239,7 @@ def restart(
     )
 
 
-@app.command(help="Check the status of the functions.")
+@dev_app.command(help="Check the status of the local function development server.")
 @add_verbose_option()
 def status(
     verbose: bool = False,
@@ -174,7 +249,7 @@ def status(
     )
 
 
-@app.command(help="Get logs from the function.", hidden=True)
+@dev_app.command(help="Display logs from the local function development server.")
 @add_verbose_option()
 def logs(
     tail: Annotated[
@@ -197,19 +272,25 @@ def logs(
             help="Profile to use.",
         ),
     ] = "",
-    remote: Annotated[
-        bool,
-        typer.Option("--remote/", "-r/", help="Fetch logs from the remote server."),
-    ] = False,
     verbose: bool = False,
 ):
+    """Display logs from the local function development server.
+
+    This command shows logs from your local Docker/Podman container.
+    For cloud function logs, use 'ubidots functions logs <function-id>'.
+    """
     executor.logs_function(
         tail=tail,
         follow=follow,
-        remote=remote,
+        remote=False,
         profile=profile,
         verbose=verbose,
     )
+
+
+# ============================================================================
+# SYNC COMMANDS (Local <-> Remote)
+# ============================================================================
 
 
 @app.command(
@@ -261,19 +342,79 @@ def pull(
     )
 
 
-@app.command(
-    help="Clean up functions environment to ensure a fresh start.", hidden=True
-)
+@dev_app.command(help="Clean up local function development environment.")
 @add_verbose_option()
 def clean(
     confirm: Annotated[
         bool,
-        typer.Option("--yes", "-y", help="Confirm file overwrite without prompt."),
+        typer.Option("--yes", "-y", help="Confirm cleanup without prompt."),
     ] = False,
     verbose: bool = False,
 ):
     executor.clean_functions(
         confirm=confirm,
+        verbose=verbose,
+    )
+
+
+# ============================================================================
+# CLOUD COMMANDS (Remote CRUD)
+# ============================================================================
+
+
+@app.command(help="Retrieve and display logs from a remote function.")
+@add_verbose_option()
+def logs(
+    function_id: Annotated[
+        str,
+        typer.Argument(
+            help="The remote function ID. If omitted, uses ID from local manifest.",
+            show_default=False,
+        ),
+    ] = "",
+    profile: Annotated[
+        str,
+        typer.Option(
+            "--profile",
+            "-p",
+            help="Profile to use for remote server communication.",
+        ),
+    ] = "",
+    verbose: bool = False,
+):
+    """Retrieve and display logs from a remote function.
+
+    The function ID can be provided as an argument or will be automatically
+    detected if running from within a local function project directory.
+
+    Smart ID Detection:
+    - If function_id argument provided: use it directly
+    - If no argument and in function project: read remote_id from .manifest.yaml
+    - Otherwise: raise error requiring explicit function ID
+    """
+    remote_id = function_id
+
+    # Smart ID detection: read from manifest if no ID provided
+    if not remote_id:
+        try:
+            manifest_file = Path.cwd() / settings.FUNCTIONS.PROJECT_METADATA_FILE
+            if manifest_file.exists():
+                project_metadata = read_manifest_project_file(Path.cwd())
+                remote_id = project_metadata.function.id
+        except Exception:
+            pass  # Silently fail, let validation below catch it
+
+    if not remote_id:
+        raise typer.BadParameter(
+            "Function ID required. Provide an ID as an argument or run from within a function "
+            "directory with a valid manifest file."
+        )
+
+    executor.logs_function(
+        tail="all",
+        follow=False,
+        remote=True,
+        profile=profile,
         verbose=verbose,
     )
 
@@ -506,3 +647,7 @@ def delete(
         confirm=confirm,
         verbose=verbose,
     )
+
+
+# Register the dev subcommand
+app.add_typer(dev_app, name="dev")
