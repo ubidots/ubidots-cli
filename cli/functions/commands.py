@@ -1,3 +1,4 @@
+import contextlib
 from builtins import list as BuiltinList
 from datetime import datetime
 from pathlib import Path
@@ -40,14 +41,9 @@ app = typer.Typer(help="Tool for managing and deploying functions.")
 dev_app = typer.Typer(help="Local development commands for functions.")
 
 
-# ============================================================================
-# DEV COMMANDS (Local Development)
-# ============================================================================
-
-
 @dev_app.command(name="add", help=DEV_ADD_COMMAND_HELP_TEXT)
 @add_verbose_option()
-def dev_add(
+def create_function(
     name: Annotated[
         str,
         typer.Option(help="The name for the function."),
@@ -129,7 +125,7 @@ def dev_add(
 
 @dev_app.command(name="init", hidden=True, help="Deprecated: Use 'dev add' instead.")
 @add_verbose_option()
-def dev_init(
+def create_function_deprecated(
     name: Annotated[
         str,
         typer.Option(help="The name for the function."),
@@ -209,9 +205,9 @@ def dev_init(
     )
 
 
-@dev_app.command(help="Start the local function development server.")
+@dev_app.command(name="start", help="Start the local functions development server.")
 @add_verbose_option()
-def start(
+def start_function(
     verbose: bool = False,
 ):
     executor.start_function(
@@ -219,9 +215,9 @@ def start(
     )
 
 
-@dev_app.command(help="Stop the local function development server.")
+@dev_app.command(name="stop", help="Stop the local functions development server.")
 @add_verbose_option()
-def stop(
+def stop_function(
     verbose: bool = False,
 ):
     executor.stop_function(
@@ -229,9 +225,9 @@ def stop(
     )
 
 
-@dev_app.command(help="Restart the local function development server.")
+@dev_app.command(name="restart", help="Restart the local functions development server.")
 @add_verbose_option()
-def restart(
+def restart_function(
     verbose: bool = False,
 ):
     executor.restart_function(
@@ -239,9 +235,9 @@ def restart(
     )
 
 
-@dev_app.command(help="Check the status of the local function development server.")
+@dev_app.command(name="status", help="Check the status of the local functions development server.")
 @add_verbose_option()
-def status(
+def status_function(
     verbose: bool = False,
 ):
     executor.status_function(
@@ -249,9 +245,9 @@ def status(
     )
 
 
-@dev_app.command(help="Display logs from the local function development server.")
+@dev_app.command(name="logs", help="Display logs from the local functions development server.")
 @add_verbose_option()
-def logs(
+def logs_function_local(
     tail: Annotated[
         str,
         typer.Option(
@@ -288,16 +284,13 @@ def logs(
     )
 
 
-# ============================================================================
-# SYNC COMMANDS (Local <-> Remote)
-# ============================================================================
-
 
 @app.command(
+    name="push",
     help="Update and synchronize your local function code with the remote server.",
 )
 @add_verbose_option()
-def push(
+def push_function(
     confirm: Annotated[
         bool,
         typer.Option("--yes", "-y", help="Confirm file overwrite without prompt."),
@@ -316,10 +309,11 @@ def push(
 
 
 @app.command(
+    name="pull",
     help="Retrieve and update your local function code with the latest changes from the remote server.",
 )
 @add_verbose_option()
-def pull(
+def pull_function(
     remote_id: Annotated[
         str,
         typer.Option("--remote-id", "-i", help="The remote function ID."),
@@ -342,9 +336,9 @@ def pull(
     )
 
 
-@dev_app.command(help="Clean up local function development environment.")
+@dev_app.command(name="clean", help="Clean up local functions development environment.")
 @add_verbose_option()
-def clean(
+def clean_functions(
     confirm: Annotated[
         bool,
         typer.Option("--yes", "-y", help="Confirm cleanup without prompt."),
@@ -357,14 +351,9 @@ def clean(
     )
 
 
-# ============================================================================
-# CLOUD COMMANDS (Remote CRUD)
-# ============================================================================
-
-
-@app.command(help="Retrieve and display logs from a remote function.")
+@app.command(name="logs", help="Retrieve and display logs from a remote function.")
 @add_verbose_option()
-def logs(
+def logs_function_remote(
     function_id: Annotated[
         str,
         typer.Argument(
@@ -382,27 +371,15 @@ def logs(
     ] = "",
     verbose: bool = False,
 ):
-    """Retrieve and display logs from a remote function.
 
-    The function ID can be provided as an argument or will be automatically
-    detected if running from within a local function project directory.
-
-    Smart ID Detection:
-    - If function_id argument provided: use it directly
-    - If no argument and in function project: read remote_id from .manifest.yaml
-    - Otherwise: raise error requiring explicit function ID
-    """
     remote_id = function_id
 
-    # Smart ID detection: read from manifest if no ID provided
     if not remote_id:
-        try:
-            manifest_file = Path.cwd() / settings.FUNCTIONS.PROJECT_METADATA_FILE
-            if manifest_file.exists():
+        manifest_file = Path.cwd() / settings.FUNCTIONS.PROJECT_METADATA_FILE
+        if manifest_file.exists():
+            with contextlib.suppress(ValueError, FileNotFoundError):
                 project_metadata = read_manifest_project_file(Path.cwd())
                 remote_id = project_metadata.function.id
-        except Exception:
-            pass  # Silently fail, let validation below catch it
 
     if not remote_id:
         raise typer.BadParameter(
@@ -420,12 +397,12 @@ def logs(
     )
 
 
-@app.command(short_help="Lists all available functions.")
+@app.command(name="list", short_help="Lists all available functions.")
 @add_pagination_options()
 @add_sort_by_option()
 @add_filter_option()
 @no_type_check
-def list(
+def list_functions(
     profile: Annotated[
         str,
         typer.Option(
@@ -454,8 +431,8 @@ def list(
 
 
 # CRUD: Create
-@app.command(short_help="Adds a new function in the remote server.")
-def add(
+@app.command(name="add", short_help="Adds a new function in the remote server.")
+def add_function(
     name: Annotated[
         str, typer.Argument(help="The name of the function.", show_default=False)
     ],
@@ -522,10 +499,10 @@ def add(
 
 
 # CRUD: Read
-@app.command(short_help="Retrieves a specific function using its id or label.")
+@app.command(name="get", short_help="Retrieves a specific function using its id or label.")
 @simple_lookup_key(entity_name=EntityNameEnum.FUNCTION)
 @no_type_check
-def get(
+def get_function(
     profile: Annotated[
         str,
         typer.Option(
@@ -553,9 +530,9 @@ def get(
 
 
 # CRUD: Update
-@app.command(short_help="Update a function.")
+@app.command(name="update", short_help="Update a function.")
 @simple_lookup_key(entity_name=EntityNameEnum.FUNCTION)
-def update(
+def update_function(
     id: str | None = None,
     label: str | None = None,
     new_label: Annotated[str, typer.Option(help="The label for the device.")] = "",
@@ -623,9 +600,9 @@ def update(
 
 
 # CRUD: Delete.
-@app.command(short_help="Deletes a specific function using its id or label.")
+@app.command(name="delete", short_help="Deletes a specific function using its id or label.")
 @simple_lookup_key(entity_name=EntityNameEnum.FUNCTION)
-def delete(
+def delete_function(
     profile: Annotated[
         str,
         typer.Option(
