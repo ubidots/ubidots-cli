@@ -177,32 +177,54 @@ def logs_function(
     profile: str,
     remote: bool,
     verbose: bool,
+    remote_id: str = "",
 ):
     if remote:
-        steps = [
-            pipelines.ReadManifestStep(),
-            pipelines.GetProjectFilesStep(),
-            pipelines.ValidateProjectStep(),
-            pipelines.GetFunctionIdFromManifestStep(),
-            pipelines.GetActiveConfigStep(),
-            pipelines.BuildEndpointStep(FUNCTION_API_ROUTES["logs"]),
-            pipelines.HttpGetRequestStep(),
-            pipelines.CheckResponseStep("response"),
-            pipelines.PrintColoredTableStep(key="results"),
-        ]
-        pipeline = Pipeline(steps)
-        pipeline.run(
-            {
-                "project_path": Path.cwd(),
-                "profile": profile,
-                "validations": {
-                    "manifest_file_exists": True,
-                    "function_exists": True,
-                },
-                "verbose": verbose,
-                "root": logs_function.__name__,
-            }
-        )
+        if remote_id:
+            # When remote_id is provided directly, use it without reading manifest
+            steps = [
+                pipelines.GetActiveConfigStep(),
+                pipelines.BuildEndpointStep(FUNCTION_API_ROUTES["logs"]),
+                pipelines.HttpGetRequestStep(),
+                pipelines.CheckResponseStep("response"),
+                pipelines.PrintColoredTableStep(key="results"),
+            ]
+            pipeline = Pipeline(steps)
+            pipeline.run(
+                {
+                    "project_path": Path.cwd(),
+                    "profile": profile,
+                    "remote_id": remote_id,
+                    "verbose": verbose,
+                    "root": logs_function.__name__,
+                }
+            )
+        else:
+            # When remote_id is not provided, read from manifest
+            steps = [
+                pipelines.ReadManifestStep(),
+                pipelines.GetProjectFilesStep(),
+                pipelines.ValidateProjectStep(),
+                pipelines.GetFunctionIdFromManifestStep(),
+                pipelines.GetActiveConfigStep(),
+                pipelines.BuildEndpointStep(FUNCTION_API_ROUTES["logs"]),
+                pipelines.HttpGetRequestStep(),
+                pipelines.CheckResponseStep("response"),
+                pipelines.PrintColoredTableStep(key="results"),
+            ]
+            pipeline = Pipeline(steps)
+            pipeline.run(
+                {
+                    "project_path": Path.cwd(),
+                    "profile": profile,
+                    "validations": {
+                        "manifest_file_exists": True,
+                        "function_exists": True,
+                    },
+                    "verbose": verbose,
+                    "root": logs_function.__name__,
+                }
+            )
     else:
         steps = [
             pipelines.ReadManifestStep(),

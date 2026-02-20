@@ -9,16 +9,16 @@ from cli.pages.commands import app
 from cli.pages.models import PageTypeEnum
 
 
-class TestInitCommand(unittest.TestCase):
-    """Test init command."""
+class TestDevAddCommand(unittest.TestCase):
+    """Test dev add command."""
 
     def setUp(self):
         self.runner = CliRunner()
 
     @patch("cli.pages.commands.executor.create_page")
-    def test_init_command_default_values(self, mock_create_page):
-        """Test init command with default values."""
-        result = self.runner.invoke(app, ["init"])
+    def test_dev_add_command_default_values(self, mock_create_page):
+        """Test dev add command with default values."""
+        result = self.runner.invoke(app, ["dev", "add"])
 
         self.assertEqual(result.exit_code, 0)
         mock_create_page.assert_called_once_with(
@@ -31,7 +31,7 @@ class TestInitCommand(unittest.TestCase):
     @patch("cli.pages.commands.executor.create_page")
     def test_init_command_with_name(self, mock_create_page):
         """Test init command with custom name."""
-        result = self.runner.invoke(app, ["init", "--name", "test_page"])
+        result = self.runner.invoke(app, ["dev", "add", "--name", "test_page"])
 
         self.assertEqual(result.exit_code, 0)
         mock_create_page.assert_called_once_with(
@@ -41,7 +41,7 @@ class TestInitCommand(unittest.TestCase):
     @patch("cli.pages.commands.executor.create_page")
     def test_init_command_with_profile(self, mock_create_page):
         """Test init command with custom profile."""
-        result = self.runner.invoke(app, ["init", "--profile", "prod"])
+        result = self.runner.invoke(app, ["dev", "add", "--profile", "prod"])
 
         self.assertEqual(result.exit_code, 0)
         mock_create_page.assert_called_once_with(
@@ -51,7 +51,7 @@ class TestInitCommand(unittest.TestCase):
     @patch("cli.pages.commands.executor.create_page")
     def test_init_command_with_type(self, mock_create_page):
         """Test init command with custom type."""
-        result = self.runner.invoke(app, ["init", "--type", "dashboard"])
+        result = self.runner.invoke(app, ["dev", "add", "--type", "dashboard"])
 
         self.assertEqual(result.exit_code, 0)
         mock_create_page.assert_called_once_with(
@@ -61,7 +61,7 @@ class TestInitCommand(unittest.TestCase):
     @patch("cli.pages.commands.executor.create_page")
     def test_init_command_verbose(self, mock_create_page):
         """Test init command with verbose flag."""
-        result = self.runner.invoke(app, ["init", "--verbose"])
+        result = self.runner.invoke(app, ["dev", "add", "--verbose"])
 
         self.assertEqual(result.exit_code, 0)
         mock_create_page.assert_called_once_with(
@@ -74,7 +74,8 @@ class TestInitCommand(unittest.TestCase):
         result = self.runner.invoke(
             app,
             [
-                "init",
+                "dev",
+                "add",
                 "--name",
                 "custom_page",
                 "--profile",
@@ -95,10 +96,10 @@ class TestInitCommand(unittest.TestCase):
 
     def test_init_command_with_remote_id(self):
         """Test init command with remote-id (not implemented)."""
-        result = self.runner.invoke(app, ["init", "--remote-id", "page123"])
+        result = self.runner.invoke(app, ["dev", "add", "--remote-id", "page123"])
 
         self.assertEqual(result.exit_code, 0)
-        self.assertIn("Not implemented yet", result.stdout)
+        self.assertIn("not implemented yet", result.stdout.lower())
 
 
 class TestStartCommand(unittest.TestCase):
@@ -110,7 +111,7 @@ class TestStartCommand(unittest.TestCase):
     @patch("cli.pages.commands.executor.start_page")
     def test_start_command_default(self, mock_start_page):
         """Test start command with default values."""
-        result = self.runner.invoke(app, ["start"])
+        result = self.runner.invoke(app, ["dev", "start"])
 
         self.assertEqual(result.exit_code, 0)
         mock_start_page.assert_called_once_with(verbose=False)
@@ -118,7 +119,7 @@ class TestStartCommand(unittest.TestCase):
     @patch("cli.pages.commands.executor.start_page")
     def test_start_command_verbose(self, mock_start_page):
         """Test start command with verbose flag."""
-        result = self.runner.invoke(app, ["start", "--verbose"])
+        result = self.runner.invoke(app, ["dev", "start", "--verbose"])
 
         self.assertEqual(result.exit_code, 0)
         mock_start_page.assert_called_once_with(verbose=True)
@@ -133,7 +134,7 @@ class TestStopCommand(unittest.TestCase):
     @patch("cli.pages.commands.executor.stop_page")
     def test_stop_command_default(self, mock_stop_page):
         """Test stop command with default values."""
-        result = self.runner.invoke(app, ["stop"])
+        result = self.runner.invoke(app, ["dev", "stop"])
 
         self.assertEqual(result.exit_code, 0)
         mock_stop_page.assert_called_once_with(verbose=False)
@@ -141,7 +142,7 @@ class TestStopCommand(unittest.TestCase):
     @patch("cli.pages.commands.executor.stop_page")
     def test_stop_command_verbose(self, mock_stop_page):
         """Test stop command with verbose flag."""
-        result = self.runner.invoke(app, ["stop", "--verbose"])
+        result = self.runner.invoke(app, ["dev", "stop", "--verbose"])
 
         self.assertEqual(result.exit_code, 0)
         mock_stop_page.assert_called_once_with(verbose=True)
@@ -156,7 +157,7 @@ class TestRestartCommand(unittest.TestCase):
     @patch("cli.pages.commands.executor.restart_page")
     def test_restart_command_default(self, mock_restart_page):
         """Test restart command with default values."""
-        result = self.runner.invoke(app, ["restart"])
+        result = self.runner.invoke(app, ["dev", "restart"])
 
         self.assertEqual(result.exit_code, 0)
         mock_restart_page.assert_called_once_with(verbose=False)
@@ -164,7 +165,7 @@ class TestRestartCommand(unittest.TestCase):
     @patch("cli.pages.commands.executor.restart_page")
     def test_restart_command_verbose(self, mock_restart_page):
         """Test restart command with verbose flag."""
-        result = self.runner.invoke(app, ["restart", "--verbose"])
+        result = self.runner.invoke(app, ["dev", "restart", "--verbose"])
 
         self.assertEqual(result.exit_code, 0)
         mock_restart_page.assert_called_once_with(verbose=True)
@@ -179,7 +180,7 @@ class TestStatusCommand(unittest.TestCase):
     @patch("cli.pages.commands.executor.status_page")
     def test_status_command_default(self, mock_status_page):
         """Test status command with default values."""
-        result = self.runner.invoke(app, ["status"])
+        result = self.runner.invoke(app, ["dev", "status"])
 
         self.assertEqual(result.exit_code, 0)
         mock_status_page.assert_called_once_with(verbose=False)
@@ -187,7 +188,7 @@ class TestStatusCommand(unittest.TestCase):
     @patch("cli.pages.commands.executor.status_page")
     def test_status_command_verbose(self, mock_status_page):
         """Test status command with verbose flag."""
-        result = self.runner.invoke(app, ["status", "--verbose"])
+        result = self.runner.invoke(app, ["dev", "status", "--verbose"])
 
         self.assertEqual(result.exit_code, 0)
         mock_status_page.assert_called_once_with(verbose=True)
@@ -202,7 +203,7 @@ class TestListCommand(unittest.TestCase):
     @patch("cli.pages.commands.executor.list_pages")
     def test_list_command_default(self, mock_list_pages):
         """Test list command with default values."""
-        result = self.runner.invoke(app, ["list"])
+        result = self.runner.invoke(app, ["dev", "list"])
 
         self.assertEqual(result.exit_code, 0)
         mock_list_pages.assert_called_once_with(verbose=False)
@@ -210,7 +211,7 @@ class TestListCommand(unittest.TestCase):
     @patch("cli.pages.commands.executor.list_pages")
     def test_list_command_verbose(self, mock_list_pages):
         """Test list command with verbose flag."""
-        result = self.runner.invoke(app, ["list", "--verbose"])
+        result = self.runner.invoke(app, ["dev", "list", "--verbose"])
 
         self.assertEqual(result.exit_code, 0)
         mock_list_pages.assert_called_once_with(verbose=True)
@@ -231,42 +232,42 @@ class TestCommandsIntegration(unittest.TestCase):
 
     def test_init_command_help(self):
         """Test init command help."""
-        result = self.runner.invoke(app, ["init", "--help"])
+        result = self.runner.invoke(app, ["dev", "add", "--help"])
 
         self.assertEqual(result.exit_code, 0)
         self.assertIn("Create a new local Ubidots page", result.stdout)
 
     def test_start_command_help(self):
         """Test start command help."""
-        result = self.runner.invoke(app, ["start", "--help"])
+        result = self.runner.invoke(app, ["dev", "start", "--help"])
 
         self.assertEqual(result.exit_code, 0)
         self.assertIn("Start the local development server", result.stdout)
 
     def test_stop_command_help(self):
         """Test stop command help."""
-        result = self.runner.invoke(app, ["stop", "--help"])
+        result = self.runner.invoke(app, ["dev", "stop", "--help"])
 
         self.assertEqual(result.exit_code, 0)
         self.assertIn("Stop the local development server", result.stdout)
 
     def test_restart_command_help(self):
         """Test restart command help."""
-        result = self.runner.invoke(app, ["restart", "--help"])
+        result = self.runner.invoke(app, ["dev", "restart", "--help"])
 
         self.assertEqual(result.exit_code, 0)
         self.assertIn("Restart the local development server", result.stdout)
 
     def test_status_command_help(self):
         """Test status command help."""
-        result = self.runner.invoke(app, ["status", "--help"])
+        result = self.runner.invoke(app, ["dev", "status", "--help"])
 
         self.assertEqual(result.exit_code, 0)
         self.assertIn("Show the status of the local development server", result.stdout)
 
     def test_list_command_help(self):
         """Test list command help."""
-        result = self.runner.invoke(app, ["list", "--help"])
+        result = self.runner.invoke(app, ["dev", "list", "--help"])
 
         self.assertEqual(result.exit_code, 0)
         self.assertIn("List all pages and their status", result.stdout)
