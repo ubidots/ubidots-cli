@@ -31,6 +31,7 @@ class EntityNameEnum(StrEnum):
     TYPES = "device_type"
     FUNCTION = "function"
     PLUGIN = "plugin"
+    PAGE = "page"
 
 
 class DefaultInstanceFieldEnum(StrEnum):
