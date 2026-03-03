@@ -1,34 +1,31 @@
-"""Tests for the pages pipelines module."""
-
 import unittest
 from pathlib import Path
 from tempfile import TemporaryDirectory
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock
+from unittest.mock import patch
 
-from cli.pages.pipelines import ValidateNotRunningFromPageDirectoryStep
-from cli.pages.pipelines import ValidateCurrentPageExistsStep
-from cli.pages.pipelines import CreateProjectFolderStep
-from cli.pages.pipelines import SaveManifestStep
-from cli.pages.pipelines import ValidatePageDirectoryStep
-from cli.pages.pipelines import ReadPageMetadataStep
-from cli.pages.pipelines import ValidatePageNotRunningStep
-from cli.pages.pipelines import ValidatePageRunningStep
-from cli.pages.pipelines import StopPageContainerStep
-from cli.pages.pipelines import GetPageStatusStep
-from cli.pages.pipelines import ListAllPagesStep
-from cli.pages.models import PageTypeEnum
 from cli.pages.exceptions import PageAlreadyExistsInCurrentDirectoryError
-from cli.pages.exceptions import PageWithNameAlreadyExistsError
 from cli.pages.exceptions import PageIsAlreadyRunningError
 from cli.pages.exceptions import PageIsAlreadyStoppedError
+from cli.pages.exceptions import PageWithNameAlreadyExistsError
+from cli.pages.models import PageTypeEnum
+from cli.pages.pipelines import CreateProjectFolderStep
+from cli.pages.pipelines import GetPageStatusStep
+from cli.pages.pipelines import ListAllPagesStep
+from cli.pages.pipelines import ReadPageMetadataStep
+from cli.pages.pipelines import SaveManifestStep
+from cli.pages.pipelines import StopPageContainerStep
+from cli.pages.pipelines import ValidateCurrentPageExistsStep
+from cli.pages.pipelines import ValidateNotRunningFromPageDirectoryStep
+from cli.pages.pipelines import ValidatePageDirectoryStep
+from cli.pages.pipelines import ValidatePageNotRunningStep
+from cli.pages.pipelines import ValidatePageRunningStep
 
 
 class TestValidationSteps(unittest.TestCase):
-    """Test validation pipeline steps."""
 
-    @patch("cli.pages.pipelines.settings")
+    @patch("cli.pages.pipelines.dev_scaffold.settings")
     def test_validate_not_running_from_page_directory_step_exists(self, mock_settings):
-        """Test validating when manifest file exists in current directory."""
         mock_settings.PAGES.PROJECT_MANIFEST_FILE = ".manifest.yaml"
 
         with TemporaryDirectory() as temp_dir:
@@ -37,15 +34,16 @@ class TestValidationSteps(unittest.TestCase):
 
             step = ValidateNotRunningFromPageDirectoryStep()
 
-            with patch("pathlib.Path.cwd", return_value=Path(temp_dir)):
-                with self.assertRaises(PageAlreadyExistsInCurrentDirectoryError):
-                    step.execute({})
+            with (
+                patch("pathlib.Path.cwd", return_value=Path(temp_dir)),
+                self.assertRaises(PageAlreadyExistsInCurrentDirectoryError),
+            ):
+                step.execute({})
 
-    @patch("cli.pages.pipelines.settings")
+    @patch("cli.pages.pipelines.dev_scaffold.settings")
     def test_validate_not_running_from_page_directory_step_not_exists(
         self, mock_settings
     ):
-        """Test validating when manifest file doesn't exist in current directory."""
         mock_settings.PAGES.PROJECT_MANIFEST_FILE = ".manifest.yaml"
 
         with TemporaryDirectory() as temp_dir:
@@ -56,9 +54,8 @@ class TestValidationSteps(unittest.TestCase):
 
             self.assertEqual(result, {})
 
-    @patch("cli.pages.pipelines.settings")
+    @patch("cli.pages.pipelines.dev_scaffold.settings")
     def test_validate_current_page_exists_step_exists(self, mock_settings):
-        """Test validating when page already exists."""
         mock_settings.PAGES.PROJECT_METADATA_FILE = ".manifest.yaml"
 
         with TemporaryDirectory() as temp_dir:
@@ -72,9 +69,8 @@ class TestValidationSteps(unittest.TestCase):
             with self.assertRaises(PageWithNameAlreadyExistsError):
                 step.execute(data)
 
-    @patch("cli.pages.pipelines.settings")
+    @patch("cli.pages.pipelines.dev_scaffold.settings")
     def test_validate_current_page_exists_step_not_exists(self, mock_settings):
-        """Test validating when page doesn't exist."""
         mock_settings.PAGES.PROJECT_METADATA_FILE = ".manifest.yaml"
 
         with TemporaryDirectory() as temp_dir:
@@ -88,7 +84,6 @@ class TestValidationSteps(unittest.TestCase):
             self.assertEqual(result, data)
 
     def test_validate_page_directory_step_exists(self):
-        """Test validating when page directory has manifest file."""
         with TemporaryDirectory() as temp_dir:
             project_path = Path(temp_dir)
             manifest_file = project_path / "manifest.toml"
@@ -102,7 +97,6 @@ class TestValidationSteps(unittest.TestCase):
             self.assertEqual(result, data)
 
     def test_validate_page_directory_step_not_exists(self):
-        """Test validating when page directory doesn't have manifest file."""
         with TemporaryDirectory() as temp_dir:
             project_path = Path(temp_dir)
 
@@ -115,10 +109,8 @@ class TestValidationSteps(unittest.TestCase):
 
 
 class TestCreationSteps(unittest.TestCase):
-    """Test creation pipeline steps."""
 
     def test_create_project_folder_step(self):
-        """Test creating project directory."""
         with TemporaryDirectory() as temp_dir:
             project_path = Path(temp_dir) / "test_page"
 
@@ -131,9 +123,8 @@ class TestCreationSteps(unittest.TestCase):
             self.assertTrue(project_path.exists())
             self.assertTrue(project_path.is_dir())
 
-    @patch("cli.pages.pipelines.create_and_save_page_manifest")
+    @patch("cli.pages.pipelines.dev_scaffold.create_and_save_page_manifest")
     def test_save_manifest_step(self, mock_create_manifest):
-        """Test saving page manifest."""
         mock_metadata = MagicMock()
         mock_create_manifest.return_value = mock_metadata
 
@@ -154,9 +145,8 @@ class TestCreationSteps(unittest.TestCase):
             Path("/test"), "test_page", PageTypeEnum.DASHBOARD
         )
 
-    @patch("cli.pages.pipelines.read_page_manifest")
+    @patch("cli.pages.pipelines.dev_engine.read_page_manifest")
     def test_read_page_metadata_step_success(self, mock_read_manifest):
-        """Test reading page metadata successfully."""
         mock_metadata = MagicMock()
         mock_read_manifest.return_value = mock_metadata
 
@@ -169,9 +159,8 @@ class TestCreationSteps(unittest.TestCase):
         expected_data["project_metadata"] = mock_metadata
         self.assertEqual(result, expected_data)
 
-    @patch("cli.pages.pipelines.read_page_manifest")
+    @patch("cli.pages.pipelines.dev_engine.read_page_manifest")
     def test_read_page_metadata_step_not_found(self, mock_read_manifest):
-        """Test reading page metadata when file not found."""
         mock_read_manifest.side_effect = FileNotFoundError("Not found")
 
         data = {"project_path": Path("/test")}
@@ -183,16 +172,14 @@ class TestCreationSteps(unittest.TestCase):
 
 
 class TestContainerSteps(unittest.TestCase):
-    """Test container-related pipeline steps."""
 
-    @patch("cli.pages.pipelines.get_page_container")
-    @patch("cli.pages.pipelines.is_container_running")
-    @patch("cli.pages.pipelines.generate_page_url")
-    @patch("cli.pages.pipelines.settings")
+    @patch("cli.pages.pipelines.dev_engine.get_page_container")
+    @patch("cli.pages.pipelines.dev_engine.is_container_running")
+    @patch("cli.pages.pipelines.dev_engine.generate_page_url")
+    @patch("cli.pages.pipelines.dev_engine.settings")
     def test_validate_page_not_running_step_not_running(
         self, mock_settings, mock_generate_url, mock_is_running, mock_get_container
     ):
-        """Test validating page is not running when it's not."""
         mock_container = MagicMock()
         mock_get_container.return_value = mock_container
         mock_is_running.return_value = False
@@ -204,14 +191,13 @@ class TestContainerSteps(unittest.TestCase):
 
         self.assertEqual(result, data)
 
-    @patch("cli.pages.pipelines.get_page_container")
-    @patch("cli.pages.pipelines.is_container_running")
-    @patch("cli.pages.pipelines.generate_page_url")
-    @patch("cli.pages.pipelines.settings")
+    @patch("cli.pages.pipelines.dev_engine.get_page_container")
+    @patch("cli.pages.pipelines.dev_engine.is_container_running")
+    @patch("cli.pages.pipelines.dev_engine.generate_page_url")
+    @patch("cli.pages.pipelines.dev_engine.settings")
     def test_validate_page_not_running_step_is_running(
         self, mock_settings, mock_generate_url, mock_is_running, mock_get_container
     ):
-        """Test validating page is not running when it is running."""
         mock_container = MagicMock()
         mock_get_container.return_value = mock_container
         mock_is_running.return_value = True
@@ -225,12 +211,11 @@ class TestContainerSteps(unittest.TestCase):
         with self.assertRaises(PageIsAlreadyRunningError):
             step.execute(data)
 
-    @patch("cli.pages.pipelines.get_page_container")
-    @patch("cli.pages.pipelines.is_container_running")
+    @patch("cli.pages.pipelines.dev_engine.get_page_container")
+    @patch("cli.pages.pipelines.dev_engine.is_container_running")
     def test_validate_page_running_step_is_running(
         self, mock_is_running, mock_get_container
     ):
-        """Test validating page is running when it is."""
         mock_container = MagicMock()
         mock_get_container.return_value = mock_container
         mock_is_running.return_value = True
@@ -242,12 +227,11 @@ class TestContainerSteps(unittest.TestCase):
 
         self.assertEqual(result, data)
 
-    @patch("cli.pages.pipelines.get_page_container")
-    @patch("cli.pages.pipelines.is_container_running")
+    @patch("cli.pages.pipelines.dev_engine.get_page_container")
+    @patch("cli.pages.pipelines.dev_engine.is_container_running")
     def test_validate_page_running_step_not_running(
         self, mock_is_running, mock_get_container
     ):
-        """Test validating page is running when it's not."""
         mock_container = MagicMock()
         mock_get_container.return_value = mock_container
         mock_is_running.return_value = False
@@ -259,9 +243,8 @@ class TestContainerSteps(unittest.TestCase):
         with self.assertRaises(PageIsAlreadyStoppedError):
             step.execute(data)
 
-    @patch("cli.pages.pipelines.stop_page_container")
+    @patch("cli.pages.pipelines.dev_engine.stop_page_container")
     def test_stop_page_container_step(self, mock_stop_container):
-        """Test stopping page container."""
         data = {"container_manager": MagicMock(), "page_name": "test_page"}
 
         step = StopPageContainerStep()
@@ -272,14 +255,13 @@ class TestContainerSteps(unittest.TestCase):
             container_manager=data["container_manager"], page_name="test_page"
         )
 
-    @patch("cli.pages.pipelines.get_page_container")
-    @patch("cli.pages.pipelines.is_container_running")
-    @patch("cli.pages.pipelines.generate_page_url")
-    @patch("cli.pages.pipelines.settings")
+    @patch("cli.pages.pipelines.dev_engine.get_page_container")
+    @patch("cli.pages.pipelines.dev_engine.is_container_running")
+    @patch("cli.pages.pipelines.dev_engine.generate_page_url")
+    @patch("cli.pages.pipelines.dev_engine.settings")
     def test_get_page_status_step_running(
         self, mock_settings, mock_generate_url, mock_is_running, mock_get_container
     ):
-        """Test getting page status when running."""
         mock_container = MagicMock()
         mock_get_container.return_value = mock_container
         mock_is_running.return_value = True
@@ -297,9 +279,8 @@ class TestContainerSteps(unittest.TestCase):
         )
         self.assertEqual(result, expected_data)
 
-    @patch("cli.pages.pipelines.get_page_container")
+    @patch("cli.pages.pipelines.dev_engine.get_page_container")
     def test_get_page_status_step_stopped(self, mock_get_container):
-        """Test getting page status when stopped."""
         mock_get_container.return_value = None
 
         data = {"container_manager": MagicMock(), "page_name": "test_page"}
@@ -311,13 +292,12 @@ class TestContainerSteps(unittest.TestCase):
         expected_data.update({"page_status": "stopped", "page_url": ""})
         self.assertEqual(result, expected_data)
 
-    @patch("cli.pages.pipelines.page_engine_settings")
-    @patch("cli.pages.pipelines.generate_page_url")
-    @patch("cli.pages.pipelines.settings")
+    @patch("cli.pages.pipelines.dev_engine.page_engine_settings")
+    @patch("cli.pages.pipelines.dev_engine.generate_page_url")
+    @patch("cli.pages.pipelines.dev_engine.settings")
     def test_list_all_pages_step(
         self, mock_settings, mock_generate_url, mock_page_settings
     ):
-        """Test listing all pages."""
         mock_page_settings.CONTAINER.PAGE.PREFIX_NAME = "page"
         mock_settings.PAGES.ROUTING_MODE = "port"
         mock_generate_url.return_value = "http://localhost:8090/"
