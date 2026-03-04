@@ -6,6 +6,8 @@ from pathlib import Path
 
 import httpx
 import typer
+import yaml
+from pydantic import ValidationError
 
 from cli.commons.enums import MessageColorEnum
 from cli.commons.pipelines import PipelineStep
@@ -13,7 +15,6 @@ from cli.commons.utils import build_endpoint
 from cli.commons.utils import check_response_status
 from cli.pages.constants import PAGE_API_ROUTES
 from cli.pages.handlers import add_page
-from cli.pages.handlers import download_page_code
 from cli.pages.handlers import upload_page_code
 from cli.pages.helpers import compress_page_to_zip
 from cli.pages.helpers import create_and_save_page_manifest
@@ -160,44 +161,50 @@ class CheckRemotePageIdRequirementStep(PipelineStep):
     def execute(self, data):
         remote_id = data.get("remote_id", "")
         project_path = data["project_path"]
-
         metadata_file = project_path / settings.PAGES.PROJECT_METADATA_FILE
 
         if not metadata_file.exists():
-            if not remote_id:
-                error_message = "Error: '--remote-id <page-id>' is required when not in a page directory."
-                raise ValueError(error_message)
-            data["is_new_page_pull"] = True
-        else:
-            try:
-                project_metadata = read_page_manifest(project_path)
-                page_id = getattr(project_metadata.page, "id", None)
+            return self._handle_new_page_pull(data, remote_id)
 
-                if page_id:
-                    data["remote_id"] = page_id
-                    data["is_existing_page_pull"] = True
+        return self._handle_existing_page_pull(data, remote_id, project_path)
 
-                    if remote_id and remote_id != page_id:
-                        warning_message = (
-                            f"\n> [WARNING]: Ignoring provided remote ID '{remote_id}'. "
-                            f"Using page ID from local metadata '{page_id}' instead.\n"
-                        )
-                        typer.echo(
-                            typer.style(
-                                text=warning_message,
-                                fg=MessageColorEnum.WARNING,
-                                bold=True,
-                            )
-                        )
-                else:
-                    if not remote_id:
-                        error_message = "Page metadata is missing an ID."
-                        raise ValueError(error_message)
-            except Exception as e:
-                if not remote_id:
-                    error_message = "The page has not been registered or synchronized with the platform."
-                    raise ValueError(error_message) from e
+    def _handle_new_page_pull(self, data, remote_id):
+        if not remote_id:
+            raise ValueError("Error: '--remote-id <page-id>' is required when not in a page directory.")
+        data["is_new_page_pull"] = True
         return data
+
+    def _handle_existing_page_pull(self, data, remote_id, project_path):
+        try:
+            page_id = self._read_page_id(project_path)
+        except (FileNotFoundError, yaml.YAMLError, ValidationError) as e:
+            if not remote_id:
+                raise ValueError("The page has not been registered or synchronized with the platform.") from e
+            return data
+
+        if not page_id:
+            if not remote_id:
+                raise ValueError("Page metadata is missing an ID.")
+            return data
+
+        data["remote_id"] = page_id
+        data["is_existing_page_pull"] = True
+
+        if remote_id and remote_id != page_id:
+            self._warn_remote_id_ignored(remote_id, page_id)
+
+        return data
+
+    def _read_page_id(self, project_path):
+        project_metadata = read_page_manifest(project_path)
+        return getattr(project_metadata.page, "id", None)
+
+    def _warn_remote_id_ignored(self, remote_id, page_id):
+        warning_message = (
+            f"\n> [WARNING]: Ignoring provided remote ID '{remote_id}'. "
+            f"Using page ID from local metadata '{page_id}' instead.\n"
+        )
+        typer.echo(typer.style(text=warning_message, fg=MessageColorEnum.WARNING, bold=True))
 
 
 class GetRemotePageDetailStep(PipelineStep):
@@ -292,7 +299,7 @@ class DownloadPageCodeStep(PipelineStep):
             page_key=data["remote_id"],
             active_config=data["active_config"],
         )
-        response = download_page_code(url, headers)
+        response = httpx.get(url, headers=headers, follow_redirects=True)
 
         if response.status_code == 400:
             try:

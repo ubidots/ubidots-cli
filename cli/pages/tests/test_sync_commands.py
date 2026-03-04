@@ -6,7 +6,7 @@ from typer.testing import CliRunner
 from cli.pages.commands import app
 
 
-@patch("cli.pages.commands.executor.push_page")
+@patch("cli.pages.commands.executor.push_page_to_cloud_platform")
 class TestPushCommand(unittest.TestCase):
 
     def setUp(self):
@@ -43,7 +43,7 @@ class TestPushCommand(unittest.TestCase):
         )
 
 
-@patch("cli.pages.commands.executor.pull_page_cloud")
+@patch("cli.pages.commands.executor.pull_page_from_cloud_platform")
 class TestPullCommand(unittest.TestCase):
 
     def setUp(self):
@@ -149,7 +149,3 @@ class TestCloudCommandsIntegration(unittest.TestCase):
 
         self.assertEqual(result.exit_code, 0)
         self.assertIn("Retrieve and update your local page code", result.stdout)
-
-
-if __name__ == "__main__":
-    unittest.main()

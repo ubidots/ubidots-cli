@@ -80,7 +80,7 @@ def create_page(
         )
         typer.echo(f"Attempted to pull page with ID: {remote_id}")
         return
-    executor.create_page(
+    executor.create_local_page(
         name=name,
         verbose=verbose,
         profile=profile,
@@ -130,7 +130,7 @@ def create_page_deprecated(
 def start_page(
     verbose: bool = False,
 ):
-    executor.start_page(
+    executor.start_local_dev_server(
         verbose=verbose,
     )
 
@@ -140,7 +140,7 @@ def start_page(
 def stop_page(
     verbose: bool = False,
 ):
-    executor.stop_page(
+    executor.stop_local_dev_server(
         verbose=verbose,
     )
 
@@ -150,7 +150,7 @@ def stop_page(
 def restart_page(
     verbose: bool = False,
 ):
-    executor.restart_page(
+    executor.restart_local_dev_server(
         verbose=verbose,
     )
 
@@ -160,7 +160,7 @@ def restart_page(
 def status_page(
     verbose: bool = False,
 ):
-    executor.status_page(
+    executor.show_local_dev_server_status(
         verbose=verbose,
     )
 
@@ -170,7 +170,7 @@ def status_page(
 def list_pages(
     verbose: bool = False,
 ):
-    executor.list_pages(
+    executor.list_local_pages(
         verbose=verbose,
     )
 
@@ -199,7 +199,7 @@ def list_pages_cloud(
     page: int | None = None,
     format: OutputFormatFieldsEnum = settings.CONFIG.DEFAULT_OUTPUT_FORMAT,
 ):
-    executor.list_pages_cloud(
+    executor.list_pages_from_cloud_platform(
         profile=profile,
         fields=fields,
         sort_by=sort_by,
@@ -233,7 +233,7 @@ def get_page(
     verbose: bool = False,
 ):
     page_key = get_instance_key(id=id, label=label)
-    executor.get_page(
+    executor.get_page_from_cloud_platform(
         page_key=page_key,
         profile=profile,
         verbose=verbose,
@@ -260,7 +260,7 @@ def add_page(
     label: Annotated[str, typer.Option(help="The label for the page.")] = "",
 ):
     label = label or sanitize_function_name(name)
-    executor.add_page_cloud(
+    executor.add_page_to_cloud_platform(
         profile=profile,
         name=name,
         label=label,
@@ -289,7 +289,7 @@ def delete_page(
     verbose: bool = False,
 ):
     page_key = get_instance_key(id=id, label=label)
-    executor.delete_page_cloud(
+    executor.delete_page_from_cloud_platform(
         page_key=page_key,
         profile=profile,
         confirm=confirm,
@@ -314,7 +314,7 @@ def push_page(
     ] = "",
     verbose: bool = False,
 ):
-    executor.push_page(
+    executor.push_page_to_cloud_platform(
         confirm=confirm,
         profile=profile,
         verbose=verbose,
@@ -342,7 +342,7 @@ def pull_page(
     ] = False,
     verbose: bool = False,
 ):
-    executor.pull_page_cloud(
+    executor.pull_page_from_cloud_platform(
         remote_id=remote_id,
         profile=profile,
         verbose=verbose,

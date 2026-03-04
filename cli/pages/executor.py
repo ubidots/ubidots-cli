@@ -8,7 +8,7 @@ from cli.pages.constants import PAGE_API_ROUTES
 from cli.pages.models import PageTypeEnum
 
 
-def create_page(
+def create_local_page(
     name: str,
     verbose: bool,
     profile: str,
@@ -41,12 +41,12 @@ def create_page(
             "profile": profile,
             "page_type": type,
             "clean_directory_if_validation_fails": True,
-            "root": create_page.__name__,
+            "root": create_local_page.__name__,
         }
     )
 
 
-def start_page(
+def start_local_dev_server(
     verbose: bool,
 ):
     steps = [
@@ -66,12 +66,12 @@ def start_page(
         {
             "project_path": Path.cwd(),
             "verbose": verbose,
-            "root": start_page.__name__,
+            "root": start_local_dev_server.__name__,
         }
     )
 
 
-def stop_page(
+def stop_local_dev_server(
     verbose: bool,
 ):
     steps = [
@@ -88,12 +88,12 @@ def stop_page(
         {
             "project_path": Path.cwd(),
             "verbose": verbose,
-            "root": stop_page.__name__,
+            "root": stop_local_dev_server.__name__,
         }
     )
 
 
-def restart_page(
+def restart_local_dev_server(
     verbose: bool,
 ):
     steps = [
@@ -113,12 +113,12 @@ def restart_page(
         {
             "project_path": Path.cwd(),
             "verbose": verbose,
-            "root": restart_page.__name__,
+            "root": restart_local_dev_server.__name__,
         }
     )
 
 
-def status_page(
+def show_local_dev_server_status(
     verbose: bool,
 ):
     steps = [
@@ -135,12 +135,12 @@ def status_page(
         {
             "project_path": Path.cwd(),
             "verbose": verbose,
-            "root": status_page.__name__,
+            "root": show_local_dev_server_status.__name__,
         }
     )
 
 
-def list_pages(
+def list_local_pages(
     verbose: bool,
 ):
     steps = [
@@ -153,12 +153,12 @@ def list_pages(
     pipeline.run(
         {
             "verbose": verbose,
-            "root": list_pages.__name__,
+            "root": list_local_pages.__name__,
         }
     )
 
 
-def list_pages_cloud(
+def list_pages_from_cloud_platform(
     profile: str,
     fields: str,
     sort_by: str,
@@ -181,12 +181,12 @@ def list_pages_cloud(
             "sort_by": sort_by,
             "page_size": page_size,
             "page": page,
-            "root": list_pages_cloud.__name__,
+            "root": list_pages_from_cloud_platform.__name__,
         }
     )
 
 
-def get_page(
+def get_page_from_cloud_platform(
     page_key: str,
     profile: str,
     verbose: bool,
@@ -205,12 +205,12 @@ def get_page(
             "format": format,
             "fields": fields,
             "verbose": verbose,
-            "root": get_page.__name__,
+            "root": get_page_from_cloud_platform.__name__,
         }
     )
 
 
-def add_page_cloud(
+def add_page_to_cloud_platform(
     profile: str,
     name: str,
     label: str,
@@ -229,12 +229,12 @@ def add_page_cloud(
             "profile": profile,
             "name": name,
             "label": label,
-            "root": add_page_cloud.__name__,
+            "root": add_page_to_cloud_platform.__name__,
         }
     )
 
 
-def delete_page_cloud(
+def delete_page_from_cloud_platform(
     page_key: str,
     profile: str,
     confirm: bool,
@@ -255,12 +255,12 @@ def delete_page_cloud(
             "profile": profile,
             "page_key": page_key,
             "verbose": verbose,
-            "root": delete_page_cloud.__name__,
+            "root": delete_page_from_cloud_platform.__name__,
         }
     )
 
 
-def push_page(
+def push_page_to_cloud_platform(
     confirm: bool,
     profile: str,
     verbose: bool,
@@ -286,12 +286,12 @@ def push_page(
             "profile": profile,
             "confirm": confirm,
             "verbose": verbose,
-            "root": push_page.__name__,
+            "root": push_page_to_cloud_platform.__name__,
         }
     )
 
 
-def pull_page_cloud(
+def pull_page_from_cloud_platform(
     remote_id: str,
     profile: str,
     confirm: bool = False,
@@ -320,6 +320,6 @@ def pull_page_cloud(
             "profile": profile,
             "remote_id": remote_id,
             "verbose": verbose,
-            "root": pull_page_cloud.__name__,
+            "root": pull_page_from_cloud_platform.__name__,
         }
     )

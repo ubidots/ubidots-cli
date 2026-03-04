@@ -330,7 +330,3 @@ class TestContainerSteps(unittest.TestCase):
         expected_data = data.copy()
         expected_data["pages_info"] = expected_pages_info
         self.assertEqual(result, expected_data)
-
-
-if __name__ == "__main__":
-    unittest.main()

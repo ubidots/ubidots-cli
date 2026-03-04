@@ -59,7 +59,3 @@ class TestPagesImports(unittest.TestCase):
             self.assertIsNotNone(pipelines)
         except ImportError as e:
             self.fail(f"Failed to import cli.pages.pipelines: {e}")
-
-
-if __name__ == "__main__":
-    unittest.main()

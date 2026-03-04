@@ -170,7 +170,3 @@ class TestPageModelFactory(unittest.TestCase):
                     project_path, "invalid_type"
                 )
             self.assertIn("Unsupported page type", str(context.exception))
-
-
-if __name__ == "__main__":
-    unittest.main()

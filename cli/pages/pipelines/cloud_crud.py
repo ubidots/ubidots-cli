@@ -1,3 +1,4 @@
+import json
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -5,13 +6,12 @@ import httpx
 import typer
 
 from cli.commons.enums import MessageColorEnum
+from cli.commons.enums import OutputFormatFieldsEnum
 from cli.commons.pipelines import PipelineStep
+from cli.commons.styles import print_colored_table
 from cli.commons.utils import build_endpoint
 from cli.pages.constants import PAGE_API_ROUTES
 from cli.pages.handlers import add_page
-from cli.pages.handlers import delete_page
-from cli.pages.handlers import list_pages
-from cli.pages.handlers import retrieve_page
 
 
 @dataclass
@@ -52,7 +52,21 @@ class ListPagesFromRemoteServerStep(PipelineStep):
                 "page": page,
             },
         )
-        list_pages(url, headers, format)
+        response = httpx.get(url, headers=headers)
+        response.raise_for_status()
+        try:
+            response_data = response.json()
+        except json.JSONDecodeError as e:
+            msg = f"Server returned a non-JSON response: {response.text[:200]}"
+            raise ValueError(msg) from e
+        if not isinstance(response_data, dict):
+            msg = f"Unexpected response format: expected an object, got {type(response_data).__name__}"
+            raise ValueError(msg)
+        results = response_data.get("results", [])
+        if format == OutputFormatFieldsEnum.JSON:
+            typer.echo(json.dumps(results))
+        else:
+            print_colored_table(results=results)
         return data
 
 
@@ -68,7 +82,13 @@ class GetPageFromRemoteServerStep(PipelineStep):
             active_config=active_config,
             query_params={"fields": fields},
         )
-        retrieve_page(url=url, headers=headers, format=format)
+        response = httpx.get(url, headers=headers)
+        response.raise_for_status()
+        data_json = response.json()
+        if format == OutputFormatFieldsEnum.JSON:
+            typer.echo(json.dumps(data_json))
+        else:
+            print_colored_table(results=[data_json])
         return data
 
 
@@ -125,7 +145,8 @@ class DeletePageStep(PipelineStep):
             page_key=page_key,
             active_config=active_config,
         )
-        delete_page(url, headers, page_key)
+        response = httpx.delete(url, headers=headers)
+        response.raise_for_status()
         return data
 
 

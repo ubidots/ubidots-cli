@@ -76,7 +76,3 @@ class TestPageEngineClientManager(unittest.TestCase):
             manager.get_client()
 
         self.assertIn("Unsupported engine type", str(context.exception))
-
-
-if __name__ == "__main__":
-    unittest.main()

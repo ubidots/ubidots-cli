@@ -9,6 +9,7 @@ from typing import Any
 import yaml
 from jinja2 import Template
 
+from cli.pages.engines.settings import page_engine_settings
 from cli.pages.models import PageModel
 from cli.pages.models import PageProjectMetadata
 from cli.pages.models import PageProjectModel
@@ -71,9 +72,9 @@ def _add_files_to_zip(
 ) -> None:
     for file in files:
         file_path = os.path.join(root, file)
-        arcname = os.path.relpath(file_path, project_path)
-        if not any(Path(arcname).match(pattern) for pattern in exclude_files):
-            zipf.write(file_path, arcname)
+        zip_path = os.path.relpath(file_path, project_path)
+        if not any(Path(zip_path).match(pattern) for pattern in exclude_files):
+            zipf.write(file_path, zip_path)
 
 
 def _add_folders_to_zip(
@@ -85,15 +86,16 @@ def _add_folders_to_zip(
     for folder in os.listdir(root):
         folder_path = os.path.join(root, folder)
         if os.path.isdir(folder_path):
-            arcname = os.path.relpath(folder_path, project_path)
-            if not any(Path(arcname).match(pattern) for pattern in exclude_files):
-                zipf.write(folder_path, arcname=arcname)
+            zip_path = os.path.relpath(folder_path, project_path)
+            if not any(Path(zip_path).match(pattern) for pattern in exclude_files):
+                zipf.write(folder_path, arcname=zip_path)
 
 
 def compress_page_to_zip(
-    project_path: Path, exclude_files: list[str] | None = None
+    project_path: Path,
+    exclude_files: list[str] | None = None
 ) -> IO[bytes]:
-    exclude_files = [] if exclude_files is None else exclude_files
+    exclude_files = exclude_files or []
     zip_buffer = io.BytesIO()
     with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zipf:
         for root, _, files in os.walk(project_path):
@@ -165,8 +167,8 @@ def render_index_html(ubidots_page_html: str, page_type: PageTypeEnum) -> str:
 
     template_file = Path(template_path)
     if not template_file.exists():
-        msg = f"Template file not found: {template_path}"
-        raise FileNotFoundError(msg)
+        error_message = f"Template file not found: {template_path}"
+        raise FileNotFoundError(error_message)
 
     template_content = template_file.read_text(encoding="utf-8")
     template = Template(template_content)
@@ -182,9 +184,6 @@ def render_index_html(ubidots_page_html: str, page_type: PageTypeEnum) -> str:
 
 
 def get_page_container(container_manager, page_name):
-    from cli.pages.engines.settings import \
-        page_engine_settings  # noqa: PLC0415
-
     container_name = f"{page_engine_settings.CONTAINER.PAGE.PREFIX_NAME}-{page_name}"
     try:
         return container_manager.get(container_name)
@@ -209,9 +208,6 @@ def extract_port_from_container(container):
 
 
 def generate_page_url(page_name, routing_mode, container=None):
-    from cli.pages.engines.settings import \
-        page_engine_settings  # noqa: PLC0415
-
     if routing_mode == "subdomain":
         flask_port = page_engine_settings.CONTAINER.FLASK_MANAGER.EXTERNAL_PORT
         return f"http://{page_name}.localhost:{flask_port}/"

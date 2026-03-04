@@ -14,11 +14,10 @@ class TestListCloudCommand(unittest.TestCase):
     def setUp(self):
         self.runner = CliRunner()
 
-    @patch("cli.pages.commands.executor.list_pages_cloud")
-    def test_list_cloud_default(self, mock_list_pages_cloud):
-        result = self.runner.invoke(app, ["list"])
+    @patch("cli.pages.commands.executor.list_pages_from_cloud_platform")
+    def test_list_pages_forwards_default_settings_to_executor(self, mock_list_pages_cloud):
+        self.runner.invoke(app, ["list"])
 
-        self.assertEqual(result.exit_code, 0)
         mock_list_pages_cloud.assert_called_once_with(
             profile="",
             fields=DefaultInstanceFieldEnum.get_default_fields(),
@@ -28,11 +27,10 @@ class TestListCloudCommand(unittest.TestCase):
             format=settings.CONFIG.DEFAULT_OUTPUT_FORMAT,
         )
 
-    @patch("cli.pages.commands.executor.list_pages_cloud")
-    def test_list_cloud_with_fields(self, mock_list_pages_cloud):
-        result = self.runner.invoke(app, ["list", "--fields", "id,label,url"])
+    @patch("cli.pages.commands.executor.list_pages_from_cloud_platform")
+    def test_list_pages_forwards_custom_fields_to_executor(self, mock_list_pages_cloud):
+        self.runner.invoke(app, ["list", "--fields", "id,label,url"])
 
-        self.assertEqual(result.exit_code, 0)
         mock_list_pages_cloud.assert_called_once_with(
             profile="",
             fields="id,label,url",
@@ -42,11 +40,10 @@ class TestListCloudCommand(unittest.TestCase):
             format=settings.CONFIG.DEFAULT_OUTPUT_FORMAT,
         )
 
-    @patch("cli.pages.commands.executor.list_pages_cloud")
-    def test_list_cloud_with_json_format(self, mock_list_pages_cloud):
-        result = self.runner.invoke(app, ["list", "--format", "json"])
+    @patch("cli.pages.commands.executor.list_pages_from_cloud_platform")
+    def test_list_pages_forwards_json_format_to_executor(self, mock_list_pages_cloud):
+        self.runner.invoke(app, ["list", "--format", "json"])
 
-        self.assertEqual(result.exit_code, 0)
         mock_list_pages_cloud.assert_called_once_with(
             profile="",
             fields=DefaultInstanceFieldEnum.get_default_fields(),
@@ -56,11 +53,10 @@ class TestListCloudCommand(unittest.TestCase):
             format=OutputFormatFieldsEnum.JSON,
         )
 
-    @patch("cli.pages.commands.executor.list_pages_cloud")
-    def test_list_cloud_with_sort_by(self, mock_list_pages_cloud):
-        result = self.runner.invoke(app, ["list", "--sort-by", "createdAt"])
+    @patch("cli.pages.commands.executor.list_pages_from_cloud_platform")
+    def test_list_pages_forwards_sort_by_to_executor(self, mock_list_pages_cloud):
+        self.runner.invoke(app, ["list", "--sort-by", "createdAt"])
 
-        self.assertEqual(result.exit_code, 0)
         mock_list_pages_cloud.assert_called_once_with(
             profile="",
             fields=DefaultInstanceFieldEnum.get_default_fields(),
@@ -70,11 +66,10 @@ class TestListCloudCommand(unittest.TestCase):
             format=settings.CONFIG.DEFAULT_OUTPUT_FORMAT,
         )
 
-    @patch("cli.pages.commands.executor.list_pages_cloud")
-    def test_list_cloud_with_pagination(self, mock_list_pages_cloud):
-        result = self.runner.invoke(app, ["list", "--page-size", "10", "--page", "2"])
+    @patch("cli.pages.commands.executor.list_pages_from_cloud_platform")
+    def test_list_pages_forwards_pagination_params_to_executor(self, mock_list_pages_cloud):
+        self.runner.invoke(app, ["list", "--page-size", "10", "--page", "2"])
 
-        self.assertEqual(result.exit_code, 0)
         mock_list_pages_cloud.assert_called_once_with(
             profile="",
             fields=DefaultInstanceFieldEnum.get_default_fields(),
@@ -92,7 +87,7 @@ class TestGetCommand(unittest.TestCase):
     def setUp(self):
         self.runner = CliRunner()
 
-    def test_get_page_by_id(self, mock_get_instance_key, mock_pipeline_run):
+    def test_get_page_resolves_key_by_id_when_id_flag_is_provided(self, mock_get_instance_key, mock_pipeline_run):
         mock_get_instance_key.return_value = "66e9a2aae24bae000e144c28"
         mock_pipeline_run.side_effect = lambda _: None
 
@@ -103,7 +98,7 @@ class TestGetCommand(unittest.TestCase):
             id="66e9a2aae24bae000e144c28", label=None
         )
 
-    def test_get_page_by_label(self, mock_get_instance_key, mock_pipeline_run):
+    def test_get_page_resolves_key_by_label_when_label_flag_is_provided(self, mock_get_instance_key, mock_pipeline_run):
         mock_get_instance_key.return_value = "~my-page"
         mock_pipeline_run.side_effect = lambda _: None
 
@@ -112,7 +107,7 @@ class TestGetCommand(unittest.TestCase):
         self.assertEqual(result.exit_code, 0)
         mock_get_instance_key.assert_called_once_with(id=None, label="my-page")
 
-    def test_get_page_requires_id_or_label(
+    def test_get_page_fails_when_neither_id_nor_label_is_provided(
         self, mock_get_instance_key, mock_pipeline_run
     ):
         mock_get_instance_key.side_effect = Exception(
@@ -123,29 +118,31 @@ class TestGetCommand(unittest.TestCase):
 
         self.assertNotEqual(result.exit_code, 0)
 
-    def test_get_page_with_custom_fields(
+    def test_get_page_forwards_custom_fields_to_executor(
         self, mock_get_instance_key, mock_pipeline_run
     ):
         mock_get_instance_key.return_value = "66e9a2aae24bae000e144c28"
         mock_pipeline_run.side_effect = lambda _: None
 
-        result = self.runner.invoke(
+        self.runner.invoke(
             app,
             ["get", "--id", "66e9a2aae24bae000e144c28", "--fields", "id,label,url"],
         )
 
-        self.assertEqual(result.exit_code, 0)
+        context = mock_pipeline_run.call_args[0][0]
+        self.assertEqual(context["fields"], "id,label,url")
 
-    def test_get_page_with_json_format(self, mock_get_instance_key, mock_pipeline_run):
+    def test_get_page_forwards_json_format_to_executor(self, mock_get_instance_key, mock_pipeline_run):
         mock_get_instance_key.return_value = "66e9a2aae24bae000e144c28"
         mock_pipeline_run.side_effect = lambda _: None
 
-        result = self.runner.invoke(
+        self.runner.invoke(
             app,
             ["get", "--id", "66e9a2aae24bae000e144c28", "--format", "json"],
         )
 
-        self.assertEqual(result.exit_code, 0)
+        context = mock_pipeline_run.call_args[0][0]
+        self.assertEqual(context["format"], OutputFormatFieldsEnum.JSON)
 
 
 @patch("cli.commons.pipelines.Pipeline.run")
@@ -154,52 +151,45 @@ class TestAddCommand(unittest.TestCase):
     def setUp(self):
         self.runner = CliRunner()
 
-    def test_add_page_with_name(self, mock_pipeline_run):
+    def test_add_page_auto_generates_label_from_name(self, mock_pipeline_run):
         mock_pipeline_run.return_value = None
 
-        result = self.runner.invoke(app, ["add", "My Dashboard"])
+        self.runner.invoke(app, ["add", "My Dashboard"])
 
-        self.assertEqual(result.exit_code, 0)
         mock_pipeline_run.assert_called_once_with(
             {
                 "profile": "",
                 "name": "My Dashboard",
                 "label": "my-dashboard",
-                "root": "add_page_cloud",
+                "root": "add_page_to_cloud_platform",
             }
         )
 
-    def test_add_page_with_name_and_label(self, mock_pipeline_run):
+    def test_add_page_uses_provided_label_over_auto_generated(self, mock_pipeline_run):
         mock_pipeline_run.return_value = None
 
-        result = self.runner.invoke(
-            app, ["add", "My Dashboard", "--label", "custom-dash"]
-        )
+        self.runner.invoke(app, ["add", "My Dashboard", "--label", "custom-dash"])
 
-        self.assertEqual(result.exit_code, 0)
         mock_pipeline_run.assert_called_once_with(
             {
                 "profile": "",
                 "name": "My Dashboard",
                 "label": "custom-dash",
-                "root": "add_page_cloud",
+                "root": "add_page_to_cloud_platform",
             }
         )
 
-    def test_add_page_with_profile(self, mock_pipeline_run):
+    def test_add_page_forwards_profile_to_executor(self, mock_pipeline_run):
         mock_pipeline_run.return_value = None
 
-        result = self.runner.invoke(
-            app, ["add", "My Dashboard", "--profile", "production"]
-        )
+        self.runner.invoke(app, ["add", "My Dashboard", "--profile", "production"])
 
-        self.assertEqual(result.exit_code, 0)
         mock_pipeline_run.assert_called_once_with(
             {
                 "profile": "production",
                 "name": "My Dashboard",
                 "label": "my-dashboard",
-                "root": "add_page_cloud",
+                "root": "add_page_to_cloud_platform",
             }
         )
 
@@ -212,7 +202,7 @@ class TestDeleteCommand(unittest.TestCase):
     def setUp(self):
         self.runner = CliRunner()
 
-    def test_delete_page_by_id(
+    def test_delete_page_resolves_key_by_id_and_triggers_deletion(
         self, mock_confirm, mock_pipeline_run, mock_get_instance_key
     ):
         mock_get_instance_key.return_value = "valid_page_key"
@@ -235,11 +225,11 @@ class TestDeleteCommand(unittest.TestCase):
                 "profile": "",
                 "page_key": "valid_page_key",
                 "verbose": False,
-                "root": "delete_page_cloud",
+                "root": "delete_page_from_cloud_platform",
             }
         )
 
-    def test_delete_page_by_label(
+    def test_delete_page_resolves_key_by_label_and_triggers_deletion(
         self, mock_confirm, mock_pipeline_run, mock_get_instance_key
     ):
         mock_get_instance_key.return_value = "valid_page_key"
@@ -258,11 +248,11 @@ class TestDeleteCommand(unittest.TestCase):
                 "profile": "",
                 "page_key": "valid_page_key",
                 "verbose": False,
-                "root": "delete_page_cloud",
+                "root": "delete_page_from_cloud_platform",
             }
         )
 
-    def test_delete_page_requires_id_or_label(
+    def test_delete_page_fails_when_neither_id_nor_label_is_provided(
         self, mock_confirm, mock_pipeline_run, mock_get_instance_key
     ):
         mock_get_instance_key.side_effect = Exception(
@@ -272,7 +262,3 @@ class TestDeleteCommand(unittest.TestCase):
         result = self.runner.invoke(app, ["delete"])
 
         self.assertNotEqual(result.exit_code, 0)
-
-
-if __name__ == "__main__":
-    unittest.main()

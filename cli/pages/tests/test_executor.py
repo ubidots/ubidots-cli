@@ -4,12 +4,12 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch, MagicMock
 
-from cli.pages.executor import create_page
-from cli.pages.executor import start_page
-from cli.pages.executor import stop_page
-from cli.pages.executor import restart_page
-from cli.pages.executor import status_page
-from cli.pages.executor import list_pages
+from cli.pages.executor import create_local_page
+from cli.pages.executor import list_local_pages
+from cli.pages.executor import restart_local_dev_server
+from cli.pages.executor import show_local_dev_server_status
+from cli.pages.executor import start_local_dev_server
+from cli.pages.executor import stop_local_dev_server
 from cli.pages.models import PageTypeEnum
 
 
@@ -26,7 +26,7 @@ class TestCreatePage(unittest.TestCase):
         mock_pipeline_instance = MagicMock()
         mock_pipeline.return_value = mock_pipeline_instance
 
-        create_page(
+        create_local_page(
             name="test_page",
             verbose=True,
             profile="default",
@@ -61,7 +61,7 @@ class TestCreatePage(unittest.TestCase):
         mock_pipeline_instance = MagicMock()
         mock_pipeline.return_value = mock_pipeline_instance
 
-        create_page(
+        create_local_page(
             name="/absolute/test_page",
             verbose=False,
             profile="prod",
@@ -88,7 +88,7 @@ class TestStartPage(unittest.TestCase):
         mock_pipeline_instance = MagicMock()
         mock_pipeline.return_value = mock_pipeline_instance
 
-        start_page(verbose=True)
+        start_local_dev_server(verbose=True)
 
         # Verify pipeline was created with correct steps and message
         mock_pipeline.assert_called_once()
@@ -104,7 +104,7 @@ class TestStartPage(unittest.TestCase):
 
         self.assertEqual(run_data["project_path"], Path("/current"))
         self.assertTrue(run_data["verbose"])
-        self.assertEqual(run_data["root"], "start_page")
+        self.assertEqual(run_data["root"], "start_local_dev_server")
 
 
 class TestStopPage(unittest.TestCase):
@@ -118,7 +118,7 @@ class TestStopPage(unittest.TestCase):
         mock_pipeline_instance = MagicMock()
         mock_pipeline.return_value = mock_pipeline_instance
 
-        stop_page(verbose=False)
+        stop_local_dev_server(verbose=False)
 
         # Verify pipeline was created with correct steps and message
         mock_pipeline.assert_called_once()
@@ -134,7 +134,7 @@ class TestStopPage(unittest.TestCase):
 
         self.assertEqual(run_data["project_path"], Path("/current"))
         self.assertFalse(run_data["verbose"])
-        self.assertEqual(run_data["root"], "stop_page")
+        self.assertEqual(run_data["root"], "stop_local_dev_server")
 
 
 class TestRestartPage(unittest.TestCase):
@@ -148,7 +148,7 @@ class TestRestartPage(unittest.TestCase):
         mock_pipeline_instance = MagicMock()
         mock_pipeline.return_value = mock_pipeline_instance
 
-        restart_page(verbose=True)
+        restart_local_dev_server(verbose=True)
 
         # Verify pipeline was created with correct steps and message
         mock_pipeline.assert_called_once()
@@ -164,7 +164,7 @@ class TestRestartPage(unittest.TestCase):
 
         self.assertEqual(run_data["project_path"], Path("/current"))
         self.assertTrue(run_data["verbose"])
-        self.assertEqual(run_data["root"], "restart_page")
+        self.assertEqual(run_data["root"], "restart_local_dev_server")
 
 
 class TestStatusPage(unittest.TestCase):
@@ -178,7 +178,7 @@ class TestStatusPage(unittest.TestCase):
         mock_pipeline_instance = MagicMock()
         mock_pipeline.return_value = mock_pipeline_instance
 
-        status_page(verbose=False)
+        show_local_dev_server_status(verbose=False)
 
         # Verify pipeline was created with correct steps and message
         mock_pipeline.assert_called_once()
@@ -194,7 +194,7 @@ class TestStatusPage(unittest.TestCase):
 
         self.assertEqual(run_data["project_path"], Path("/current"))
         self.assertFalse(run_data["verbose"])
-        self.assertEqual(run_data["root"], "status_page")
+        self.assertEqual(run_data["root"], "show_local_dev_server_status")
 
 
 class TestListPages(unittest.TestCase):
@@ -206,7 +206,7 @@ class TestListPages(unittest.TestCase):
         mock_pipeline_instance = MagicMock()
         mock_pipeline.return_value = mock_pipeline_instance
 
-        list_pages(verbose=True)
+        list_local_pages(verbose=True)
 
         # Verify pipeline was created with correct steps and message
         mock_pipeline.assert_called_once()
@@ -221,7 +221,7 @@ class TestListPages(unittest.TestCase):
         run_data = mock_pipeline_instance.run.call_args[0][0]
 
         self.assertTrue(run_data["verbose"])
-        self.assertEqual(run_data["root"], "list_pages")
+        self.assertEqual(run_data["root"], "list_local_pages")
         # list_pages doesn't need project_path
         self.assertNotIn("project_path", run_data)
 
@@ -253,7 +253,7 @@ class TestExecutorIntegration(unittest.TestCase):
         mock_pipeline_instance = MagicMock()
         mock_pipeline.return_value = mock_pipeline_instance
 
-        create_page("test", False, "default", PageTypeEnum.DASHBOARD)
+        create_local_page("test", False, "default", PageTypeEnum.DASHBOARD)
 
         # Verify all expected pipeline steps were instantiated
         for step_class in mock_step_classes:
@@ -283,12 +283,8 @@ class TestExecutorIntegration(unittest.TestCase):
         mock_pipeline_instance = MagicMock()
         mock_pipeline.return_value = mock_pipeline_instance
 
-        start_page(False)
+        start_local_dev_server(False)
 
         # Verify all expected pipeline steps were instantiated
         for step_class in mock_step_classes:
             getattr(mock_pipelines, step_class).assert_called_once()
-
-
-if __name__ == "__main__":
-    unittest.main()

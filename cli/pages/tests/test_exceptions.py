@@ -144,7 +144,3 @@ class TestPageIsAlreadyStoppedError(unittest.TestCase):
 
         expected_message = f"Page '{name}' is already stopped."
         self.assertEqual(str(exception), expected_message)
-
-
-if __name__ == "__main__":
-    unittest.main()

@@ -101,7 +101,3 @@ class TestImageHelpers(unittest.TestCase):
         result = build_pages_image_if_needed()
 
         self.assertFalse(result)
-
-
-if __name__ == "__main__":
-    unittest.main()

@@ -51,6 +51,7 @@ tox = "^4.18"
 mypy = "^1.11.1"
 types-PyYAML = "^6.0.12.20240808"
 types-requests = "^2.32.0.20241016"
+respx = "^0.22.0"
 
 [tool.isort]
 force_single_line = true
