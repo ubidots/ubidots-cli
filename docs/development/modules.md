@@ -122,11 +122,13 @@ The FRIE container runs the user's function code inside an AWS Lambda Runtime In
 | Environment variable | `AWS_LAMBDA_FUNCTION_TIMEOUT=<seconds>` |
 | Host exposure | None — not exposed to host |
 
-Each running function gets its own FRIE container. The container name and hostname are set to the function label, enabling Argo to reach it by name via internal Docker DNS.
+Each running function gets its own FRIE container. The container name and hostname are set to the function label,
+enabling Argo to reach it by name via internal Docker DNS.
 
 #### Argo Container (API Adapter / Reverse Proxy)
 
-Argo is a Ubidots-built reverse proxy that sits in front of all FRIE containers. A single Argo instance is shared across all running local functions.
+Argo is a Ubidots-built reverse proxy that sits in front of all FRIE containers. A single Argo instance is shared
+across all running local functions.
 
 | Property | Value |
 |---|---|
@@ -146,7 +148,9 @@ Argo is a Ubidots-built reverse proxy that sits in front of all FRIE containers.
 
 **Configuring Argo via REST:**
 
-After the FRIE container starts, the CLI POSTs an adapter configuration to Argo's REST API at `http://localhost:8040/api/v2/adapter`. A startup delay (`CONTAINER_STARTUP_DELAY_SECONDS` from settings, default `3` seconds) is applied first to give both containers time to initialize.
+After the FRIE container starts, the CLI POSTs an adapter configuration to Argo's REST API at
+`http://localhost:8040/api/v2/adapter`. A startup delay (`CONTAINER_STARTUP_DELAY_SECONDS` from settings, default `3`
+seconds) is applied first to give both containers time to initialize.
 
 ```python
 # Adapter config posted to Argo
@@ -192,7 +196,8 @@ Developer HTTP client
 | `dev status` | Query Docker for all containers labelled `ubidots_cli_function` |
 | `dev clean` | Stop/remove all FRIE containers → stop/remove Argo → remove all `ubidots/functions-*` images → remove `ubidots_cli_function_rie` network |
 
-**Argo auto-recovery:** On `dev start`, if Argo is found in `PAUSED` or `EXITED` state it is automatically restarted before proceeding.
+**Argo auto-recovery:** On `dev start`, if Argo is found in `PAUSED` or `EXITED` state it is automatically
+restarted before proceeding.
 
 ---
 
@@ -219,7 +224,10 @@ commands.py  →  executor.py  →  pipelines.py  →  handlers.py
 
 ### Local Page Dev Engine
 
-Pages use a two-container stack: a Flask-based routing manager (`flask-pages-manager`, image `ubidots/pages-server:latest`, label key `ubidots_cli_pages_manager`, port `8044`) running on network `ubidots_cli_pages`, and per-page containers (label key `ubidots_cli_page`) that mount the page project directory and serve it with hot-reload support.
+Pages use a two-container stack: a Flask-based routing manager (`flask-pages-manager`,
+image `ubidots/pages-server:latest`, label key `ubidots_cli_pages_manager`, port `8044`)
+running on network `ubidots_cli_pages`, and per-page containers (label key `ubidots_cli_page`)
+that mount the page project directory and serve it with hot-reload support.
 
 ### Data Models
 
@@ -230,7 +238,8 @@ Pages use a two-container stack: a Flask-based routing manager (`flask-pages-man
 | `PageProjectMetadata` | Combined: both project and remote page info |
 | `DashboardPageModel` | Concrete subclass of `BasePageModel`; validates required files: `manifest.toml`, `body.html`, `script.js`, `style.css` and `static/` directory |
 
-Page projects include a `manifest.toml` (user-editable config) and a `.manifest.yaml` (auto-generated, stores linked remote ID and sync state).
+Page projects include a `manifest.toml` (user-editable config) and a `.manifest.yaml`
+(auto-generated, stores linked remote ID and sync state).
 
 ---
 
