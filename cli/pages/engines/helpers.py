@@ -1,13 +1,17 @@
+import subprocess
+import sys
 from contextlib import suppress
 from pathlib import Path
 
-from docker.errors import NotFound
 from docker.errors import ImageNotFound
+from docker.errors import NotFound
 
 from cli.pages.engines.docker.client import PageDockerClient
 from cli.pages.engines.docker.container import PageDockerContainerManager
 from cli.pages.engines.enums import ContainerStatusEnum
+from cli.pages.engines.exceptions import ContainerNotFoundException
 from cli.pages.engines.settings import page_engine_settings
+from cli.settings import settings
 
 
 def get_or_create_pages_network(client: PageDockerClient):
@@ -27,10 +31,6 @@ def build_pages_image_if_needed() -> bool:
     Build the custom Docker image if it doesn't exist.
     Returns True if image is available (built or already exists), False if build failed.
     """
-    import subprocess
-    import sys
-    from pathlib import Path
-
     # Get the build script path
     build_script = Path(__file__).parent / "docker" / "build_image.py"
 
@@ -43,7 +43,7 @@ def build_pages_image_if_needed() -> bool:
         print("Building server image...")
         # print("   This is a one-time setup that will make future page starts instant.")
 
-        result = subprocess.run(
+        subprocess.run(
             [sys.executable, str(build_script)],
             check=True,
             capture_output=True,
@@ -78,15 +78,13 @@ def get_available_page_image(client: PageDockerClient, auto_build: bool = False)
         client.client.images.get(page_engine_settings.PYTHON_IMAGE)
         return page_engine_settings.PYTHON_IMAGE
     except ImageNotFound:
-        if auto_build:
-            # Try to build the image
-            if build_pages_image_if_needed():
-                # Check if build was successful
-                try:
-                    client.client.images.get(page_engine_settings.PYTHON_IMAGE)
-                    return page_engine_settings.PYTHON_IMAGE
-                except ImageNotFound:
-                    pass  # Build failed, fall back
+        if auto_build and build_pages_image_if_needed():
+            # Check if build was successful
+            try:
+                client.client.images.get(page_engine_settings.PYTHON_IMAGE)
+                return page_engine_settings.PYTHON_IMAGE
+            except ImageNotFound:
+                pass  # Build failed, fall back
 
         # Fall back to the standard Python image
         return page_engine_settings.FALLBACK_PYTHON_IMAGE
@@ -135,11 +133,8 @@ def flask_manager_container_helper(
     if container is not None:
         return container
 
-    # Get routing settings
-    from cli.settings import settings
-
     # Start new Flask manager container
-    container = container_manager.start(
+    return container_manager.start(
         image_name=page_engine_settings.PYTHON_IMAGE,
         container_name=container_name,
         network_name=network.name,
@@ -160,8 +155,6 @@ def flask_manager_container_helper(
         command="sh -c 'pip install -q flask requests docker flask-cors && python /app/manager.py'",
         hostname=page_engine_settings.CONTAINER.FLASK_MANAGER.HOSTNAME,
     )
-
-    return container
 
 
 def get_next_available_port(
@@ -210,8 +203,6 @@ def page_container_helper(
         tuple: (container, subdomain, url)
     """
     # Get routing mode from settings
-    from cli.settings import settings
-
     routing_mode = settings.PAGES.ROUTING_MODE
 
     # Sanitize page name for container and subdomain
@@ -263,12 +254,11 @@ def page_container_helper(
         }
 
     else:
-        raise ValueError(f"Invalid routing mode: {routing_mode}")
+        msg = f"Invalid routing mode: {routing_mode}"
+        raise ValueError(msg)
 
     def check_container_status():
         """Check if page container is already running"""
-        from cli.pages.engines.exceptions import ContainerNotFoundException
-
         container = None
         try:
             container = container_manager.get(container_name)
@@ -294,8 +284,6 @@ def page_container_helper(
     )
 
     # Get CDN URLs from settings
-    from cli.settings import settings
-
     cdn_urls = settings.PAGES.TEMPLATE_PLACEHOLDERS["dashboard"]
 
     # Get the best available Docker image (auto-build if needed)

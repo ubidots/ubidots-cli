@@ -5,8 +5,7 @@ from cli.functions.engines.enums import ArgoMethodEnum
 from cli.functions.engines.enums import MiddlewareTypeEnum
 from cli.functions.engines.enums import TargetTypeEnum
 from cli.functions.engines.models import ArgoAdapterBaseModel
-from cli.functions.engines.models import \
-    ArgoAdapterMiddlewareAllowedMethodsBaseModel
+from cli.functions.engines.models import ArgoAdapterMiddlewareAllowedMethodsBaseModel
 from cli.functions.engines.models import ArgoAdapterMiddlewareCorsBaseModel
 from cli.functions.engines.models import ArgoAdapterTargetBaseModel
 

@@ -4,8 +4,7 @@ from dataclasses import field
 from docker import DockerClient
 
 from cli.functions.engines.abstracts.client import AbstractEngineClient
-from cli.functions.engines.docker.container import \
-    FunctionDockerContainerManager
+from cli.functions.engines.docker.container import FunctionDockerContainerManager
 from cli.functions.engines.docker.image import FunctionDockerImageDownloader
 from cli.functions.engines.docker.network import FunctionDockerNetworkManager
 from cli.functions.engines.docker.validators import FunctionDockerValidator

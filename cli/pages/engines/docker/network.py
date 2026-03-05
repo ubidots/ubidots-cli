@@ -27,7 +27,7 @@ class PageDockerNetworkManager(AbstractNetworkManager):
         except NotFound as error:
             raise NetworkNotFoundException(network_id) from error
 
-    def list(self, names: list[str] = None):
+    def list(self, names: list[str] | None = None):
         """List networks by names"""
         names = names or [page_engine_settings.CONTAINER.NETWORK_NAME]
         return self.client.networks.list(names=names)

@@ -111,14 +111,6 @@ class FunctionLanguageEnum(StrEnum):
         return extension_map[self]
 
     @property
-    def main_file(self):
-        from cli.settings import \
-            settings  # noqa: PLC0415  # Avoid circular import
-
-        main_file_name = settings.FUNCTIONS.DEFAULT_MAIN_FILE_NAME
-        return f"{main_file_name}.{self.extension}"
-
-    @property
     def version(self):
         version_map = {
             self.PYTHON: FunctionPythonVersionEnum,

@@ -20,8 +20,7 @@ from pydantic import ValidationError
 
 from cli.commons.enums import MessageColorEnum
 from cli.functions.engines.docker.client import FunctionDockerClient
-from cli.functions.engines.docker.container import \
-    FunctionDockerContainerManager
+from cli.functions.engines.docker.container import FunctionDockerContainerManager
 from cli.functions.engines.enums import ArgoMethodEnum
 from cli.functions.engines.enums import ContainerStatusEnum
 from cli.functions.engines.enums import FunctionEngineTypeEnum
@@ -31,13 +30,11 @@ from cli.functions.engines.exceptions import EngineNotInstalledException
 from cli.functions.engines.exceptions import ImageFetchException
 from cli.functions.engines.exceptions import ImageNotFoundException
 from cli.functions.engines.models import ArgoAdapterBaseModel
-from cli.functions.engines.models import \
-    ArgoAdapterMiddlewareAllowedMethodsBaseModel
+from cli.functions.engines.models import ArgoAdapterMiddlewareAllowedMethodsBaseModel
 from cli.functions.engines.models import ArgoAdapterMiddlewareCorsBaseModel
 from cli.functions.engines.models import ArgoAdapterTargetBaseModel
 from cli.functions.engines.podman.client import FunctionPodmanClient
-from cli.functions.engines.podman.container import \
-    FunctionPodmanContainerManager
+from cli.functions.engines.podman.container import FunctionPodmanContainerManager
 from cli.functions.engines.settings import engine_settings
 from cli.functions.enums import FunctionLanguageEnum
 from cli.functions.enums import FunctionMethodEnum

@@ -15,7 +15,9 @@ class TestListCloudCommand(unittest.TestCase):
         self.runner = CliRunner()
 
     @patch("cli.pages.commands.executor.list_pages_from_cloud_platform")
-    def test_list_pages_forwards_default_settings_to_executor(self, mock_list_pages_cloud):
+    def test_list_pages_forwards_default_settings_to_executor(
+        self, mock_list_pages_cloud
+    ):
         self.runner.invoke(app, ["list"])
 
         mock_list_pages_cloud.assert_called_once_with(
@@ -67,7 +69,9 @@ class TestListCloudCommand(unittest.TestCase):
         )
 
     @patch("cli.pages.commands.executor.list_pages_from_cloud_platform")
-    def test_list_pages_forwards_pagination_params_to_executor(self, mock_list_pages_cloud):
+    def test_list_pages_forwards_pagination_params_to_executor(
+        self, mock_list_pages_cloud
+    ):
         self.runner.invoke(app, ["list", "--page-size", "10", "--page", "2"])
 
         mock_list_pages_cloud.assert_called_once_with(
@@ -87,7 +91,9 @@ class TestGetCommand(unittest.TestCase):
     def setUp(self):
         self.runner = CliRunner()
 
-    def test_get_page_resolves_key_by_id_when_id_flag_is_provided(self, mock_get_instance_key, mock_pipeline_run):
+    def test_get_page_resolves_key_by_id_when_id_flag_is_provided(
+        self, mock_get_instance_key, mock_pipeline_run
+    ):
         mock_get_instance_key.return_value = "66e9a2aae24bae000e144c28"
         mock_pipeline_run.side_effect = lambda _: None
 
@@ -98,7 +104,9 @@ class TestGetCommand(unittest.TestCase):
             id="66e9a2aae24bae000e144c28", label=None
         )
 
-    def test_get_page_resolves_key_by_label_when_label_flag_is_provided(self, mock_get_instance_key, mock_pipeline_run):
+    def test_get_page_resolves_key_by_label_when_label_flag_is_provided(
+        self, mock_get_instance_key, mock_pipeline_run
+    ):
         mock_get_instance_key.return_value = "~my-page"
         mock_pipeline_run.side_effect = lambda _: None
 
@@ -132,7 +140,9 @@ class TestGetCommand(unittest.TestCase):
         context = mock_pipeline_run.call_args[0][0]
         self.assertEqual(context["fields"], "id,label,url")
 
-    def test_get_page_forwards_json_format_to_executor(self, mock_get_instance_key, mock_pipeline_run):
+    def test_get_page_forwards_json_format_to_executor(
+        self, mock_get_instance_key, mock_pipeline_run
+    ):
         mock_get_instance_key.return_value = "66e9a2aae24bae000e144c28"
         mock_pipeline_run.side_effect = lambda _: None
 

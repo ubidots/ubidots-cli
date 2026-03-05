@@ -1,10 +1,13 @@
 """Tests for the pages engines manager module."""
 
 import unittest
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock
+from unittest.mock import patch
 
-from cli.pages.engines.manager import PageEngineClientManager
+from docker.errors import DockerException
+
 from cli.pages.engines.enums import PageEngineTypeEnum
+from cli.pages.engines.manager import PageEngineClientManager
 
 
 class TestPageEngineClientManager(unittest.TestCase):
@@ -37,8 +40,6 @@ class TestPageEngineClientManager(unittest.TestCase):
         self, mock_exit_with_error, mock_docker_client
     ):
         """Test getting Docker client when DockerException occurs."""
-        from docker.errors import DockerException
-
         mock_docker_client.side_effect = DockerException("Docker not available")
         mock_exit_with_error.side_effect = SystemExit(1)  # Simulate program exit
 

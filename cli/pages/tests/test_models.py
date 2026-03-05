@@ -3,14 +3,13 @@
 import unittest
 from pathlib import Path
 from tempfile import TemporaryDirectory
-from unittest.mock import patch
 
-from cli.pages.models import PageTypeEnum
-from cli.pages.models import PageProjectModel
-from cli.pages.models import PageModel
-from cli.pages.models import PageProjectMetadata
 from cli.pages.models import DashboardPageModel
+from cli.pages.models import PageModel
 from cli.pages.models import PageModelFactory
+from cli.pages.models import PageProjectMetadata
+from cli.pages.models import PageProjectModel
+from cli.pages.models import PageTypeEnum
 
 
 class TestPageTypeEnum(unittest.TestCase):

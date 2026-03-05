@@ -55,6 +55,7 @@ respx = "^0.22.0"
 
 [tool.isort]
 force_single_line = true
+line_length = 123
 
 [tool.ruff]
 target-version = "py312"

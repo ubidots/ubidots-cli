@@ -1,10 +1,12 @@
 """Tests for the pages engines helpers module."""
 
+import subprocess
 import unittest
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock
+from unittest.mock import patch
 
-from cli.pages.engines.helpers import get_or_create_pages_network
 from cli.pages.engines.helpers import build_pages_image_if_needed
+from cli.pages.engines.helpers import get_or_create_pages_network
 
 
 class TestNetworkHelpers(unittest.TestCase):
@@ -93,8 +95,6 @@ class TestImageHelpers(unittest.TestCase):
         self, mock_exists, mock_subprocess_run
     ):
         """Test building pages image when subprocess check fails."""
-        import subprocess
-
         mock_exists.return_value = True
         mock_subprocess_run.side_effect = subprocess.CalledProcessError(1, "cmd")
 

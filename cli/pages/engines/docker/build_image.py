@@ -4,6 +4,7 @@ Build script for the Ubidots Pages Docker image.
 This script builds the custom Docker image with pre-installed dependencies.
 """
 
+import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -27,8 +28,6 @@ def build_pages_image():
         return False
 
     # Copy page_server.py to build context
-    import shutil
-
     build_context = script_dir
     shutil.copy2(page_server_path, build_context / "page_server.py")
 
@@ -38,7 +37,7 @@ def build_pages_image():
         print(f"Building Docker image: {image_name}")
         print(f"Build context: {build_context}")
 
-        result = subprocess.run(
+        subprocess.run(
             [
                 "docker",
                 "build",
@@ -62,7 +61,7 @@ def build_pages_image():
         return True
 
     except subprocess.CalledProcessError as e:
-        print(f"Error building Docker image:")
+        print("Error building Docker image:")
         print(f"stdout: {e.stdout}")
         print(f"stderr: {e.stderr}")
 

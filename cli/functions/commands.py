@@ -235,7 +235,9 @@ def restart_function(
     )
 
 
-@dev_app.command(name="status", help="Check the status of the local functions development server.")
+@dev_app.command(
+    name="status", help="Check the status of the local functions development server."
+)
 @add_verbose_option()
 def status_function(
     verbose: bool = False,
@@ -245,7 +247,9 @@ def status_function(
     )
 
 
-@dev_app.command(name="logs", help="Display logs from the local functions development server.")
+@dev_app.command(
+    name="logs", help="Display logs from the local functions development server."
+)
 @add_verbose_option()
 def logs_function_local(
     tail: Annotated[
@@ -282,7 +286,6 @@ def logs_function_local(
         profile=profile,
         verbose=verbose,
     )
-
 
 
 @app.command(
@@ -382,10 +385,11 @@ def logs_function_remote(
                 remote_id = project_metadata.function.id
 
     if not remote_id:
-        raise typer.BadParameter(
+        msg = (
             "Function ID required. Provide an ID as an argument or run from within a function "
             "directory with a valid manifest file."
         )
+        raise typer.BadParameter(msg)
 
     executor.logs_function(
         tail="all",
@@ -499,7 +503,9 @@ def add_function(
 
 
 # CRUD: Read
-@app.command(name="get", short_help="Retrieves a specific function using its id or label.")
+@app.command(
+    name="get", short_help="Retrieves a specific function using its id or label."
+)
 @simple_lookup_key(entity_name=EntityNameEnum.FUNCTION)
 @no_type_check
 def get_function(
@@ -600,7 +606,9 @@ def update_function(
 
 
 # CRUD: Delete.
-@app.command(name="delete", short_help="Deletes a specific function using its id or label.")
+@app.command(
+    name="delete", short_help="Deletes a specific function using its id or label."
+)
 @simple_lookup_key(entity_name=EntityNameEnum.FUNCTION)
 def delete_function(
     profile: Annotated[

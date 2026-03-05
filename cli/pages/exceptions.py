@@ -11,7 +11,10 @@ class CurrentPlanDoesNotIncludePagesFeature(Exception):
 
 class PageAlreadyExistsInCurrentDirectoryError(Exception):
     def __str__(self):
-        return "A page already exists in the current directory. Please navigate to a different directory to create a new page."
+        return (
+            "A page already exists in the current directory. "
+            "Please navigate to a different directory to create a new page."
+        )
 
 
 class PageWithNameAlreadyExistsError(Exception):
