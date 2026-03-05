@@ -214,7 +214,17 @@ class GetRemotePageDetailStep(PipelineStep):
             page_key=data["remote_id"],
             active_config=data["active_config"],
         )
-        response = httpx.get(url, headers=headers, follow_redirects=True)
+        try:
+            response = httpx.get(url, headers=headers, follow_redirects=True)
+        except httpx.ConnectError as e:
+            msg = "Could not connect to the server. Check your network connection and domain configuration."
+            raise httpx.ConnectError(msg) from e
+        except httpx.TimeoutException as e:
+            msg = "The request timed out. The server may be unavailable or too slow to respond."
+            raise httpx.TimeoutException(msg) from e
+        except httpx.NetworkError as e:
+            msg = f"A network error occurred while contacting the server: {e}"
+            raise httpx.NetworkError(msg) from e
         data["remote_page_detail_response"] = response
         return data
 
