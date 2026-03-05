@@ -1,11 +1,15 @@
+import io
+import os
+import zipfile
 from datetime import datetime
 from pathlib import Path
+from typing import IO
 from typing import Any
-from typing import Dict
 
 import yaml
 from jinja2 import Template
 
+from cli.pages.engines.settings import page_engine_settings
 from cli.pages.models import PageModel
 from cli.pages.models import PageProjectMetadata
 from cli.pages.models import PageProjectModel
@@ -18,19 +22,17 @@ def read_page_manifest(project_path: Path) -> PageProjectMetadata:
 
     if not metadata_file.exists():
         error_message = (
-            f"'{metadata_file}' not found. Are you in the correct project " "directory?"
+            f"'{metadata_file}' not found. Are you in the correct project directory?"
         )
         raise FileNotFoundError(error_message)
 
-    with open(metadata_file, "r") as file:
+    with open(metadata_file) as file:
         metadata_data = yaml.safe_load(file)
 
-    obj = PageProjectMetadata(**metadata_data)
-    return obj
+    return PageProjectMetadata(**metadata_data)
 
 
 def save_page_manifest(project_path: Path, metadata: PageProjectMetadata) -> None:
-    """Save PageProjectMetadata to manifest.yaml file."""
     manifest_file = project_path / settings.PAGES.PROJECT_METADATA_FILE
 
     # Save as YAML using the model's serialization method
@@ -41,7 +43,6 @@ def save_page_manifest(project_path: Path, metadata: PageProjectMetadata) -> Non
 def create_and_save_page_manifest(
     project_path: Path, page_name: str, page_type: PageTypeEnum, page_id: str = ""
 ) -> PageProjectMetadata:
-    """Create PageProjectMetadata and save it to manifest.yaml file."""
     # Create project model
     project_model = PageProjectModel(
         name=page_name,
@@ -62,15 +63,55 @@ def create_and_save_page_manifest(
     return metadata
 
 
-class _TemplateLibrary:
-    """Helper class to make dictionary compatible with template expectations."""
+def _add_files_to_zip(
+    zipf: zipfile.ZipFile,
+    root: str,
+    files: list[str],
+    project_path: Path,
+    exclude_files: list[str],
+) -> None:
+    for file in files:
+        file_path = os.path.join(root, file)
+        zip_path = os.path.relpath(file_path, project_path)
+        if not any(Path(zip_path).match(pattern) for pattern in exclude_files):
+            zipf.write(file_path, zip_path)
 
-    def __init__(self, data: Dict[str, Any]):
+
+def _add_folders_to_zip(
+    zipf: zipfile.ZipFile,
+    root: str,
+    project_path: Path,
+    exclude_files: list[str],
+) -> None:
+    for folder in os.listdir(root):
+        folder_path = os.path.join(root, folder)
+        if os.path.isdir(folder_path):
+            zip_path = os.path.relpath(folder_path, project_path)
+            if not any(Path(zip_path).match(pattern) for pattern in exclude_files):
+                zipf.write(folder_path, arcname=zip_path)
+
+
+def compress_page_to_zip(
+    project_path: Path,
+    exclude_files: list[str] | None = None
+) -> IO[bytes]:
+    exclude_files = exclude_files or []
+    zip_buffer = io.BytesIO()
+    with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zipf:
+        for root, _, files in os.walk(project_path):
+            _add_files_to_zip(zipf, root, files, project_path, exclude_files)
+            _add_folders_to_zip(zipf, root, project_path, exclude_files)
+    zip_buffer.seek(0)
+    return zip_buffer
+
+
+class _TemplateLibrary:
+    def __init__(self, data: dict[str, Any]):
         self.items = list(data.items())
 
 
 def render_ubidots_page_index_html(
-    page: Dict[str, Any],
+    page: dict[str, Any],
     page_type: PageTypeEnum,
     BASE_URL: str,
     HTML_CANVAS_LIBRARY_URL: str,
@@ -126,7 +167,8 @@ def render_index_html(ubidots_page_html: str, page_type: PageTypeEnum) -> str:
 
     template_file = Path(template_path)
     if not template_file.exists():
-        raise FileNotFoundError(f"Template file not found: {template_path}")
+        error_message = f"Template file not found: {template_path}"
+        raise FileNotFoundError(error_message)
 
     template_content = template_file.read_text(encoding="utf-8")
     template = Template(template_content)
@@ -142,9 +184,6 @@ def render_index_html(ubidots_page_html: str, page_type: PageTypeEnum) -> str:
 
 
 def get_page_container(container_manager, page_name):
-    """Get page container by name, return None if not found"""
-    from cli.pages.engines.settings import page_engine_settings
-
     container_name = f"{page_engine_settings.CONTAINER.PAGE.PREFIX_NAME}-{page_name}"
     try:
         return container_manager.get(container_name)
@@ -153,12 +192,10 @@ def get_page_container(container_manager, page_name):
 
 
 def is_container_running(container):
-    """Check if container exists and is running"""
     return container is not None and container.status == "running"
 
 
 def extract_port_from_container(container):
-    """Extract external port from container port mappings"""
     if not hasattr(container, "ports") or not container.ports:
         return None
 
@@ -171,9 +208,6 @@ def extract_port_from_container(container):
 
 
 def generate_page_url(page_name, routing_mode, container=None):
-    """Generate page URL based on routing mode"""
-    from cli.pages.engines.settings import page_engine_settings
-
     if routing_mode == "subdomain":
         flask_port = page_engine_settings.CONTAINER.FLASK_MANAGER.EXTERNAL_PORT
         return f"http://{page_name}.localhost:{flask_port}/"

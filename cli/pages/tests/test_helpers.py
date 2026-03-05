@@ -236,7 +236,3 @@ class TestUrlHelpers(unittest.TestCase):
         result = generate_page_url("test_page", "invalid_mode")
 
         self.assertEqual(result, "")
-
-
-if __name__ == "__main__":
-    unittest.main()

@@ -5,12 +5,18 @@ from typing import Any
 from typing import Dict
 from typing import List
 from typing import Literal
+from typing import TypedDict
 
 from pydantic import BaseModel
 from pydantic import Field
 
 from cli.commons.models import BaseYAMLDumpModel
 from cli.compat import StrEnum
+
+
+class AddPagePayload(TypedDict):
+    name: str
+    label: str
 
 
 class PageTypeEnum(StrEnum):
