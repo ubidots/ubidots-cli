@@ -1,0 +1,10 @@
+MD013:
+  line_length: 119
+  heading_line_length: 119
+  code_block_line_length: 119
+  tables: false
+MD024:
+  siblings_only: true
+MD031:
+  list_items: false
+MD060: false

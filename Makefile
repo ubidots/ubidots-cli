@@ -4,7 +4,7 @@ CELERY_LOG_LEVEL=info
 PYTHON_VERSION=3.12.2
 PYTHON_VERSIONS=3.9.18 3.10.13 3.11.5 $(PYTHON_VERSION)
 
-.PHONY: help setup-dev validate_code setup-tox-env run-tox
+.PHONY: help setup-dev validate_code setup-tox-env run-tox lint-docs
 
 help:
 	@echo "Makefile commands:"
@@ -14,7 +14,8 @@ help:
 	@echo "ruff: run ruff for linting."
 	@echo "mypy: run mypy to check type annotations."
 	@echo "setup-dev: setup the development environment."
-	@echo "validate_code: run black, isort, ruff, and tests."
+	@echo "lint-docs: run markdownlint-cli2 on README, CHANGELOG and docs/."
+	@echo "validate_code: run black, isort, ruff, mypy, lint-docs, and tests."
 	@echo "setup-tox-env: install specified Python versions for tox compatibility using pyenv."
 	@echo "run-tox: run tests with tox for multiple Python versions."
 	@echo "config-testpypi: configure TestPyPI repository and set authentication token."
@@ -42,7 +43,10 @@ ruff:
 mypy:
 	poetry run mypy .
 
-validate_code: black isort ruff mypy test
+lint-docs:
+	npx markdownlint-cli2 README.md CHANGELOG.md "docs/development/**/*.md"
+
+validate_code: black isort ruff mypy lint-docs test
 
 update:
 	poetry update
