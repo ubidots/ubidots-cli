@@ -266,7 +266,7 @@ class TestAddCommand(TestCase):
             device_app, ["add", "deviceLabel", "--properties", "{key1: value1}"]
         )
         self.assertNotEqual(result.exit_code, 0)
-        self.assertIn("Invalid JSON format.", result.stdout)
+        self.assertIn("Invalid JSON format.", result.output)
         mock_add_device.assert_not_called()
 
 
@@ -337,7 +337,7 @@ class TestUpdateCommand(TestCase):
             ["update", "--id", "device123", "--properties", "{key1: value}"],
         )
         self.assertNotEqual(result.exit_code, 0)
-        self.assertIn("Invalid JSON format.", result.stdout)
+        self.assertIn("Invalid JSON format.", result.output)
         mock_update_device.assert_not_called()
 
     def test_update_device_with_id_and_label(

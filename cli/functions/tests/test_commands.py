@@ -105,7 +105,7 @@ class TestDevAddFunctionCommand(TestCase):
         # Should fail because --remote-id is not a valid option
         self.assertNotEqual(result.exit_code, 0)
         # Error message should indicate the option doesn't exist
-        output = result.stdout
+        output = result.output
         self.assertTrue(
             "--remote-id" in output.lower() or "no such option" in output.lower()
         )

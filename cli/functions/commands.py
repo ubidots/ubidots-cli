@@ -3,7 +3,6 @@ from builtins import list as BuiltinList
 from datetime import datetime
 from pathlib import Path
 from typing import Annotated
-from typing import Union
 from typing import no_type_check
 
 import typer
@@ -544,29 +543,29 @@ def update_function(
     new_label: Annotated[str, typer.Option(help="The label for the device.")] = "",
     new_name: Annotated[str, typer.Option(help="The name of the device.")] = "",
     runtime: Annotated[
-        Union[FunctionRuntimeLayerTypeEnum, None],
+        FunctionRuntimeLayerTypeEnum | None,
         typer.Option(
             help="The runtime for the function.",
         ),
     ] = None,
     raw: Annotated[
-        Union[bool, None],
+        bool | None,
         typer.Option(help="Flag to determine if the output should be in raw format."),
     ] = None,
     cors: Annotated[
-        Union[bool, None],
+        bool | None,
         typer.Option(
             help="Flag to enable Cross-Origin Resource Sharing (CORS) for the function.",
         ),
     ] = None,
     cron: Annotated[
-        Union[str, None],
+        str | None,
         typer.Option(
             help="Cron expression to schedule the function for periodic execution.",
         ),
     ] = None,
     timeout: Annotated[
-        Union[int, None],
+        int | None,
         typer.Option(
             help="Timeout for the function in seconds.",
         ),
@@ -582,7 +581,7 @@ def update_function(
         ),
     ] = "",
     methods: Annotated[
-        Union[BuiltinList[FunctionMethodEnum], None],
+        BuiltinList[FunctionMethodEnum] | None,
         typer.Option(
             help="The HTTP methods the function will respond to.",
         ),

@@ -12,9 +12,9 @@ packages = [
 ubidots = "cli.main:app"
 
 [tool.poetry.dependencies]
-click = ">=8.1.0,<8.2.0"
-python = ">=3.9,<3.13"
-typer = "^0.9.0"
+click = ">=8.1.0"
+python = ">=3.9,<3.15"
+typer = "^0.15.0"
 pyyaml = "^6.0.1"
 pydantic = "^2.5.3"
 requests = "^2.31.0"
@@ -46,7 +46,7 @@ pytest = "^7.4.4"
 pytest-mock = "^3.12.0"
 autoflake = "^2.2.1"
 isort = "^5.13.2"
-ruff = "^0.1.14"
+ruff = "^0.15.5"
 tox = "^4.18"
 mypy = "^1.11.1"
 types-PyYAML = "^6.0.12.20240808"
@@ -58,9 +58,23 @@ force_single_line = true
 line_length = 123
 
 [tool.ruff]
-target-version = "py312"
+target-version = "py313"
 line-length = 123
-ignore = ["RUF001", "RUF012", "PLC1901", "COM812", "UP007"] # Remove UP007 when python version is upgraded to 3.12
+
+[tool.ruff.lint]
+ignore = [
+  "RUF001",
+  "RUF012",
+  "PLC1901",
+  "COM812",
+  "PLC0415",  # conditional imports inside try/except blocks (valid pattern)
+  "EM101",    # exception string literals (pre-existing style)
+  "EM102",    # exception f-string literals (pre-existing style)
+  "INP001",   # implicit namespace packages (pre-existing structure)
+  "TC001",    # move import into TYPE_CHECKING block (pre-existing)
+  "UP036",    # version block check in compat.py is intentional (supports Python 3.9+)
+  "UP042",    # StrEnum backport in compat.py is intentional (supports Python 3.9/3.10)
+]
 select = [
   "E",
   "F",
@@ -88,14 +102,9 @@ select = [
   "G",
   "INP",
   "PIE",
-  "Q",
   "RSE",
   "TCH",
   "INT",
   "COM",
-  "ICN",
   "SLOT",
-  "ASYNC",
-  "AIR",
-  "YTT",
 ]

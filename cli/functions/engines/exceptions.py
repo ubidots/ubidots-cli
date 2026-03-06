@@ -81,7 +81,7 @@ class ContainerNotFoundException(ContainerException):
 
         regex_pattern = "|".join(container_keys)
         if match := re.search(regex_pattern, label):
-            extracted_label = label.split(match.group(0))[-1]
+            extracted_label = label.rsplit(match.group(0), maxsplit=1)[-1]
             label = extracted_label.strip("=_")
 
         message = f"Function with label '{label}' does not exist."

@@ -1,8 +1,4 @@
-FUNCTION_BASE_ENDPOINT = "/api/-/functions"
+from cli.functions.constants import FUNCTION_API_ROUTES
+from cli.functions.constants import FUNCTION_BASE_ENDPOINT
 
-FUNCTION_API_ROUTES = {
-    "base": FUNCTION_BASE_ENDPOINT,
-    "detail": f"{FUNCTION_BASE_ENDPOINT}/{{function_key}}",
-    "logs": f"{FUNCTION_BASE_ENDPOINT}/{{function_key}}/logs",
-    "zip_file": f"{FUNCTION_BASE_ENDPOINT}/{{function_key}}/zip-file",
-}
+__all__ = ["FUNCTION_API_ROUTES", "FUNCTION_BASE_ENDPOINT"]

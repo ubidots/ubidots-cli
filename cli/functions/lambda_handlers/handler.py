@@ -5,7 +5,6 @@ import traceback
 def main(event, context):
     _ = context
     try:
-        # ruff: noqa: PLC0415
         import main as function
 
         main_function = function.main
