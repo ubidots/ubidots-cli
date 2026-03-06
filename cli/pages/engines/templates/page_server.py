@@ -1,14 +1,23 @@
+import fnmatch
 import os
-import json
-import time
+import queue
 import threading
+import time
 from pathlib import Path
 
 import tomli
 from flask import Flask
+
+try:
+    from watchdog.events import FileSystemEventHandler
+    from watchdog.observers import Observer
+
+    _WATCHDOG_AVAILABLE = True
+except ImportError:
+    _WATCHDOG_AVAILABLE = False
+from flask import Response
 from flask import render_template_string
 from flask import send_from_directory
-from flask import Response
 from flask_cors import CORS
 
 # The page files are mounted at /app/page
@@ -46,7 +55,7 @@ HOT_RELOAD_IGNORE_PATTERNS = os.environ.get("HOT_RELOAD_IGNORE_PATTERNS", "").sp
 HOT_RELOAD_DEBOUNCE_MS = int(os.environ.get("HOT_RELOAD_DEBOUNCE_MS", "500"))
 
 # Global variable to store SSE clients
-sse_clients = set()
+sse_clients: set[queue.Queue] = set()
 
 
 def load_page_config():
@@ -56,7 +65,8 @@ def load_page_config():
 
     # Read manifest.toml
     if not manifest_path.exists():
-        raise FileNotFoundError(f"Missing manifest.toml in {BASE_DIR}")
+        msg = f"Missing manifest.toml in {BASE_DIR}"
+        raise FileNotFoundError(msg)
 
     with open(manifest_path, "rb") as f:
         toml_data = tomli.load(f)
@@ -65,9 +75,10 @@ def load_page_config():
 
     # Read body.html
     if not body_path.exists():
-        raise FileNotFoundError(f"Missing body.html in {BASE_DIR}")
+        msg = f"Missing body.html in {BASE_DIR}"
+        raise FileNotFoundError(msg)
 
-    with open(body_path, "r", encoding="utf-8") as f:
+    with open(body_path, encoding="utf-8") as f:
         body_html = f.read()
 
     page_config["body"] = body_html
@@ -154,9 +165,8 @@ def get_hot_reload_url():
         # Port mode: Use the main external port (same as page)
         port = external_port if external_port else "8090"
         return f"http://localhost:{port}{HOT_RELOAD_ENDPOINT}"
-    else:
-        # Path and subdomain modes: Use dedicated hot reload port
-        return f"http://localhost:{hot_reload_port}{HOT_RELOAD_ENDPOINT}"
+    # Path and subdomain modes: Use dedicated hot reload port
+    return f"http://localhost:{hot_reload_port}{HOT_RELOAD_ENDPOINT}"
 
 
 def inject_hot_reload_script(html_content):
@@ -202,14 +212,14 @@ def render_page():
     if not Path(TEMPLATE_FILE).exists():
         return {"error": "Template file not found"}, 500
 
-    with open(TEMPLATE_FILE, "r", encoding="utf-8") as f:
+    with open(TEMPLATE_FILE, encoding="utf-8") as f:
         template_content = f.read()
 
     # Load page configuration
     try:
         page_config = load_page_config()
     except Exception as e:
-        return {"error": f"Failed to load page config: {str(e)}"}, 500
+        return {"error": f"Failed to load page config: {e!s}"}, 500
 
     # Convert libraries to template format
     page_config["js_libraries"] = convert_libraries(page_config.get("js_libraries", []))
@@ -254,9 +264,7 @@ def render_page():
     rendered_html = render_template_string(template_content, **context)
 
     # Inject hot reload script if enabled
-    rendered_html = inject_hot_reload_script(rendered_html)
-
-    return rendered_html
+    return inject_hot_reload_script(rendered_html)
 
 
 @app.route("/")
@@ -303,12 +311,13 @@ def send_reload_signal():
 def setup_file_watcher():
     """Setup file watcher for hot reload"""
     if not HOT_RELOAD_ENABLED:
-        return
+        return None
+
+    if not _WATCHDOG_AVAILABLE:
+        print("Warning: watchdog not available, hot reload disabled")
+        return None
 
     try:
-        from watchdog.observers import Observer
-        from watchdog.events import FileSystemEventHandler
-        import fnmatch
 
         class ReloadHandler(FileSystemEventHandler):
             def __init__(self):
@@ -363,7 +372,6 @@ def setup_file_watcher():
 
             def trigger_reload_after_delay(self):
                 """Trigger reload after debounce delay"""
-                import threading
 
                 def delayed_reload():
                     time.sleep(HOT_RELOAD_DEBOUNCE_MS / 1000.0)  # Convert to seconds
@@ -409,9 +417,6 @@ def setup_file_watcher():
 
         return observer
 
-    except ImportError:
-        print("Warning: watchdog not available, hot reload disabled")
-        return None
     except Exception as e:
         print(f"Warning: Failed to setup file watcher: {e}")
         return None
@@ -420,7 +425,7 @@ def setup_file_watcher():
 def start_hot_reload_server():
     """Start a separate Flask server for hot reload SSE on port 5001"""
     if not HOT_RELOAD_ENABLED:
-        return
+        return None
 
     # Create a separate Flask app for hot reload
     hot_reload_app = Flask(__name__, static_folder=None)
@@ -429,7 +434,6 @@ def start_hot_reload_server():
     @hot_reload_app.route(HOT_RELOAD_ENDPOINT)
     def hot_reload_sse():
         """Server-Sent Events endpoint for hot reload"""
-        import queue
 
         def event_stream():
             client_queue = queue.Queue()
@@ -464,7 +468,7 @@ def start_hot_reload_server():
     # Start hot reload server in background thread
     def run_hot_reload_server():
         try:
-            print(f"Hot reload server starting on port 5001")
+            print("Hot reload server starting on port 5001")
             hot_reload_app.run(host="0.0.0.0", port=5001, debug=False)
         except Exception as e:
             print(f"Hot reload server error: {e}")

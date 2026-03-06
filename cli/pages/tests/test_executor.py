@@ -2,7 +2,8 @@
 
 import unittest
 from pathlib import Path
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock
+from unittest.mock import patch
 
 from cli.pages.executor import create_local_page
 from cli.pages.executor import list_local_pages

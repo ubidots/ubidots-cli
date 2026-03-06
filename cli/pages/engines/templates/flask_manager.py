@@ -1,5 +1,5 @@
-import sys
 import os
+import sys
 
 import docker
 import requests
@@ -65,11 +65,10 @@ def determine_target_page():
         if subdomain and subdomain != "localhost":
             print(f"[ROUTING] Subdomain routing: {subdomain}", file=sys.stderr)
             return subdomain
-        else:
-            print("[ROUTING] No subdomain found", file=sys.stderr)
-            return None
+        print("[ROUTING] No subdomain found", file=sys.stderr)
+        return None
 
-    elif ROUTING_MODE == "port":
+    if ROUTING_MODE == "port":
         # Port routing mode: Flask manager should not be running
         print(
             "[ERROR] Flask manager should not be running in port routing mode",
@@ -77,7 +76,7 @@ def determine_target_page():
         )
         return None
 
-    elif ROUTING_MODE == "path":
+    if ROUTING_MODE == "path":
         # Path routing: localhost:8044/dashboard → dashboard
         path = request.path.strip("/")
         if path:
@@ -88,9 +87,8 @@ def determine_target_page():
                 file=sys.stderr,
             )
             return page_name
-        else:
-            print("[ROUTING] No path found", file=sys.stderr)
-            return None
+        print("[ROUTING] No path found", file=sys.stderr)
+        return None
 
     print(f"[ROUTING] Unknown routing mode: {ROUTING_MODE}", file=sys.stderr)
     return None
@@ -99,47 +97,38 @@ def determine_target_page():
 def build_upstream_url_subdomain(upstream, request, path):
     """Build upstream URL for subdomain routing"""
     # For subdomain routing, forward path as-is
-    if path:
-        upstream_url = f"http://{upstream}/{path}"
-    else:
-        upstream_url = f"http://{upstream}/"
-    return upstream_url
+    return f"http://{upstream}/{path}" if path else f"http://{upstream}/"
 
 
 def build_upstream_url_path(upstream, request, path):
     """Build upstream URL for path routing"""
     # For path routing, remove the page name from the path before forwarding
     remaining_path = "/".join(request.path.strip("/").split("/")[1:])
-    if remaining_path:
-        # Forward the remaining path as-is
-        # The page container will handle serving files from both root and /static/
-        upstream_url = f"http://{upstream}/{remaining_path}"
-    else:
-        upstream_url = f"http://{upstream}/"
-    return upstream_url
+    # Forward the remaining path as-is
+    # The page container will handle serving files from both root and /static/
+    return (
+        f"http://{upstream}/{remaining_path}"
+        if remaining_path
+        else f"http://{upstream}/"
+    )
 
 
 def build_upstream_url_port(upstream, request, path):
     """Build upstream URL for port routing"""
     # For port routing, forward path as-is (though this shouldn't be called)
-    if path:
-        upstream_url = f"http://{upstream}/{path}"
-    else:
-        upstream_url = f"http://{upstream}/"
-    return upstream_url
+    return f"http://{upstream}/{path}" if path else f"http://{upstream}/"
 
 
 def build_upstream_url(upstream, request, path):
     """Build upstream URL based on current routing mode"""
     if ROUTING_MODE == "subdomain":
         return build_upstream_url_subdomain(upstream, request, path)
-    elif ROUTING_MODE == "path":
+    if ROUTING_MODE == "path":
         return build_upstream_url_path(upstream, request, path)
-    elif ROUTING_MODE == "port":
+    if ROUTING_MODE == "port":
         return build_upstream_url_port(upstream, request, path)
-    else:
-        # Default to subdomain behavior
-        return build_upstream_url_subdomain(upstream, request, path)
+    # Default to subdomain behavior
+    return build_upstream_url_subdomain(upstream, request, path)
 
 
 @app.route("/api/routes", methods=["GET"])

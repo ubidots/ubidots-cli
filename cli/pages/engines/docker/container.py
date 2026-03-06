@@ -21,10 +21,10 @@ class PageDockerContainerManager(AbstractContainerManager):
         """Get container by name"""
         try:
             return self.client.containers.get(name)
-        except NotFound:
-            raise ContainerNotFoundException(name)
+        except NotFound as error:
+            raise ContainerNotFoundException(name) from error
 
-    def list(self, filters: dict = None, all: bool = False):
+    def list(self, filters: dict | None = None, all: bool = False):
         """List containers with optional filters"""
         return self.client.containers.list(filters=filters or {}, all=all)
 

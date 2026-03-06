@@ -1,10 +1,15 @@
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
 import httpx
 
 from cli.commons.utils import build_endpoint
-from cli.config.models import ProfileConfigModel
 from cli.pages.constants import PAGE_API_ROUTES
-from cli.pages.models import AddPagePayload
 
+if TYPE_CHECKING:
+    from cli.config.models import ProfileConfigModel
+    from cli.pages.models import AddPagePayload
 
 
 def add_page(active_config: ProfileConfigModel, name: str, label: str):
@@ -17,7 +22,6 @@ def add_page(active_config: ProfileConfigModel, name: str, label: str):
     return client.post(url, headers=headers, json=data)
 
 
-
 def upload_page_code(url: str, headers: dict, zip_file: bytes, page_name: str):
     files = {
         "zipFile": (
@@ -28,5 +32,3 @@ def upload_page_code(url: str, headers: dict, zip_file: bytes, page_name: str):
     }
     client = httpx.Client(follow_redirects=True)
     return client.post(url=url, headers=headers, files=files)
-
-

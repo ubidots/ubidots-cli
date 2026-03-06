@@ -170,7 +170,8 @@ class CheckRemotePageIdRequirementStep(PipelineStep):
 
     def _handle_new_page_pull(self, data, remote_id):
         if not remote_id:
-            raise ValueError("Error: '--remote-id <page-id>' is required when not in a page directory.")
+            msg = "Error: '--remote-id <page-id>' is required when not in a page directory."
+            raise ValueError(msg)
         data["is_new_page_pull"] = True
         return data
 
@@ -179,12 +180,14 @@ class CheckRemotePageIdRequirementStep(PipelineStep):
             page_id = self._read_page_id(project_path)
         except (FileNotFoundError, yaml.YAMLError, ValidationError) as e:
             if not remote_id:
-                raise ValueError("The page has not been registered or synchronized with the platform.") from e
+                msg = "The page has not been registered or synchronized with the platform."
+                raise ValueError(msg) from e
             return data
 
         if not page_id:
             if not remote_id:
-                raise ValueError("Page metadata is missing an ID.")
+                msg = "Page metadata is missing an ID."
+                raise ValueError(msg)
             return data
 
         data["remote_id"] = page_id
@@ -204,7 +207,9 @@ class CheckRemotePageIdRequirementStep(PipelineStep):
             f"\n> [WARNING]: Ignoring provided remote ID '{remote_id}'. "
             f"Using page ID from local metadata '{page_id}' instead.\n"
         )
-        typer.echo(typer.style(text=warning_message, fg=MessageColorEnum.WARNING, bold=True))
+        typer.echo(
+            typer.style(text=warning_message, fg=MessageColorEnum.WARNING, bold=True)
+        )
 
 
 class GetRemotePageDetailStep(PipelineStep):

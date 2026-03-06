@@ -3,21 +3,21 @@
 import unittest
 from pathlib import Path
 from tempfile import TemporaryDirectory
-from unittest.mock import patch, MagicMock, mock_open
+from unittest.mock import MagicMock
+from unittest.mock import patch
 
-from cli.pages.helpers import save_page_manifest
-from cli.pages.helpers import read_page_manifest
+from cli.pages.helpers import _TemplateLibrary
 from cli.pages.helpers import create_and_save_page_manifest
-from cli.pages.helpers import get_page_container
-from cli.pages.helpers import is_container_running
 from cli.pages.helpers import extract_port_from_container
 from cli.pages.helpers import generate_page_url
-from cli.pages.models import (
-    PageTypeEnum,
-    PageProjectMetadata,
-    PageProjectModel,
-    PageModel,
-)
+from cli.pages.helpers import get_page_container
+from cli.pages.helpers import is_container_running
+from cli.pages.helpers import read_page_manifest
+from cli.pages.helpers import save_page_manifest
+from cli.pages.models import PageModel
+from cli.pages.models import PageProjectMetadata
+from cli.pages.models import PageProjectModel
+from cli.pages.models import PageTypeEnum
 
 
 class TestManifestHelpers(unittest.TestCase):
@@ -103,8 +103,6 @@ class TestTemplateHelpers(unittest.TestCase):
 
     def test_template_library_helper_class(self):
         """Test the _TemplateLibrary helper class."""
-        from cli.pages.helpers import _TemplateLibrary
-
         data = {"src": "http://example.com/lib.js", "type": "text/javascript"}
         lib = _TemplateLibrary(data)
 

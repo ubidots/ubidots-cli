@@ -372,7 +372,7 @@ class ValidateProjectStep(PipelineStep):
             validate_main_file_exists(
                 project_path=project_path,
                 project_files=project_files,
-                main_file=project_metadata.project.language.main_file,
+                main_file=f"{settings.FUNCTIONS.DEFAULT_MAIN_FILE_NAME}.{project_metadata.project.language.extension}",
             )
         if validations.get("function_exists"):
             validate_function_exists(project_metadata.function.id)

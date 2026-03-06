@@ -33,10 +33,8 @@ from cli.pages.pipelines.dev_scaffold import ReadManifestStep
 from cli.pages.pipelines.dev_scaffold import SaveManifestStep
 from cli.pages.pipelines.dev_scaffold import ValidateCurrentPageExistsStep
 from cli.pages.pipelines.dev_scaffold import ValidateExtractedPageStep
-from cli.pages.pipelines.dev_scaffold import \
-    ValidateNotRunningFromPageDirectoryStep
-from cli.pages.pipelines.dev_scaffold import \
-    ValidatePagesAvailabilityPerPlanStep
+from cli.pages.pipelines.dev_scaffold import ValidateNotRunningFromPageDirectoryStep
+from cli.pages.pipelines.dev_scaffold import ValidatePagesAvailabilityPerPlanStep
 from cli.pages.pipelines.dev_scaffold import ValidateTemplateStep
 from cli.pages.pipelines.sync import CheckPageDetailResponseStep
 from cli.pages.pipelines.sync import CheckPageResponseStep

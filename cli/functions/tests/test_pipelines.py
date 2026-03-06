@@ -381,7 +381,7 @@ class TestValidateProjectStep:
         # Setup
         step = pipelines.ValidateProjectStep()
         project_metadata_mock = MagicMock()
-        project_metadata_mock.project.language.main_file = "main.py"
+        project_metadata_mock.project.language.extension = "py"
         project_metadata_mock.function.id = "function_id_test"
         data = {
             "project_path": Path("/path/to/project"),
@@ -420,7 +420,7 @@ class TestValidateProjectStep:
         # Setup
         step = pipelines.ValidateProjectStep()
         project_metadata_mock = MagicMock()
-        project_metadata_mock.project.language.main_file = "main.py"
+        project_metadata_mock.project.language.extension = "py"
         data = {
             "project_path": Path("/path/to/project"),
             "project_files": [Path("/path/to/project/other_file.py")],

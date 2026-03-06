@@ -92,8 +92,7 @@ def _add_folders_to_zip(
 
 
 def compress_page_to_zip(
-    project_path: Path,
-    exclude_files: list[str] | None = None
+    project_path: Path, exclude_files: list[str] | None = None
 ) -> IO[bytes]:
     exclude_files = exclude_files or []
     zip_buffer = io.BytesIO()

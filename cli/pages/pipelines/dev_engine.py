@@ -3,6 +3,7 @@ from dataclasses import dataclass
 import typer
 
 from cli.commons.pipelines import PipelineStep
+from cli.commons.styles import print_colored_table
 from cli.pages.engines.helpers import build_pages_image_if_needed
 from cli.pages.engines.helpers import flask_manager_container_helper
 from cli.pages.engines.helpers import get_or_create_pages_network
@@ -359,8 +360,6 @@ class ListAllPagesStep(PipelineStep):
 
 class PrintPagesListStep(PipelineStep):
     def execute(self, data):
-        from cli.commons.styles import print_colored_table  # noqa: PLC0415
-
         pages_info = data.get("pages_info", [])
 
         if not pages_info:
@@ -377,8 +376,6 @@ class PrintColoredTableStep(PipelineStep):
     key: str = ""
 
     def execute(self, data):
-        from cli.commons.styles import print_colored_table  # noqa: PLC0415
-
         if self.key and self.key in data:
             results = data[self.key]
             print_colored_table(results=results, column_order=["name", "status", "url"])

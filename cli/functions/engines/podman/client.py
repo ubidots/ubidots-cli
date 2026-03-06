@@ -5,8 +5,7 @@ from podman import PodmanClient
 
 from cli.functions.engines.abstracts.client import AbstractEngineClient
 from cli.functions.engines.enums import FunctionEngineTypeEnum
-from cli.functions.engines.podman.container import \
-    FunctionPodmanContainerManager
+from cli.functions.engines.podman.container import FunctionPodmanContainerManager
 from cli.functions.engines.podman.image import FunctionPodmanImageDownloader
 from cli.functions.engines.podman.validators import FunctionPodmanValidator
 
