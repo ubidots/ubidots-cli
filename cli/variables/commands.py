@@ -1,5 +1,4 @@
 from typing import Annotated
-from typing import Optional
 from typing import no_type_check
 
 import typer
@@ -151,14 +150,14 @@ def add(
         ),
     ] = "{}",
     min: Annotated[
-        Optional[int],
+        int | None,
         typer.Option(
             help="Lowest value allowed.",
             show_default=False,
         ),
     ] = None,
     max: Annotated[
-        Optional[int],
+        int | None,
         typer.Option(
             help="Highest value allowed.",
             show_default=False,
@@ -232,14 +231,14 @@ def update(
         ),
     ] = "{}",
     min: Annotated[
-        Optional[int],
+        int | None,
         typer.Option(
             help="Lowest value allowed.",
             show_default=False,
         ),
     ] = None,
     max: Annotated[
-        Optional[int],
+        int | None,
         typer.Option(
             help="Highest value allowed.",
             show_default=False,
