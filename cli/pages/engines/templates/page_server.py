@@ -446,8 +446,7 @@ def start_hot_reload_server():
                 while True:
                     try:
                         # Wait for reload signal
-                        message = client_queue.get(timeout=30)  # 30 second timeout
-                        yield message
+                        yield client_queue.get(timeout=30)  # 30 second timeout
                     except queue.Empty:
                         # Send heartbeat to keep connection alive
                         yield "data: heartbeat\n\n"

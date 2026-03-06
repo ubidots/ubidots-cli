@@ -1,7 +1,5 @@
 """Basic import tests for the pages module."""
 
-# ruff: noqa: PLC0415 (imports inside try/except are intentional — this file tests module importability)
-
 import unittest
 
 
