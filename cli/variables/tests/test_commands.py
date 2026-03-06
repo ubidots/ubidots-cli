@@ -241,5 +241,5 @@ class TestUpdateCommand(TestCase):
             ["update", "--id", "variable123", "--properties", "{key1: updatedValue}"],
         )
         self.assertNotEqual(result.exit_code, 0)
-        self.assertIn("Invalid JSON format.", result.stdout)
+        self.assertIn("Invalid JSON format.", result.output)
         mock_update_variable.assert_not_called()
