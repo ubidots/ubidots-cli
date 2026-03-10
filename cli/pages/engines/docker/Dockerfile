@@ -12,6 +12,10 @@ RUN pip install --no-cache-dir \
     requests==2.31.0 \
     watchdog==3.0.0
 
+# Create a non-root user and group
+RUN groupadd --gid 1001 app && \
+    useradd --uid 1001 --gid app --no-create-home app
+
 # Create app directory
 WORKDIR /app
 
@@ -19,7 +23,10 @@ WORKDIR /app
 COPY page_server.py /app/server.py
 
 # Create directory for page files (will be mounted at runtime)
-RUN mkdir -p /app/page
+RUN mkdir -p /app/page && chown -R app:app /app
+
+# Drop root privileges
+USER app
 
 # Set default command
 CMD ["python", "/app/server.py"]
