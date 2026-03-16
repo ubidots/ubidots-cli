@@ -217,9 +217,7 @@ class RestartPageContainerStep(PipelineStep):
         container_manager = data["container_manager"]
         page_name = data["page_name"]
 
-        container_name = (
-            f"{page_engine_settings.CONTAINER.PAGE.PREFIX_NAME}-{page_name.replace(' ', '-')}"
-        )
+        container_name = f"{page_engine_settings.CONTAINER.PAGE.PREFIX_NAME}-{page_name.replace(' ', '-')}"
         container_manager.restart(container_name)
 
         return data
@@ -234,9 +232,7 @@ class GetPageLogsStep(PipelineStep):
         container_manager = data["container_manager"]
         page_name = data["page_name"]
 
-        container_name = (
-            f"{page_engine_settings.CONTAINER.PAGE.PREFIX_NAME}-{page_name.replace(' ', '-')}"
-        )
+        container_name = f"{page_engine_settings.CONTAINER.PAGE.PREFIX_NAME}-{page_name.replace(' ', '-')}"
         logs = container_manager.logs(
             name=container_name,
             tail=self.tail,

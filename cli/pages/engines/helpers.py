@@ -205,7 +205,9 @@ def page_container_helper(
 
     # Sanitize page name for container and subdomain
     sanitized_name = page_name.replace(" ", "-")
-    container_name = f"{page_engine_settings.CONTAINER.PAGE.PREFIX_NAME}-{sanitized_name}"
+    container_name = (
+        f"{page_engine_settings.CONTAINER.PAGE.PREFIX_NAME}-{sanitized_name}"
+    )
     subdomain = sanitized_name
     upstream = f"{container_name}:{page_engine_settings.CONTAINER.PAGE.INTERNAL_PORT}"
 
