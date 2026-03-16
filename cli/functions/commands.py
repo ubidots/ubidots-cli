@@ -55,7 +55,11 @@ def create_function(
     runtime: Annotated[
         str,
         typer.Option(
-            help="The runtime for the function.",
+            help=(
+                "Runtime for the function (e.g. 'python3.11:lite', 'nodejs20.x:lite'). "
+                "Allowed values depend on your account — if the runtime is rejected, "
+                "check your available runtimes in the Ubidots platform."
+            ),
         ),
     ] = settings.FUNCTIONS.DEFAULT_RUNTIME,
     cors: Annotated[
@@ -300,7 +304,11 @@ def clean_functions(
     )
 
 
-@app.command(name="logs", help="Retrieve and display logs from a remote function.", rich_help_panel="Cloud Commands")
+@app.command(
+    name="logs",
+    help="Retrieve and display logs from a remote function.",
+    rich_help_panel="Cloud Commands",
+)
 @add_verbose_option()
 def logs_function_remote(
     function_id: Annotated[
@@ -355,7 +363,11 @@ def logs_function_remote(
     )
 
 
-@app.command(name="list", short_help="Lists all available functions.", rich_help_panel="Cloud Commands")
+@app.command(
+    name="list",
+    short_help="Lists all available functions.",
+    rich_help_panel="Cloud Commands",
+)
 @add_pagination_options()
 @add_sort_by_option()
 @add_filter_option()
@@ -389,7 +401,11 @@ def list_functions(
 
 
 # CRUD: Create
-@app.command(name="add", short_help="Adds a new function in the remote server.", rich_help_panel="Cloud Commands")
+@app.command(
+    name="add",
+    short_help="Adds a new function in the remote server.",
+    rich_help_panel="Cloud Commands",
+)
 def add_function(
     name: Annotated[
         str, typer.Argument(help="The name of the function.", show_default=False)
@@ -458,7 +474,9 @@ def add_function(
 
 # CRUD: Read
 @app.command(
-    name="get", short_help="Retrieves a specific function using its id or label.", rich_help_panel="Cloud Commands"
+    name="get",
+    short_help="Retrieves a specific function using its id or label.",
+    rich_help_panel="Cloud Commands",
 )
 @simple_lookup_key(entity_name=EntityNameEnum.FUNCTION)
 @no_type_check
@@ -490,7 +508,9 @@ def get_function(
 
 
 # CRUD: Update
-@app.command(name="update", short_help="Update a function.", rich_help_panel="Cloud Commands")
+@app.command(
+    name="update", short_help="Update a function.", rich_help_panel="Cloud Commands"
+)
 @simple_lookup_key(entity_name=EntityNameEnum.FUNCTION)
 def update_function(
     id: str | None = None,
@@ -561,7 +581,9 @@ def update_function(
 
 # CRUD: Delete.
 @app.command(
-    name="delete", short_help="Deletes a specific function using its id or label.", rich_help_panel="Cloud Commands"
+    name="delete",
+    short_help="Deletes a specific function using its id or label.",
+    rich_help_panel="Cloud Commands",
 )
 @simple_lookup_key(entity_name=EntityNameEnum.FUNCTION)
 def delete_function(

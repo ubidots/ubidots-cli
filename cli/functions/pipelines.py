@@ -143,7 +143,18 @@ class ValidateAllowedRuntimeStep(PipelineStep):
         profile_config = get_configuration(profile=profile)
         allowed_runtimes = profile_config.runtimes
         if runtime not in allowed_runtimes:
-            error_message = f"Runtime '{runtime}' is not allowed"
+            if not allowed_runtimes:
+                error_message = (
+                    f"Runtime '{runtime}' is not allowed. No runtimes are configured "
+                    "for your profile. Make sure you have a valid profile set up with "
+                    "'ubidots config add'."
+                )
+            else:
+                formatted = ", ".join(allowed_runtimes)
+                error_message = (
+                    f"Runtime '{runtime}' is not allowed. "
+                    f"Available runtimes: {formatted}"
+                )
             raise ValueError(error_message)
         return data
 
