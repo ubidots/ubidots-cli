@@ -40,6 +40,7 @@ class PageDockerContainerManager(AbstractContainerManager):
         environment: dict | None = None,
         command: str = "",
         hostname: str = "",
+        user: str = "",
     ):
         """Start a new container"""
         kwargs = {
@@ -64,6 +65,9 @@ class PageDockerContainerManager(AbstractContainerManager):
 
         if hostname:
             kwargs["hostname"] = hostname
+
+        if user:
+            kwargs["user"] = user
 
         # Check if container already exists
         with suppress(NotFound):

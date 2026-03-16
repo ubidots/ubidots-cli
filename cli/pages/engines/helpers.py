@@ -113,14 +113,11 @@ def flask_manager_container_helper(
         if container is None:
             return None
 
-        # If paused or exited, restart it
+        # If paused or exited, remove it so it gets recreated with the current command
         if container.status in [ContainerStatusEnum.PAUSED, ContainerStatusEnum.EXITED]:
-            try:
-                container.restart()
-            except Exception:
+            with suppress(Exception):
                 container.remove()
-                return None
-            return container
+            return None
 
         # If running, return it
         if container.status == ContainerStatusEnum.RUNNING:
@@ -152,8 +149,9 @@ def flask_manager_container_helper(
             "/var/run/docker.sock": {"bind": "/var/run/docker.sock", "mode": "ro"},
             str(flask_manager_path): {"bind": "/app/manager.py", "mode": "ro"},
         },
-        command="sh -c 'pip install -q flask requests docker flask-cors && python /app/manager.py'",
+        command="python /app/manager.py",
         hostname=page_engine_settings.CONTAINER.FLASK_MANAGER.HOSTNAME,
+        user="root",
     )
 
 
