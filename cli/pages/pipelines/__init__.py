@@ -15,6 +15,7 @@ from cli.pages.pipelines.dev_engine import GetPageStatusStep
 from cli.pages.pipelines.dev_engine import GetPageStatusTableStep
 from cli.pages.pipelines.dev_engine import ListAllPagesStep
 from cli.pages.pipelines.dev_engine import PrintColoredTableStep
+from cli.pages.pipelines.dev_engine import PrintkeyStep
 from cli.pages.pipelines.dev_engine import PrintPagesListStep
 from cli.pages.pipelines.dev_engine import PrintPageStatusStep
 from cli.pages.pipelines.dev_engine import PrintPageUrlStep
@@ -88,6 +89,7 @@ __all__ = [
     "LoadTemplateZipStep",
     "ParsePageDetailsResponseStep",
     "PrintColoredTableStep",
+    "PrintkeyStep",
     "PrintPagePathStep",
     "PrintPageStatusStep",
     "PrintPageUrlStep",

@@ -12,6 +12,7 @@ from cli.pages.models import PageTypeEnum
 from cli.pages.pipelines import CreateProjectFolderStep
 from cli.pages.pipelines import GetPageStatusStep
 from cli.pages.pipelines import ListAllPagesStep
+from cli.pages.pipelines import PrintkeyStep
 from cli.pages.pipelines import ReadPageMetadataStep
 from cli.pages.pipelines import SaveManifestStep
 from cli.pages.pipelines import StopPageContainerStep
@@ -330,3 +331,30 @@ class TestContainerSteps(unittest.TestCase):
         expected_data = data.copy()
         expected_data["pages_info"] = expected_pages_info
         self.assertEqual(result, expected_data)
+
+
+class TestPrintkeyStep(unittest.TestCase):
+
+    def test_prints_existing_key(self):
+        step = PrintkeyStep(key="logs")
+        data = {"logs": "line1\nline2"}
+        with patch("cli.pages.pipelines.dev_engine.typer.echo") as mock_echo:
+            result = step.execute(data)
+        mock_echo.assert_called_once_with("line1\nline2")
+        self.assertEqual(result, data)
+
+    def test_skips_missing_key(self):
+        step = PrintkeyStep(key="nonexistent")
+        data = {"logs": "something"}
+        with patch("cli.pages.pipelines.dev_engine.typer.echo") as mock_echo:
+            result = step.execute(data)
+        mock_echo.assert_not_called()
+        self.assertEqual(result, data)
+
+    def test_skips_empty_key(self):
+        step = PrintkeyStep(key="")
+        data = {"logs": "something"}
+        with patch("cli.pages.pipelines.dev_engine.typer.echo") as mock_echo:
+            result = step.execute(data)
+        mock_echo.assert_not_called()
+        self.assertEqual(result, data)

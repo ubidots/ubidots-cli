@@ -397,3 +397,13 @@ class PrintPageUrlStep(PipelineStep):
             else:
                 typer.echo(f"\n🌐 Page URL: {page_url}\n")
         return data
+
+
+@dataclass
+class PrintkeyStep(PipelineStep):
+    key: str = ""
+
+    def execute(self, data):
+        if self.key and self.key in data:
+            typer.echo(data[self.key])
+        return data

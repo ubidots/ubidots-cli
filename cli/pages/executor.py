@@ -323,3 +323,27 @@ def pull_page_from_cloud_platform(
             "root": pull_page_from_cloud_platform.__name__,
         }
     )
+
+
+def logs_local_dev_server(
+    tail: str,
+    follow: bool,
+    verbose: bool,
+):
+    steps = [
+        pipelines.ValidatePageDirectoryStep(),
+        pipelines.ReadPageMetadataStep(),
+        pipelines.GetClientStep(),
+        pipelines.GetContainerManagerStep(),
+        pipelines.GetPageNameStep(),
+        pipelines.GetPageLogsStep(tail=tail, follow=follow),
+        pipelines.PrintkeyStep(key="logs"),
+    ]
+    pipeline = Pipeline(steps, success_message="")
+    pipeline.run(
+        {
+            "project_path": Path.cwd(),
+            "verbose": verbose,
+            "root": logs_local_dev_server.__name__,
+        }
+    )

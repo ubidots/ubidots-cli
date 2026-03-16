@@ -38,6 +38,8 @@ STATUS_COMMAND_HELP_TEXT = (
 
 LIST_COMMAND_HELP_TEXT = "List all pages and their status. "
 
+LOGS_COMMAND_HELP_TEXT = "Display logs from the local page development server. "
+
 FIELDS_PAGE_HELP_TEXT = (
     "Comma-separated fields to process * e.g. field1,field2,field3. "
     "* Available fields: (id, label, name, url, isActive, createdAt, settings)."
@@ -171,6 +173,34 @@ def list_pages(
     verbose: bool = False,
 ):
     executor.list_local_pages(
+        verbose=verbose,
+    )
+
+
+@dev_app.command(name="logs", help=LOGS_COMMAND_HELP_TEXT)
+@add_verbose_option()
+def logs_page(
+    tail: Annotated[
+        str,
+        typer.Option(
+            "--tail/",
+            "-n/",
+            help="Output specified number of lines at the end of logs.",
+        ),
+    ] = "all",
+    follow: Annotated[
+        bool,
+        typer.Option("--follow/", "-f/", help="Follow log output."),
+    ] = False,
+    verbose: bool = False,
+):
+    """Display logs from the local page development server.
+
+    This command shows logs from your local Docker/Podman container.
+    """
+    executor.logs_local_dev_server(
+        tail=tail,
+        follow=follow,
         verbose=verbose,
     )
 

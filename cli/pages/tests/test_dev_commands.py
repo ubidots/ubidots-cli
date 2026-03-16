@@ -238,3 +238,58 @@ class TestCommandsIntegration(unittest.TestCase):
 
         self.assertEqual(result.exit_code, 0)
         self.assertIn("List all pages and their status", result.stdout)
+
+
+class TestLogsCommand(unittest.TestCase):
+
+    def setUp(self):
+        self.runner = CliRunner()
+
+    @patch("cli.pages.commands.executor.logs_local_dev_server")
+    def test_logs_command_default_values(self, mock_logs):
+        result = self.runner.invoke(app, ["dev", "logs"])
+
+        self.assertEqual(result.exit_code, 0)
+        mock_logs.assert_called_once_with(tail="all", follow=False, verbose=False)
+
+    @patch("cli.pages.commands.executor.logs_local_dev_server")
+    def test_logs_command_with_tail(self, mock_logs):
+        result = self.runner.invoke(app, ["dev", "logs", "--tail", "50"])
+
+        self.assertEqual(result.exit_code, 0)
+        mock_logs.assert_called_once_with(tail="50", follow=False, verbose=False)
+
+    @patch("cli.pages.commands.executor.logs_local_dev_server")
+    def test_logs_command_with_follow(self, mock_logs):
+        result = self.runner.invoke(app, ["dev", "logs", "--follow"])
+
+        self.assertEqual(result.exit_code, 0)
+        mock_logs.assert_called_once_with(tail="all", follow=True, verbose=False)
+
+    @patch("cli.pages.commands.executor.logs_local_dev_server")
+    def test_logs_command_with_verbose(self, mock_logs):
+        result = self.runner.invoke(app, ["dev", "logs", "--verbose"])
+
+        self.assertEqual(result.exit_code, 0)
+        mock_logs.assert_called_once_with(tail="all", follow=False, verbose=True)
+
+    @patch("cli.pages.commands.executor.logs_local_dev_server")
+    def test_logs_command_all_options(self, mock_logs):
+        result = self.runner.invoke(
+            app, ["dev", "logs", "--tail", "100", "--follow", "--verbose"]
+        )
+
+        self.assertEqual(result.exit_code, 0)
+        mock_logs.assert_called_once_with(tail="100", follow=True, verbose=True)
+
+
+class TestLogsCommandHelp(unittest.TestCase):
+
+    def setUp(self):
+        self.runner = CliRunner()
+
+    def test_logs_command_help(self):
+        result = self.runner.invoke(app, ["dev", "logs", "--help"])
+
+        self.assertEqual(result.exit_code, 0)
+        self.assertIn("Display logs", result.stdout)
