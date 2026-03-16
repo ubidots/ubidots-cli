@@ -22,7 +22,8 @@ def read_page_manifest(project_path: Path) -> PageProjectMetadata:
 
     if not metadata_file.exists():
         error_message = (
-            f"'{metadata_file}' not found. Are you in the correct project directory?"
+            "Not in a page directory. Run this command inside a page project "
+            "or use 'dev add' to create one."
         )
         raise FileNotFoundError(error_message)
 

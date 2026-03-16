@@ -34,8 +34,8 @@ class ValidatePageDirectoryStep(PipelineStep):
 
         if not manifest_file.exists():
             msg = (
-                f"Not in a page directory. Missing "
-                f"{settings.PAGES.PROJECT_MANIFEST_FILE} file."
+                "Not in a page directory. Run this command inside a page project "
+                "or use 'dev add' to create one."
             )
             raise FileNotFoundError(msg)
 
@@ -50,8 +50,8 @@ class ReadPageMetadataStep(PipelineStep):
             data["project_metadata"] = read_page_manifest(project_path)
         except FileNotFoundError as err:
             msg = (
-                f"Missing {settings.PAGES.PROJECT_METADATA_FILE} file. "
-                "This directory may not be a properly initialized page."
+                "Not in a page directory. Run this command inside a page project "
+                "or use 'dev add' to create one."
             )
             raise FileNotFoundError(msg) from err
         except Exception as e:
