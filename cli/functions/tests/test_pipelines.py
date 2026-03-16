@@ -286,13 +286,13 @@ class TestReadManifestStep:
         step = pipelines.ReadManifestStep()
         data = {"project_path": Path("/path/to/nonexistent_project")}
         mock_read_manifest.side_effect = FileNotFoundError(
-            "'.metadata.yaml' not found. Are you in the correct project directory?"
+            "Not in a function directory. Run this command inside a function project or use 'dev add' to create one."
         )
         with pytest.raises(FileNotFoundError) as exc_info:
             step.execute(data)
         # Assert
         assert (
-            "'.metadata.yaml' not found. Are you in the correct project directory?"
+            "Not in a function directory. Run this command inside a function project or use 'dev add' to create one."
             in str(exc_info.value)
         )
         mock_read_manifest.assert_called_once_with(data["project_path"])

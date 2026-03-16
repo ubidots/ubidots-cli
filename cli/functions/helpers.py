@@ -145,7 +145,8 @@ def read_manifest_project_file(project_path: Path) -> FunctionProjectMetadata:
 
     if not manifest_file_path.exists():
         error_message = (
-            f"'{manifest_file}' not found. Are you in the correct project directory?"
+            "Not in a function directory. Run this command inside a function project "
+            "or use 'dev add' to create one."
         )
         raise FileNotFoundError(error_message)
 
