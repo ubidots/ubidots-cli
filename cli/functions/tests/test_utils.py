@@ -10,7 +10,6 @@ from cli.functions.engines.enums import ContainerStatusEnum
 from cli.functions.engines.enums import FunctionEngineTypeEnum
 from cli.functions.engines.settings import engine_settings
 from cli.functions.enums import FunctionLanguageEnum
-from cli.functions.enums import FunctionRuntimeLayerTypeEnum
 from cli.functions.helpers import argo_container_manager
 from cli.functions.helpers import compress_project_to_zip
 from cli.functions.helpers import read_manifest_project_file
@@ -44,7 +43,7 @@ class TestFunctionUtils:
         engine = FunctionEngineTypeEnum.DOCKER
         language = FunctionLanguageEnum.PYTHON
         # For runtime, we assume a runtime from your Python runtimes (adjust as needed)
-        runtime = FunctionRuntimeLayerTypeEnum.PYTHON_3_9_FULL
+        runtime = "python3.9:full"
         label = "my_function"
         name = "my_function"
         methods = []  # empty list for this test
@@ -124,7 +123,7 @@ class TestFunctionUtils:
         project_path = self.tmp_path / "fake_project"
         project_path.mkdir()
         language = FunctionLanguageEnum.PYTHON
-        runtime = FunctionRuntimeLayerTypeEnum.PYTHON_3_9_FULL
+        runtime = "python3.9:full"
         created_at = "2025-02-18T00:00:00"
         metadata = FunctionProjectMetadata(
             globals=FunctionGlobalsModel(

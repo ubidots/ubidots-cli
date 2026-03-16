@@ -1,4 +1,5 @@
 FUNCTION_BASE_ENDPOINT = "/api/-/functions"
+DEFAULT_RUNTIME = "nodejs20.x:lite"
 
 FUNCTION_API_ROUTES = {
     "base": FUNCTION_BASE_ENDPOINT,

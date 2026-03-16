@@ -518,7 +518,7 @@ class CreateFunctionStep(PipelineStep):
             triggers["schedulerCron"] = project_metadata.function.triggers.schedulerCron
 
         serverless = {
-            "runtime": project_metadata.function.serverless.runtime.value,
+            "runtime": project_metadata.function.serverless.runtime,
             "isRawFunction": project_metadata.function.serverless.isRawFunction,
             "timeout": project_metadata.function.serverless.timeout,
         }

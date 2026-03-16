@@ -21,7 +21,6 @@ from cli.commons.validators import is_valid_json_string
 from cli.functions import executor
 from cli.functions.enums import FunctionLanguageEnum
 from cli.functions.enums import FunctionMethodEnum
-from cli.functions.enums import FunctionRuntimeLayerTypeEnum
 from cli.functions.helpers import read_manifest_project_file
 from cli.settings import settings
 
@@ -54,7 +53,7 @@ def create_function(
         ),
     ] = settings.FUNCTIONS.DEFAULT_LANGUAGE,
     runtime: Annotated[
-        FunctionRuntimeLayerTypeEnum,
+        str,
         typer.Option(
             help="The runtime for the function.",
         ),
@@ -135,7 +134,7 @@ def create_function_deprecated(
         ),
     ] = settings.FUNCTIONS.DEFAULT_LANGUAGE,
     runtime: Annotated[
-        FunctionRuntimeLayerTypeEnum,
+        str,
         typer.Option(
             help="The runtime for the function.",
         ),
@@ -409,11 +408,11 @@ def add_function(
         ),
     ] = settings.FUNCTIONS.DEFAULT_TIMEOUT_SECONDS,
     runtime: Annotated[
-        FunctionRuntimeLayerTypeEnum,
+        str,
         typer.Option(
             help="The runtime for the function.",
         ),
-    ] = FunctionRuntimeLayerTypeEnum.NODEJS_20_LITE,
+    ] = settings.FUNCTIONS.DEFAULT_RUNTIME,
     raw: Annotated[
         bool,
         typer.Option(help="Flag to determine if the output should be in raw format."),
@@ -499,7 +498,7 @@ def update_function(
     new_label: Annotated[str, typer.Option(help="The label for the device.")] = "",
     new_name: Annotated[str, typer.Option(help="The name of the device.")] = "",
     runtime: Annotated[
-        FunctionRuntimeLayerTypeEnum | None,
+        str | None,
         typer.Option(
             help="The runtime for the function.",
         ),

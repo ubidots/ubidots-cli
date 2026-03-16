@@ -12,7 +12,6 @@ from cli.functions import pipelines
 from cli.functions.engines.enums import FunctionEngineTypeEnum
 from cli.functions.enums import FunctionLanguageEnum
 from cli.functions.enums import FunctionMethodEnum
-from cli.functions.enums import FunctionRuntimeLayerTypeEnum
 from cli.functions.exceptions import FolderAlreadyExistsError
 from cli.functions.exceptions import PermissionDeniedError
 from cli.functions.exceptions import TemplateNotFoundError
@@ -199,7 +198,7 @@ class TestSaveManifestStep:
             "name": "Function name",
             "project_path": Path("/path/to/project"),
             "language": FunctionLanguageEnum.PYTHON,
-            "runtime": FunctionRuntimeLayerTypeEnum.PYTHON_3_9_BASE,
+            "runtime": "python3.9:base",
             "methods": [FunctionMethodEnum.GET, FunctionMethodEnum.POST],
             "label": "function-name",
             "created_at": "2025-02-18T15:00:00",
@@ -606,9 +605,7 @@ class TestCreateFunctionStep:
         project_metadata_mock.function.methods = [FunctionMethodEnum.POST]
         project_metadata_mock.function.has_cors = False
         project_metadata_mock.function.cron = ""
-        project_metadata_mock.project.runtime = (
-            FunctionRuntimeLayerTypeEnum.PYTHON_3_11_LITE
-        )
+        project_metadata_mock.project.runtime = "python3.11:lite"
         project_metadata_mock.function.is_raw = False
         project_metadata_mock.function.timeout = 30
         project_metadata_mock.function.payload = {}
@@ -799,3 +796,9 @@ class TestPrintkeyStep:
         # Assert
         assert result == data
         mock_echo.assert_not_called()
+
+
+def test_function_runtime_layer_type_enum_removed():
+    import cli.functions.enums as enums
+
+    assert not hasattr(enums, "FunctionRuntimeLayerTypeEnum")

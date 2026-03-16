@@ -8,14 +8,13 @@ from cli.functions import pipelines
 from cli.functions.engines.enums import FunctionEngineTypeEnum
 from cli.functions.enums import FunctionLanguageEnum
 from cli.functions.enums import FunctionMethodEnum
-from cli.functions.enums import FunctionRuntimeLayerTypeEnum
 from cli.settings import settings
 
 
 def create_function(
     name: str,
     language: FunctionLanguageEnum,
-    runtime: FunctionRuntimeLayerTypeEnum,
+    runtime: str,
     methods: list[FunctionMethodEnum],
     is_raw: bool,
     engine: FunctionEngineTypeEnum,

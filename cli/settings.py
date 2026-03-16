@@ -5,10 +5,10 @@ from pydantic import BaseModel
 from pydantic_settings import BaseSettings
 
 from cli.commons.enums import OutputFormatFieldsEnum
+from cli.functions.constants import DEFAULT_RUNTIME as FUNCTIONS_DEFAULT_RUNTIME
 from cli.functions.engines.enums import FunctionEngineTypeEnum
 from cli.functions.enums import FunctionLanguageEnum
 from cli.functions.enums import FunctionMethodEnum
-from cli.functions.enums import FunctionRuntimeLayerTypeEnum
 
 
 class ConfigSettings(BaseModel):
@@ -49,7 +49,7 @@ class FunctionSettings(BaseModel):
     CONTAINER_STARTUP_DELAY_SECONDS: float = 3
     ENABLED_LANGUAGES: list[str] = [e.value for e in FunctionLanguageEnum]
     DEFAULT_LANGUAGE: str = FunctionLanguageEnum.NODEJS.value
-    DEFAULT_RUNTIME: str = FunctionRuntimeLayerTypeEnum.NODEJS_20_LITE.value
+    DEFAULT_RUNTIME: str = FUNCTIONS_DEFAULT_RUNTIME
     DEFAULT_IS_SECURE: bool = False
     DEFAULT_HTTP_ENABLED: bool = False
     DEFAULT_METHODS: list[FunctionMethodEnum] = [FunctionMethodEnum.GET]
