@@ -76,7 +76,6 @@ def create_function(
         int,
         typer.Option(
             help="Timeout for the function in seconds.",
-            hidden=True,
         ),
     ] = settings.FUNCTIONS.DEFAULT_TIMEOUT_SECONDS,
     methods: Annotated[
