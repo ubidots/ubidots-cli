@@ -204,8 +204,9 @@ def page_container_helper(
     routing_mode = settings.PAGES.ROUTING_MODE
 
     # Sanitize page name for container and subdomain
-    container_name = f"{page_engine_settings.CONTAINER.PAGE.PREFIX_NAME}-{page_name}"
-    subdomain = page_name  # Could add sanitization here if needed
+    sanitized_name = page_name.replace(" ", "-")
+    container_name = f"{page_engine_settings.CONTAINER.PAGE.PREFIX_NAME}-{sanitized_name}"
+    subdomain = sanitized_name
     upstream = f"{container_name}:{page_engine_settings.CONTAINER.PAGE.INTERNAL_PORT}"
 
     # Configure based on routing mode
@@ -359,5 +360,5 @@ def stop_page_container(
     page_name: str,
 ):
     """Stop and remove a page container"""
-    container_name = f"{page_engine_settings.CONTAINER.PAGE.PREFIX_NAME}-{page_name}"
+    container_name = f"{page_engine_settings.CONTAINER.PAGE.PREFIX_NAME}-{page_name.replace(' ', '-')}"
     container_manager.stop(container_name)

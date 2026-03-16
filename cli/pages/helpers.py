@@ -183,7 +183,7 @@ def render_index_html(ubidots_page_html: str, page_type: PageTypeEnum) -> str:
 
 
 def get_page_container(container_manager, page_name):
-    container_name = f"{page_engine_settings.CONTAINER.PAGE.PREFIX_NAME}-{page_name}"
+    container_name = f"{page_engine_settings.CONTAINER.PAGE.PREFIX_NAME}-{page_name.replace(' ', '-')}"
     try:
         return container_manager.get(container_name)
     except Exception:
