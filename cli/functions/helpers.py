@@ -362,10 +362,7 @@ def argo_container_manager(
                 container=container,
                 internal_port=engine_settings.CONTAINER.ARGO.INTERNAL_ADAPTER_PORT,
             )
-            ip_address = container.attrs["NetworkSettings"]["Networks"][network.name][
-                "IPAddress"
-            ]
-            url = f"http://{ip_address}:{argo_adapter_port}/{engine_settings.CONTAINER.ARGO.API_ADAPTER_BASE_PATH}/~{frie_label}"
+            url = f"http://{engine_settings.HOST_BIND}:{argo_adapter_port}/{engine_settings.CONTAINER.ARGO.API_ADAPTER_BASE_PATH}/~{frie_label}"
             response = httpx.get(url)
             if response.status_code == httpx.codes.OK:
                 httpx.delete(url)

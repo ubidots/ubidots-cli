@@ -1,12 +1,17 @@
 import zipfile
+from unittest.mock import MagicMock
+from unittest.mock import patch
 
 import pytest
 import yaml
 from typer.testing import CliRunner
 
+from cli.functions.engines.enums import ContainerStatusEnum
 from cli.functions.engines.enums import FunctionEngineTypeEnum
+from cli.functions.engines.settings import engine_settings
 from cli.functions.enums import FunctionLanguageEnum
 from cli.functions.enums import FunctionRuntimeLayerTypeEnum
+from cli.functions.helpers import argo_container_manager
 from cli.functions.helpers import compress_project_to_zip
 from cli.functions.helpers import read_manifest_project_file
 from cli.functions.helpers import save_manifest_project_file
@@ -158,6 +163,48 @@ class TestFunctionUtils:
         read_metadata = read_manifest_project_file(project_path)
         # Assert
         assert read_metadata == metadata
+
+    def test_argo_container_manager_uses_host_bind_when_argo_is_running(self):
+        """Regression test: argo_container_manager must use HOST_BIND (127.0.0.1)
+        when Argo is already running, not the container's internal Docker IP.
+        On macOS, internal Docker IPs (172.19.x.x) are unreachable from the host.
+        """
+        mock_container = MagicMock()
+        mock_container.status = ContainerStatusEnum.RUNNING
+        mock_container.ports = {
+            engine_settings.CONTAINER.ARGO.INTERNAL_ADAPTER_PORT: [
+                {"HostIp": "127.0.0.1", "HostPort": "8040"}
+            ]
+        }
+
+        mock_client = MagicMock()
+        mock_client.client.containers.get.return_value = mock_container
+
+        mock_network = MagicMock()
+        mock_network.name = "ubidots_cli_function_rie"
+
+        mock_container_manager = MagicMock()
+
+        captured_urls = []
+
+        def fake_httpx_get(url):
+            captured_urls.append(url)
+            response = MagicMock()
+            response.status_code = 404
+            return response
+
+        with patch("cli.functions.helpers.httpx.get", side_effect=fake_httpx_get):
+            argo_container_manager(
+                container_manager=mock_container_manager,
+                client=mock_client,
+                network=mock_network,
+                image_name="ubidots/functions-argo:2.0.1",
+                frie_label="my_function",
+            )
+
+        assert len(captured_urls) == 1
+        assert captured_urls[0].startswith(f"http://{engine_settings.HOST_BIND}:")
+        assert "172." not in captured_urls[0]
 
     def test_compress_project_to_zip_includes_directories(self):
         # Setup
