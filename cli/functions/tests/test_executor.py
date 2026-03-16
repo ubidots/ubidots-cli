@@ -379,10 +379,12 @@ class TestLogsFunction(TestCase):
     @patch("cli.functions.pipelines.BuildEndpointStep")
     @patch("cli.functions.pipelines.HttpGetRequestStep")
     @patch("cli.functions.pipelines.CheckResponseStep")
+    @patch("cli.functions.pipelines.TailResultsStep")
     @patch("cli.functions.pipelines.PrintColoredTableStep")
     def test_logs_function_remote(
         self,
         MockPrintColoredTableStep,
+        MockTailResultsStep,
         MockCheckResponseStep,
         MockHttpGetRequestStep,
         MockBuildEndpointStep,
@@ -422,6 +424,7 @@ class TestLogsFunction(TestCase):
                 MockBuildEndpointStep.return_value,
                 MockHttpGetRequestStep.return_value,
                 MockCheckResponseStep.return_value,
+                MockTailResultsStep.return_value,
                 MockPrintColoredTableStep.return_value,
             ]
         )
@@ -429,6 +432,7 @@ class TestLogsFunction(TestCase):
             {
                 "project_path": Path.cwd(),
                 "profile": profile,
+                "tail": tail,
                 "validations": {
                     "manifest_file_exists": True,
                     "function_exists": True,

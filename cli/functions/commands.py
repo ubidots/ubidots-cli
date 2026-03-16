@@ -312,6 +312,14 @@ def logs_function_remote(
             show_default=False,
         ),
     ] = "",
+    tail: Annotated[
+        str,
+        typer.Option(
+            "--tail",
+            "-n",
+            help="Number of log lines to show from the end. Defaults to all.",
+        ),
+    ] = "all",
     profile: Annotated[
         str,
         typer.Option(
@@ -340,7 +348,7 @@ def logs_function_remote(
         raise typer.BadParameter(msg)
 
     executor.logs_function(
-        tail="all",
+        tail=tail,
         follow=False,
         remote=True,
         remote_id=remote_id,

@@ -778,6 +778,18 @@ class GetRemoteFunctionDetailSteps(PipelineStep):
 
 
 @dataclass
+class TailResultsStep(PipelineStep):
+    def execute(self, data):
+        tail = data.get("tail", "all")
+        results = data.get("results", [])
+        if tail != "all" and str(tail).isdigit():
+            n = int(tail)
+            if n > 0:
+                data["results"] = results[-n:]
+        return data
+
+
+@dataclass
 class PrintColoredTableStep(PipelineStep):
     key: str = ""
 

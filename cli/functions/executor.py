@@ -187,6 +187,7 @@ def logs_function(
                 pipelines.BuildEndpointStep(FUNCTION_API_ROUTES["logs"]),
                 pipelines.HttpGetRequestStep(),
                 pipelines.CheckResponseStep("response"),
+                pipelines.TailResultsStep(),
                 pipelines.PrintColoredTableStep(key="results"),
             ]
             pipeline = Pipeline(steps)
@@ -195,6 +196,7 @@ def logs_function(
                     "project_path": Path.cwd(),
                     "profile": profile,
                     "remote_id": remote_id,
+                    "tail": tail,
                     "verbose": verbose,
                     "root": logs_function.__name__,
                 }
@@ -210,6 +212,7 @@ def logs_function(
                 pipelines.BuildEndpointStep(FUNCTION_API_ROUTES["logs"]),
                 pipelines.HttpGetRequestStep(),
                 pipelines.CheckResponseStep("response"),
+                pipelines.TailResultsStep(),
                 pipelines.PrintColoredTableStep(key="results"),
             ]
             pipeline = Pipeline(steps)
@@ -217,6 +220,7 @@ def logs_function(
                 {
                     "project_path": Path.cwd(),
                     "profile": profile,
+                    "tail": tail,
                     "validations": {
                         "manifest_file_exists": True,
                         "function_exists": True,
