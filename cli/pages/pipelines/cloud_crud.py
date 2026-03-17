@@ -12,6 +12,7 @@ from cli.commons.styles import print_colored_table
 from cli.commons.utils import build_endpoint
 from cli.pages.constants import PAGE_API_ROUTES
 from cli.pages.handlers import add_page
+from cli.pages.handlers import update_page
 
 
 @dataclass
@@ -146,6 +147,20 @@ class DeletePageStep(PipelineStep):
             active_config=active_config,
         )
         response = httpx.delete(url, headers=headers)
+        response.raise_for_status()
+        return data
+
+
+class UpdatePageStep(PipelineStep):
+    def execute(self, data):
+        active_config = data["active_config"]
+        page_key = data["page_key"]
+        new_name = data["new_name"]
+        response = update_page(
+            active_config=active_config,
+            page_key=page_key,
+            name=new_name,
+        )
         response.raise_for_status()
         return data
 

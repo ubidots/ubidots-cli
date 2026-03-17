@@ -6,10 +6,10 @@ import pytest
 import yaml
 from typer.testing import CliRunner
 
+from cli.functions.constants import PYTHON_3_9_FULL_RUNTIME
 from cli.functions.engines.enums import ContainerStatusEnum
 from cli.functions.engines.enums import FunctionEngineTypeEnum
 from cli.functions.engines.settings import engine_settings
-from cli.functions.constants import PYTHON_3_9_FULL_RUNTIME
 from cli.functions.enums import FunctionLanguageEnum
 from cli.functions.helpers import argo_container_manager
 from cli.functions.helpers import compress_project_to_zip

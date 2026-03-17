@@ -5,6 +5,7 @@ from cli.pages.pipelines.cloud_crud import DeletePageStep
 from cli.pages.pipelines.cloud_crud import GetPageFromRemoteServerStep
 from cli.pages.pipelines.cloud_crud import ListPagesFromRemoteServerStep
 from cli.pages.pipelines.cloud_crud import LoadTemplateZipStep
+from cli.pages.pipelines.cloud_crud import UpdatePageStep
 from cli.pages.pipelines.dev_engine import EnsureDockerImageStep
 from cli.pages.pipelines.dev_engine import EnsureFlaskManagerStep
 from cli.pages.pipelines.dev_engine import GetClientStep
@@ -102,6 +103,7 @@ __all__ = [
     "SavePullPageManifestStep",
     "StartPageContainerStep",
     "StopPageContainerStep",
+    "UpdatePageStep",
     "UploadPageCodeStep",
     "ValidateCurrentPageExistsStep",
     "ValidateExtractedPageStep",

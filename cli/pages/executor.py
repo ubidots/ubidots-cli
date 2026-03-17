@@ -325,6 +325,28 @@ def pull_page_from_cloud_platform(
     )
 
 
+def update_page_from_cloud_platform(
+    page_key: str,
+    new_name: str,
+    profile: str,
+    verbose: bool,
+):
+    steps = [
+        pipelines.GetActiveConfigStep(),
+        pipelines.UpdatePageStep(),
+    ]
+    pipeline = Pipeline(steps, success_message=f"Page {page_key} updated successfully.")
+    pipeline.run(
+        {
+            "profile": profile,
+            "page_key": page_key,
+            "new_name": new_name,
+            "verbose": verbose,
+            "root": update_page_from_cloud_platform.__name__,
+        }
+    )
+
+
 def logs_local_dev_server(
     tail: str,
     follow: bool,

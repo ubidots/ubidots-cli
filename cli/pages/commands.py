@@ -328,6 +328,39 @@ def delete_page(
 
 
 @app.command(
+    name="update",
+    short_help="Updates a specific page using its id or label.",
+    rich_help_panel="Cloud Commands",
+)
+@simple_lookup_key(entity_name=EntityNameEnum.PAGE)
+def update_page(
+    profile: Annotated[
+        str,
+        typer.Option(
+            help="Name of the profile to use for remote server communication."
+        ),
+    ] = "",
+    id: str | None = None,
+    label: str | None = None,
+    new_name: Annotated[
+        str,
+        typer.Option("--new-name", help="New name for the page."),
+    ] = "",
+    verbose: bool = False,
+):
+    if not new_name:
+        typer.echo("Error: --new-name is required.", err=True)
+        raise typer.Exit(1)
+    page_key = get_instance_key(id=id, label=label)
+    executor.update_page_from_cloud_platform(
+        page_key=page_key,
+        new_name=new_name,
+        profile=profile,
+        verbose=verbose,
+    )
+
+
+@app.command(
     name="push",
     help="Update and synchronize your local page code with the remote server.",
     rich_help_panel="Sync Commands",
