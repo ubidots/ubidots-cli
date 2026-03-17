@@ -3,6 +3,7 @@ from unittest import TestCase
 from unittest.mock import MagicMock
 from unittest.mock import patch
 
+from cli.functions.constants import PYTHON_3_9_BASE_RUNTIME
 from cli.functions.enums import FunctionLanguageEnum
 from cli.functions.enums import FunctionMethodEnum
 from cli.functions.executor import clean_functions
@@ -44,7 +45,7 @@ class TestCreateFunction(TestCase):
 
         name = "default_function"
         language = FunctionLanguageEnum.PYTHON
-        runtime = "python3.9:base"
+        runtime = PYTHON_3_9_BASE_RUNTIME
         methods = [FunctionMethodEnum.GET, FunctionMethodEnum.POST]
         is_raw = False
         cron = ""
@@ -134,7 +135,7 @@ class TestCreateFunction(TestCase):
             create_function(
                 name="test_function",
                 language=FunctionLanguageEnum.PYTHON,
-                runtime="python3.9:base",
+                runtime=PYTHON_3_9_BASE_RUNTIME,
                 methods=[FunctionMethodEnum.GET],
                 is_raw=False,
                 engine=settings.CONFIG.DEFAULT_CONTAINER_ENGINE,

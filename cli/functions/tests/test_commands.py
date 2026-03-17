@@ -6,6 +6,8 @@ from typer.testing import CliRunner
 
 from cli.functions.commands import app as function_app
 from cli.functions.constants import DEFAULT_RUNTIME
+from cli.functions.constants import PYTHON_3_9_BASE_RUNTIME
+from cli.functions.constants import PYTHON_3_9_LITE_RUNTIME
 from cli.functions.enums import FunctionLanguageEnum
 from cli.functions.enums import FunctionMethodEnum
 from cli.settings import settings
@@ -46,7 +48,7 @@ class TestDevAddFunctionCommand(TestCase):
         # Action
         custom_name = "CustomFunctionName"
         language = "python"
-        runtime = "python3.9:base"
+        runtime = PYTHON_3_9_BASE_RUNTIME
         timeout = 40
         cron_expression = "0 4 * * *"
         result = runner.invoke(
@@ -300,7 +302,7 @@ class TestAddFunctionCommand(TestCase):
                 "--label",
                 "functionLabel",
                 "--runtime",
-                "python3.9:base",
+                PYTHON_3_9_BASE_RUNTIME,
                 "--raw",
                 "--methods",
                 "GET",
@@ -346,7 +348,7 @@ class TestUpdateFunctionCommand(TestCase):
                 "--new-name",
                 "NewFunction",
                 "--runtime",
-                "python3.9:lite",
+                PYTHON_3_9_LITE_RUNTIME,
                 "--raw",
                 "--methods",
                 "GET",

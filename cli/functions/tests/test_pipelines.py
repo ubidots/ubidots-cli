@@ -9,6 +9,8 @@ import httpx
 import pytest
 
 from cli.functions import pipelines
+from cli.functions.constants import PYTHON_3_9_BASE_RUNTIME
+from cli.functions.constants import PYTHON_3_11_LITE_RUNTIME
 from cli.functions.engines.enums import FunctionEngineTypeEnum
 from cli.functions.enums import FunctionLanguageEnum
 from cli.functions.enums import FunctionMethodEnum
@@ -198,7 +200,7 @@ class TestSaveManifestStep:
             "name": "Function name",
             "project_path": Path("/path/to/project"),
             "language": FunctionLanguageEnum.PYTHON,
-            "runtime": "python3.9:base",
+            "runtime": PYTHON_3_9_BASE_RUNTIME,
             "methods": [FunctionMethodEnum.GET, FunctionMethodEnum.POST],
             "label": "function-name",
             "created_at": "2025-02-18T15:00:00",
@@ -605,7 +607,7 @@ class TestCreateFunctionStep:
         project_metadata_mock.function.methods = [FunctionMethodEnum.POST]
         project_metadata_mock.function.has_cors = False
         project_metadata_mock.function.cron = ""
-        project_metadata_mock.project.runtime = "python3.11:lite"
+        project_metadata_mock.project.runtime = PYTHON_3_11_LITE_RUNTIME
         project_metadata_mock.function.is_raw = False
         project_metadata_mock.function.timeout = 30
         project_metadata_mock.function.payload = {}
