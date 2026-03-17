@@ -976,7 +976,12 @@ class RemoveNonDeployableFilesStep(PipelineStep):
 
             node_modules_path = project_path / "node_modules"
             if node_modules_path.exists() and node_modules_path.is_dir():
-                shutil.rmtree(node_modules_path)
+                mounts = container.attrs.get("Mounts", [])
+                if mounts:
+                    mount_dest = mounts[0]["Destination"]
+                    container.exec_run(f"rm -rf {mount_dest}/node_modules")
+                else:
+                    shutil.rmtree(node_modules_path)
         except ContainerNotFoundException:
             # Container doesn't exist, so there's nothing to clean up
             pass
