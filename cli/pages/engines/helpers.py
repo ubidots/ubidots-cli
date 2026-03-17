@@ -243,7 +243,7 @@ def page_container_helper(
     elif routing_mode == "path":
         # Path mode: no external port allocation for main service
         external_port = None
-        url = f"http://localhost:{page_engine_settings.CONTAINER.FLASK_MANAGER.EXTERNAL_PORT}/{page_name}"
+        url = f"http://localhost:{page_engine_settings.CONTAINER.FLASK_MANAGER.EXTERNAL_PORT}/{sanitized_name}"
 
         # Always allocate a port for hot reload (separate from main service)
         hot_reload_port = get_next_available_port(container_manager, start_port=9000)
@@ -312,7 +312,7 @@ def page_container_helper(
             ),
         },
         "environment": {
-            "PAGE_NAME": page_name,
+            "PAGE_NAME": sanitized_name,
             "ROUTING_MODE": routing_mode,
             "FLASK_MANAGER_PORT": str(
                 page_engine_settings.CONTAINER.FLASK_MANAGER.EXTERNAL_PORT

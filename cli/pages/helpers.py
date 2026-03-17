@@ -208,13 +208,15 @@ def extract_port_from_container(container):
 
 
 def generate_page_url(page_name, routing_mode, container=None):
+    sanitized = page_name.replace(" ", "-")
+
     if routing_mode == "subdomain":
         flask_port = page_engine_settings.CONTAINER.FLASK_MANAGER.EXTERNAL_PORT
-        return f"http://{page_name}.localhost:{flask_port}/"
+        return f"http://{sanitized}.localhost:{flask_port}/"
 
     if routing_mode == "path":
         flask_port = page_engine_settings.CONTAINER.FLASK_MANAGER.EXTERNAL_PORT
-        return f"http://localhost:{flask_port}/{page_name}"
+        return f"http://localhost:{flask_port}/{sanitized}"
 
     if routing_mode == "port":
         external_port = extract_port_from_container(container)
