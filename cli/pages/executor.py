@@ -270,7 +270,6 @@ def push_page_to_cloud_platform(
         pipelines.ReadPageMetadataStep(),
         pipelines.ValidatePageStructureStep(),
         pipelines.ValidateRemotePageExistStep(),
-        pipelines.BuildPageEndpointStep(PAGE_API_ROUTES["base"]),
         pipelines.CreatePageIfNeededStep(),
         pipelines.SavePageRemoteIdStep(),
         pipelines.ConfirmOverwritePushPageStep(),
