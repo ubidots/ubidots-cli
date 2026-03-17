@@ -94,7 +94,7 @@ class PageDockerContainerManager(AbstractContainerManager):
     def logs(self, name: str, tail: int | str = "all", follow: bool = False):
         """Get container logs"""
         container = self.get(name)
-        return container.logs(tail=tail, follow=follow)
+        return container.logs(tail=tail, follow=follow, stream=follow)
 
     def restart(self, name: str):
         """Restart a container"""

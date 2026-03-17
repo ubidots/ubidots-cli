@@ -239,7 +239,13 @@ class GetPageLogsStep(PipelineStep):
             follow=self.follow,
         )
 
-        data["logs"] = logs
+        if self.follow:
+            for chunk in logs:
+                typer.echo(chunk.decode("utf-8", errors="replace"), nl=False)
+            data["logs"] = b""
+        else:
+            data["logs"] = logs
+
         return data
 
 
