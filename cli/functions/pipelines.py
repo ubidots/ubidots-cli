@@ -794,9 +794,9 @@ class TailResultsStep(PipelineStep):
         tail = data.get("tail", "all")
         results = data.get("results", [])
         if tail != "all" and str(tail).isdigit():
-            n = int(tail)
-            if n > 0:
-                data["results"] = results[-n:]
+            limit = int(tail)
+            if limit > 0:
+                data["results"] = results[-limit:]
         return data
 
 
