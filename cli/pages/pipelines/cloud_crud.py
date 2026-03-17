@@ -100,8 +100,8 @@ class CreatePageRemoteServerStep(PipelineStep):
         label = data["label"]
         response = add_page(
             active_config=active_config,
-            name=name,
-            label=label,
+            name=label,
+            label=name,
         )
         if response.status_code not in (httpx.codes.OK, httpx.codes.CREATED):
             msg = f"Failed to create page: {response.text}"
