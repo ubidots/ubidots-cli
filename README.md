@@ -10,6 +10,7 @@
 6. [Device Management (`ubidots devices`)](#ubidots-devices)
 7. [Variable Management (`ubidots variables`)](#ubidots-variables)
 8. [Function Management (`ubidots functions`)](#ubidots-functions--remote-crud)
+9. [Page Management (`ubidots pages`)](#ubidots-pages--remote-crud)
 
 ## Overview
 
@@ -18,10 +19,13 @@ The Ubidots command line interface (CLI) provides:
 1. A fully-featured local development environment for UbiFunctions, replicating runtimes and their
    included libraries, enabling developers to seamlessly write, test, and deploy serverless functions
    directly from their local machine.
-2. CRUD (Create, Read, Update, Delete) operations for the following entities in Ubidots:
+2. A local development environment for Ubidots Pages, allowing developers to preview and iterate on
+   custom dashboard pages using a Docker-based server before publishing them to the platform.
+3. CRUD (Create, Read, Update, Delete) operations for the following entities in Ubidots:
    - Devices
    - Variables
    - Functions
+   - Pages
 
 ## Requirements
 
@@ -30,6 +34,11 @@ The Ubidots command line interface (CLI) provides:
 - [Python 3.9 or higher (3.13 and 3.14 supported)](https://www.python.org/)
 
 ### For local UbiFunctions development
+
+- [Docker](https://docs.docker.com/engine/install/ubuntu/)
+- [Ubidots Industrial license and above](https://ubidots.com/pricing)
+
+### For local Pages development
 
 - [Docker](https://docs.docker.com/engine/install/ubuntu/)
 - [Ubidots Industrial license and above](https://ubidots.com/pricing)
@@ -53,6 +62,8 @@ ubidots --help
 - `variables`: Provides CRUD functionality over Ubidots variables.
 - `functions`: Provides CRUD functionality over UbiFunctions as well as the capability to set up a
   local development environment for UbiFunctions.
+- `pages`: Provides CRUD functionality over Ubidots Pages as well as the capability to set up a
+  local development environment for custom dashboard pages.
 
 **Clarification on `--profile` flag**: All commands that interact with the remote server
 (i.e. devices, variables, functions) support the `--profile` option.
@@ -756,22 +767,21 @@ ubidots functions list --fields id,label,createdAt --sort-by createdAt
 ## `ubidots functions` – Local UbiFunction Development
 
 Use this set of commands to create, run, and manage local UbiFunctions via Docker.
-These must be executed **inside the function directory** (e.g., `cd my_function`).
+All `dev` subcommands (except `dev add`) must be executed **inside the function directory**
+(e.g., `cd my_function`).
 
 ### Create a Local Function
 
 ```bash
-ubidots functions init \
+ubidots functions dev add \
   [--name <function-name>] \
   [--language python|nodejs] \
   [--runtime <runtime>] \
-  [--remote-id <remote-function-id>] \
   [--methods GET] [--methods POST] \
   [--raw] \
   [--cors] \
   [--token <token>] \
   [--timeout <timeout-seconds>] \
-  [--cron <cron-expression>] \
   [--profile <profile-name>] \
   [--verbose]
 ```
@@ -780,26 +790,15 @@ ubidots functions init \
 
 - `--name`: The name for the function (default: "my-function")
 - `--language`: The programming language for the function (`python` or `nodejs`)
-- `--runtime`: The runtime for the function (see available options in the
-  [Create a Remote Function](#create-a-remote-function) section)
-- `--remote-id`: The remote function ID to pull from server
+- `--runtime`: The runtime for the function (e.g. `python3.11:lite`, `nodejs20.x:base`). Allowed
+  values depend on your account — check your available runtimes in the Ubidots platform.
 - `--methods`: The HTTP methods the function will respond to (can be specified multiple times)
 - `--raw`: Flag to enable raw mode for response output
 - `--cors`: Flag to enable CORS headers in responses
 - `--token`: Token for testing invocation
 - `--timeout`: Timeout for the function in seconds
-- `--cron`: Cron expression for scheduled execution
 - `--profile`: Profile to use for this command
 - `--verbose`: Enable verbose output
-
-This command will create a local UbiFunction based on the options provided.
-
-- `--language` and `--runtime` are required unless using `--remote-id`.
-- You may also pass additional optional flags:
-  - `--raw`: Enables raw mode for response output
-  - `--cors`: Enables CORS headers in responses
-  - `--token`: Sets a token for testing invocation
-  - `--methods`: Specifies the HTTP methods the function will respond to
 
 #### How to specify multiple HTTP methods
 
@@ -812,21 +811,11 @@ To declare multiple HTTP methods, repeat the `--methods` flag:
 #### Example
 
 ```bash
-ubidots functions init \
+ubidots functions dev add \
   --name myFunction \
   --language nodejs \
   --runtime nodejs20.x:base \
   --methods GET --methods POST
-```
-
-#### Pull from Remote Instead
-
-If the `--remote-id` flag is passed, the CLI will pull the function from the remote server and
-recreate it locally. In this case, all other flags like `--language`, `--runtime`, `--methods`,
-etc., are ignored.
-
-```bash
-ubidots functions init --remote-id 67ef05f2c9917a07b8f04519 [--profile myProfile]
 ```
 
 ### Start the Local Function
@@ -834,7 +823,7 @@ ubidots functions init --remote-id 67ef05f2c9917a07b8f04519 [--profile myProfile
 Launches the function locally using Docker.
 
 ```bash
-ubidots functions start [--verbose]
+ubidots functions dev start [--verbose]
 ```
 
 #### Options
@@ -850,7 +839,7 @@ Docker is not running or not properly configured to work with WSL.
 Restarts the local container.
 
 ```bash
-ubidots functions restart [--verbose]
+ubidots functions dev restart [--verbose]
 ```
 
 #### Options
@@ -862,7 +851,7 @@ ubidots functions restart [--verbose]
 Stops the local container.
 
 ```bash
-ubidots functions stop [--verbose]
+ubidots functions dev stop [--verbose]
 ```
 
 #### Options
@@ -874,39 +863,77 @@ ubidots functions stop [--verbose]
 Displays whether the local function is currently running.
 
 ```bash
-ubidots functions status [--verbose]
+ubidots functions dev status [--verbose]
 ```
 
 #### Options
 
 - `--verbose`: Enable verbose output
 
-### View Logs
+### View Local Logs
 
-This command must be run inside a local UbiFunction directory.
+Displays logs from the local Docker container. Must be run inside a function directory.
 
 ```bash
-ubidots functions logs \
+ubidots functions dev logs \
   [--tail <number-of-lines>] \
+  [-n <number-of-lines>] \
   [--follow] \
-  [--remote] \
-  [--profile <profile-name>] \
+  [-f] \
   [--verbose]
 ```
 
 #### Options
 
-- `--tail`: Output specified number of lines at the end of logs
-- `--follow`: Follow log output
-- `--profile`: Profile to use for this command
-- `--remote`: Fetch logs from the remote server instead of local execution
+- `--tail` / `-n`: Output the specified number of lines from the end of the logs (default: all)
+- `--follow` / `-f`: Follow log output (stream continuously)
 - `--verbose`: Enable verbose output
 
-By default, this displays **logs from the local execution**. To fetch logs from the
-**remote server instead**, use the `--remote` flag:
+### Clean Up Local Dev Environment
+
+Removes local containers, images, and other artifacts created during local development.
 
 ```bash
-ubidots functions logs --remote [--profile myProfile]
+ubidots functions dev clean [--yes] [--verbose]
+```
+
+#### Options
+
+- `--yes` / `-y`: Confirm cleanup without prompt
+- `--verbose`: Enable verbose output
+
+### View Remote Logs
+
+Fetches logs from the remote server for a deployed function.
+
+```bash
+ubidots functions logs [<function-id>] \
+  [--tail <number-of-lines>] \
+  [-n <number-of-lines>] \
+  [--profile <profile-name>] \
+  [-p <profile-name>] \
+  [--verbose]
+```
+
+#### Arguments
+
+- `function-id`: The remote function ID (optional). If omitted, the ID is read from the local
+  `manifest.yaml` file in the current directory.
+
+#### Options
+
+- `--tail` / `-n`: Number of log lines to show from the end (default: all)
+- `--profile` / `-p`: Profile to use for remote server communication
+- `--verbose`: Enable verbose output
+
+#### Example
+
+```bash
+# View remote logs for a specific function
+ubidots functions logs 67ef05f2c9917a07b8f04519
+
+# View last 50 lines from inside a function directory (reads ID from manifest)
+ubidots functions logs --tail 50
 ```
 
 ### Push Local Changes to Remote
@@ -915,15 +942,15 @@ Uploads and synchronizes your local function code with the remote server.
 
 ```bash
 ubidots functions push \
-  [--confirm] \
+  [--yes] \
   [--profile <profile-name>] \
   [--verbose]
 ```
 
 #### Options
 
-- `--confirm`: Confirm file overwrite without prompt (`--yes` or `-y`)
-- `--profile`: Profile to use for this command
+- `--yes` / `-y`: Confirm file overwrite without prompt
+- `--profile` / `-p`: Profile to use for this command
 - `--verbose`: Enable verbose output
 
 ### Pull Latest Remote Changes to Local
@@ -934,15 +961,15 @@ Fetches the latest code from the remote server and creates a new directory with 
 ubidots functions pull \
   --remote-id <remote-function-id> \
   [--profile <profile-name>] \
-  [--confirm] \
+  [--yes] \
   [--verbose]
 ```
 
 #### Options
 
-- `--remote-id`: The remote function ID (required)
-- `--profile`: Profile to use for this command
-- `--confirm`: Confirm file overwrite without prompt (`--yes` or `-y`)
+- `--remote-id` / `-i`: The remote function ID (required)
+- `--profile` / `-p`: Profile to use for this command
+- `--yes` / `-y`: Confirm file overwrite without prompt
 - `--verbose`: Enable verbose output
 
 **Important directory behavior:**
@@ -954,3 +981,300 @@ ubidots functions pull \
 
 It is recommended to always run this command from the parent directory where you want the function
 to be created, not from within an existing function directory.
+
+## `ubidots pages` – Remote CRUD
+
+Manage Ubidots custom dashboard pages remotely: create, retrieve, update, delete, list, push,
+and pull.
+
+### Create a Remote Page
+
+```bash
+ubidots pages add <name> \
+  [--label <label>] \
+  [--profile <profile-name>]
+```
+
+#### Arguments
+
+- `name`: The name of the page (required)
+
+#### Options
+
+- `--label`: The label for the page (if not provided, a sanitized version of the name will be used)
+- `--profile`: Profile to use for this command
+
+#### Example
+
+```bash
+ubidots pages add "My Dashboard" --label my-dashboard --profile myProfile
+```
+
+### Get a Remote Page
+
+```bash
+ubidots pages get \
+  [--id <page-id>] \
+  [--label <page-label>] \
+  [--fields <field-1,field-2>] \
+  [--format table|json] \
+  [--profile <profile-name>] \
+  [--verbose]
+```
+
+#### Options
+
+- `--id`: Unique identifier for the page
+- `--label`: The label of the page (alternative to `--id`)
+- `--fields`: Comma-separated list of fields to include in the response. Default: `id,label,name`
+  - Available fields: `id`, `label`, `name`, `url`, `isActive`, `createdAt`, `settings`
+- `--format`: Output format, either `table` (default) or `json`
+- `--profile`: Profile to use for this command
+- `--verbose`: Enable verbose output
+
+#### Example
+
+```bash
+ubidots pages get --label my-dashboard --fields id,label,url --format json
+```
+
+### Update a Remote Page
+
+Renames an existing page.
+
+```bash
+ubidots pages update \
+  [--id <page-id>] \
+  [--label <page-label>] \
+  --new-name <new-name> \
+  [--profile <profile-name>] \
+  [--verbose]
+```
+
+#### Options
+
+- `--id`: Unique identifier for the page
+- `--label`: The label of the page (alternative to `--id`)
+- `--new-name`: New name for the page (required)
+- `--profile`: Profile to use for this command
+- `--verbose`: Enable verbose output
+
+#### Example
+
+```bash
+ubidots pages update --label my-dashboard --new-name "My Updated Dashboard"
+```
+
+### Delete a Remote Page
+
+```bash
+ubidots pages delete \
+  [--id <page-id>] \
+  [--label <page-label>] \
+  [--yes] \
+  [--profile <profile-name>] \
+  [--verbose]
+```
+
+#### Options
+
+- `--id`: Unique identifier for the page
+- `--label`: The label of the page (alternative to `--id`)
+- `--yes` / `-y`: Confirm deletion without prompt
+- `--profile`: Profile to use for this command
+- `--verbose`: Enable verbose output
+
+#### Example
+
+```bash
+ubidots pages delete --label my-dashboard --yes
+```
+
+### List Remote Pages
+
+```bash
+ubidots pages list \
+  [--fields <field-1,field-2>] \
+  [--sort-by <attribute>] \
+  [--page-size <items-per-page>] \
+  [--page <page-number>] \
+  [--format table|json] \
+  [--profile <profile-name>]
+```
+
+#### Options
+
+- `--fields`: Comma-separated list of fields to include. Default: `id,label,name`
+  - Available fields: `id`, `label`, `name`, `url`, `isActive`, `createdAt`, `settings`
+- `--sort-by`: Attribute to sort the result set by (e.g., `createdAt`)
+- `--page-size`: Number of items per page
+- `--page`: Page number to retrieve
+- `--format`: Output format, either `table` (default) or `json`
+- `--profile`: Profile to use for this command
+
+#### Example
+
+```bash
+ubidots pages list --fields id,label,url --sort-by createdAt --format json
+```
+
+### Push Local Page to Remote
+
+Uploads and synchronizes your local page files with the remote server. If the page has no remote
+ID yet (i.e. was created locally), the CLI will prompt you to create it on the remote first.
+
+Must be run **inside a page directory**.
+
+```bash
+ubidots pages push \
+  [--yes] \
+  [--profile <profile-name>] \
+  [--verbose]
+```
+
+#### Options
+
+- `--yes` / `-y`: Confirm file overwrite without prompt
+- `--profile` / `-p`: Profile to use for this command
+- `--verbose`: Enable verbose output
+
+### Pull Remote Page to Local
+
+Fetches the latest page files from the remote server and creates a new directory.
+
+```bash
+ubidots pages pull \
+  [--remote-id <page-id>] \
+  [--yes] \
+  [--profile <profile-name>] \
+  [--verbose]
+```
+
+#### Options
+
+- `--remote-id` / `-i`: The remote page ID
+- `--yes` / `-y`: Confirm file overwrite without prompt
+- `--profile` / `-p`: Profile to use for this command
+- `--verbose`: Enable verbose output
+
+## `ubidots pages` – Local Pages Development
+
+Use this set of commands to create, run, and manage local page development servers via Docker.
+All `dev` subcommands (except `dev add` and `dev list`) must be executed **inside the page
+directory** (e.g., `cd my-page`).
+
+### Create a Local Page
+
+Creates a new local page directory with all required files (`manifest.toml`, `manifest.yaml`,
+`body.html`, `script.js`, `style.css`, and a `static/` folder).
+
+```bash
+ubidots pages dev add \
+  [--name <page-name>] \
+  [--type dashboard] \
+  [--profile <profile-name>] \
+  [--verbose]
+```
+
+#### Options
+
+- `--name`: The name for the page (default: "my-page"). Names with spaces are supported — they
+  are sanitized to hyphens for container names and URLs.
+- `--type`: The type of page to create (default: `dashboard`)
+- `--profile`: Profile to use for this command
+- `--verbose`: Enable verbose output
+
+#### Example
+
+```bash
+ubidots pages dev add --name "Plant Monitor" --type dashboard
+```
+
+### Start the Local Development Server
+
+Launches the page development server locally using Docker. Prints the local URL on success.
+
+```bash
+ubidots pages dev start [--verbose]
+```
+
+#### Options
+
+- `--verbose`: Enable verbose output
+
+**Note for Windows users:** If you're using WSL (Windows Subsystem for Linux), ensure that Docker
+Desktop is running on your Windows system before executing this command.
+
+### Restart the Local Development Server
+
+```bash
+ubidots pages dev restart [--verbose]
+```
+
+#### Options
+
+- `--verbose`: Enable verbose output
+
+### Stop the Local Development Server
+
+```bash
+ubidots pages dev stop [--verbose]
+```
+
+#### Options
+
+- `--verbose`: Enable verbose output
+
+### Check Local Development Server Status
+
+Displays the name, status, and local URL of the running page server.
+
+```bash
+ubidots pages dev status [--verbose]
+```
+
+#### Options
+
+- `--verbose`: Enable verbose output
+
+### List All Local Pages
+
+Lists all page containers regardless of which directory you are in.
+
+```bash
+ubidots pages dev list [--verbose]
+```
+
+#### Options
+
+- `--verbose`: Enable verbose output
+
+### View Local Development Logs
+
+Displays logs from the local Docker container for the page server. Must be run inside a page
+directory.
+
+```bash
+ubidots pages dev logs \
+  [--tail <number-of-lines>] \
+  [-n <number-of-lines>] \
+  [--follow] \
+  [-f] \
+  [--verbose]
+```
+
+#### Options
+
+- `--tail` / `-n`: Output the specified number of lines from the end of the logs (default: all)
+- `--follow` / `-f`: Follow log output (stream continuously)
+- `--verbose`: Enable verbose output
+
+#### Examples
+
+```bash
+# Show last 100 lines
+ubidots pages dev logs --tail 100
+
+# Follow logs in real time
+ubidots pages dev logs --follow
+```
