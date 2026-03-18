@@ -3,9 +3,9 @@ from unittest import TestCase
 from unittest.mock import MagicMock
 from unittest.mock import patch
 
+from cli.functions.constants import PYTHON_3_9_BASE_RUNTIME
 from cli.functions.enums import FunctionLanguageEnum
 from cli.functions.enums import FunctionMethodEnum
-from cli.functions.enums import FunctionRuntimeLayerTypeEnum
 from cli.functions.executor import clean_functions
 from cli.functions.executor import create_function
 from cli.functions.executor import logs_function
@@ -45,7 +45,7 @@ class TestCreateFunction(TestCase):
 
         name = "default_function"
         language = FunctionLanguageEnum.PYTHON
-        runtime = FunctionRuntimeLayerTypeEnum.PYTHON_3_9_BASE
+        runtime = PYTHON_3_9_BASE_RUNTIME
         methods = [FunctionMethodEnum.GET, FunctionMethodEnum.POST]
         is_raw = False
         cron = ""
@@ -135,7 +135,7 @@ class TestCreateFunction(TestCase):
             create_function(
                 name="test_function",
                 language=FunctionLanguageEnum.PYTHON,
-                runtime=FunctionRuntimeLayerTypeEnum.PYTHON_3_9_BASE,
+                runtime=PYTHON_3_9_BASE_RUNTIME,
                 methods=[FunctionMethodEnum.GET],
                 is_raw=False,
                 engine=settings.CONFIG.DEFAULT_CONTAINER_ENGINE,
@@ -379,10 +379,12 @@ class TestLogsFunction(TestCase):
     @patch("cli.functions.pipelines.BuildEndpointStep")
     @patch("cli.functions.pipelines.HttpGetRequestStep")
     @patch("cli.functions.pipelines.CheckResponseStep")
+    @patch("cli.functions.pipelines.TailResultsStep")
     @patch("cli.functions.pipelines.PrintColoredTableStep")
     def test_logs_function_remote(
         self,
         MockPrintColoredTableStep,
+        MockTailResultsStep,
         MockCheckResponseStep,
         MockHttpGetRequestStep,
         MockBuildEndpointStep,
@@ -422,6 +424,7 @@ class TestLogsFunction(TestCase):
                 MockBuildEndpointStep.return_value,
                 MockHttpGetRequestStep.return_value,
                 MockCheckResponseStep.return_value,
+                MockTailResultsStep.return_value,
                 MockPrintColoredTableStep.return_value,
             ]
         )
@@ -429,6 +432,7 @@ class TestLogsFunction(TestCase):
             {
                 "project_path": Path.cwd(),
                 "profile": profile,
+                "tail": tail,
                 "validations": {
                     "manifest_file_exists": True,
                     "function_exists": True,

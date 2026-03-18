@@ -22,7 +22,8 @@ def read_page_manifest(project_path: Path) -> PageProjectMetadata:
 
     if not metadata_file.exists():
         error_message = (
-            f"'{metadata_file}' not found. Are you in the correct project directory?"
+            "Not in a page directory. Run this command inside a page project "
+            "or use 'dev add' to create one."
         )
         raise FileNotFoundError(error_message)
 
@@ -183,7 +184,7 @@ def render_index_html(ubidots_page_html: str, page_type: PageTypeEnum) -> str:
 
 
 def get_page_container(container_manager, page_name):
-    container_name = f"{page_engine_settings.CONTAINER.PAGE.PREFIX_NAME}-{page_name}"
+    container_name = f"{page_engine_settings.CONTAINER.PAGE.PREFIX_NAME}-{page_name.replace(' ', '-')}"
     try:
         return container_manager.get(container_name)
     except Exception:
@@ -207,13 +208,15 @@ def extract_port_from_container(container):
 
 
 def generate_page_url(page_name, routing_mode, container=None):
+    sanitized = page_name.replace(" ", "-")
+
     if routing_mode == "subdomain":
         flask_port = page_engine_settings.CONTAINER.FLASK_MANAGER.EXTERNAL_PORT
-        return f"http://{page_name}.localhost:{flask_port}/"
+        return f"http://{sanitized}.localhost:{flask_port}/"
 
     if routing_mode == "path":
         flask_port = page_engine_settings.CONTAINER.FLASK_MANAGER.EXTERNAL_PORT
-        return f"http://localhost:{flask_port}/{page_name}"
+        return f"http://localhost:{flask_port}/{sanitized}"
 
     if routing_mode == "port":
         external_port = extract_port_from_container(container)

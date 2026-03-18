@@ -9,10 +9,11 @@ import httpx
 import pytest
 
 from cli.functions import pipelines
+from cli.functions.constants import PYTHON_3_9_BASE_RUNTIME
+from cli.functions.constants import PYTHON_3_11_LITE_RUNTIME
 from cli.functions.engines.enums import FunctionEngineTypeEnum
 from cli.functions.enums import FunctionLanguageEnum
 from cli.functions.enums import FunctionMethodEnum
-from cli.functions.enums import FunctionRuntimeLayerTypeEnum
 from cli.functions.exceptions import FolderAlreadyExistsError
 from cli.functions.exceptions import PermissionDeniedError
 from cli.functions.exceptions import TemplateNotFoundError
@@ -199,7 +200,7 @@ class TestSaveManifestStep:
             "name": "Function name",
             "project_path": Path("/path/to/project"),
             "language": FunctionLanguageEnum.PYTHON,
-            "runtime": FunctionRuntimeLayerTypeEnum.PYTHON_3_9_BASE,
+            "runtime": PYTHON_3_9_BASE_RUNTIME,
             "methods": [FunctionMethodEnum.GET, FunctionMethodEnum.POST],
             "label": "function-name",
             "created_at": "2025-02-18T15:00:00",
@@ -286,13 +287,13 @@ class TestReadManifestStep:
         step = pipelines.ReadManifestStep()
         data = {"project_path": Path("/path/to/nonexistent_project")}
         mock_read_manifest.side_effect = FileNotFoundError(
-            "'.metadata.yaml' not found. Are you in the correct project directory?"
+            "Not in a function directory. Run this command inside a function project or use 'dev add' to create one."
         )
         with pytest.raises(FileNotFoundError) as exc_info:
             step.execute(data)
         # Assert
         assert (
-            "'.metadata.yaml' not found. Are you in the correct project directory?"
+            "Not in a function directory. Run this command inside a function project or use 'dev add' to create one."
             in str(exc_info.value)
         )
         mock_read_manifest.assert_called_once_with(data["project_path"])
@@ -606,9 +607,7 @@ class TestCreateFunctionStep:
         project_metadata_mock.function.methods = [FunctionMethodEnum.POST]
         project_metadata_mock.function.has_cors = False
         project_metadata_mock.function.cron = ""
-        project_metadata_mock.project.runtime = (
-            FunctionRuntimeLayerTypeEnum.PYTHON_3_11_LITE
-        )
+        project_metadata_mock.project.runtime = PYTHON_3_11_LITE_RUNTIME
         project_metadata_mock.function.is_raw = False
         project_metadata_mock.function.timeout = 30
         project_metadata_mock.function.payload = {}
@@ -799,3 +798,9 @@ class TestPrintkeyStep:
         # Assert
         assert result == data
         mock_echo.assert_not_called()
+
+
+def test_function_runtime_layer_type_enum_removed():
+    import cli.functions.enums as enums
+
+    assert not hasattr(enums, "FunctionRuntimeLayerTypeEnum")

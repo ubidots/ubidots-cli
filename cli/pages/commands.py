@@ -38,6 +38,8 @@ STATUS_COMMAND_HELP_TEXT = (
 
 LIST_COMMAND_HELP_TEXT = "List all pages and their status. "
 
+LOGS_COMMAND_HELP_TEXT = "Display logs from the local page development server. "
+
 FIELDS_PAGE_HELP_TEXT = (
     "Comma-separated fields to process * e.g. field1,field2,field3. "
     "* Available fields: (id, label, name, url, isActive, createdAt, settings)."
@@ -175,6 +177,34 @@ def list_pages(
     )
 
 
+@dev_app.command(name="logs", help=LOGS_COMMAND_HELP_TEXT)
+@add_verbose_option()
+def logs_page(
+    tail: Annotated[
+        str,
+        typer.Option(
+            "--tail/",
+            "-n/",
+            help="Output specified number of lines at the end of logs.",
+        ),
+    ] = "all",
+    follow: Annotated[
+        bool,
+        typer.Option("--follow/", "-f/", help="Follow log output."),
+    ] = False,
+    verbose: bool = False,
+):
+    """Display logs from the local page development server.
+
+    This command shows logs from your local Docker/Podman container.
+    """
+    executor.logs_local_dev_server(
+        tail=tail,
+        follow=follow,
+        verbose=verbose,
+    )
+
+
 @app.command(
     name="list",
     short_help="Lists all available pages.",
@@ -293,6 +323,39 @@ def delete_page(
         page_key=page_key,
         profile=profile,
         confirm=confirm,
+        verbose=verbose,
+    )
+
+
+@app.command(
+    name="update",
+    short_help="Updates a specific page using its id or label.",
+    rich_help_panel="Cloud Commands",
+)
+@simple_lookup_key(entity_name=EntityNameEnum.PAGE)
+def update_page(
+    profile: Annotated[
+        str,
+        typer.Option(
+            help="Name of the profile to use for remote server communication."
+        ),
+    ] = "",
+    id: str | None = None,
+    label: str | None = None,
+    new_name: Annotated[
+        str,
+        typer.Option("--new-name", help="New name for the page."),
+    ] = "",
+    verbose: bool = False,
+):
+    if not new_name:
+        typer.echo("Error: --new-name is required.", err=True)
+        raise typer.Exit(1)
+    page_key = get_instance_key(id=id, label=label)
+    executor.update_page_from_cloud_platform(
+        page_key=page_key,
+        new_name=new_name,
+        profile=profile,
         verbose=verbose,
     )
 

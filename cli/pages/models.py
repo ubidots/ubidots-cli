@@ -18,6 +18,10 @@ class AddPagePayload(TypedDict):
     label: str
 
 
+class UpdatePagePayload(TypedDict, total=False):
+    name: str
+
+
 class PageTypeEnum(StrEnum):
     DASHBOARD = "dashboard"
 

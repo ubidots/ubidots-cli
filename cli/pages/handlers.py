@@ -10,6 +10,7 @@ from cli.pages.constants import PAGE_API_ROUTES
 if TYPE_CHECKING:
     from cli.config.models import ProfileConfigModel
     from cli.pages.models import AddPagePayload
+    from cli.pages.models import UpdatePagePayload
 
 
 def add_page(active_config: ProfileConfigModel, name: str, label: str):
@@ -20,6 +21,17 @@ def add_page(active_config: ProfileConfigModel, name: str, label: str):
     data: AddPagePayload = {"name": name, "label": label}
     client = httpx.Client(follow_redirects=True)
     return client.post(url, headers=headers, json=data)
+
+
+def update_page(active_config: ProfileConfigModel, page_key: str, name: str):
+    url, headers = build_endpoint(
+        route=PAGE_API_ROUTES["detail"],
+        page_key=page_key,
+        active_config=active_config,
+    )
+    data: UpdatePagePayload = {"name": name}
+    client = httpx.Client(follow_redirects=True)
+    return client.patch(url, headers=headers, json=data)
 
 
 def upload_page_code(url: str, headers: dict, zip_file: bytes, page_name: str):

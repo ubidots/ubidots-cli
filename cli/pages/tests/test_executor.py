@@ -7,6 +7,7 @@ from unittest.mock import patch
 
 from cli.pages.executor import create_local_page
 from cli.pages.executor import list_local_pages
+from cli.pages.executor import logs_local_dev_server
 from cli.pages.executor import restart_local_dev_server
 from cli.pages.executor import show_local_dev_server_status
 from cli.pages.executor import start_local_dev_server
@@ -289,3 +290,77 @@ class TestExecutorIntegration(unittest.TestCase):
         # Verify all expected pipeline steps were instantiated
         for step_class in mock_step_classes:
             getattr(mock_pipelines, step_class).assert_called_once()
+
+
+class TestLogsPage(unittest.TestCase):
+    """Test logs_local_dev_server executor function."""
+
+    @patch("cli.pages.executor.Pipeline")
+    @patch("pathlib.Path.cwd")
+    def test_logs_page(self, mock_cwd, mock_pipeline):
+        """Test fetching page logs."""
+        mock_cwd.return_value = Path("/current")
+        mock_pipeline_instance = MagicMock()
+        mock_pipeline.return_value = mock_pipeline_instance
+
+        logs_local_dev_server(tail="all", follow=False, verbose=False)
+
+        mock_pipeline.assert_called_once()
+        args, kwargs = mock_pipeline.call_args
+        steps = args[0]
+
+        self.assertEqual(len(steps), 7)  # 7 pipeline steps
+        self.assertEqual(kwargs["success_message"], "")
+
+        mock_pipeline_instance.run.assert_called_once()
+        run_data = mock_pipeline_instance.run.call_args[0][0]
+
+        self.assertEqual(run_data["project_path"], Path("/current"))
+        self.assertFalse(run_data["verbose"])
+        self.assertEqual(run_data["root"], logs_local_dev_server.__name__)
+
+    @patch("cli.pages.executor.Pipeline")
+    @patch("pathlib.Path.cwd")
+    def test_logs_page_with_options(self, mock_cwd, mock_pipeline):
+        """Test fetching page logs with tail and follow options."""
+        mock_cwd.return_value = Path("/current")
+        mock_pipeline_instance = MagicMock()
+        mock_pipeline.return_value = mock_pipeline_instance
+
+        logs_local_dev_server(tail="50", follow=True, verbose=True)
+
+        mock_pipeline_instance.run.assert_called_once()
+        run_data = mock_pipeline_instance.run.call_args[0][0]
+
+        self.assertTrue(run_data["verbose"])
+
+
+class TestLogsPageIntegration(unittest.TestCase):
+    """Test that logs_local_dev_server uses the correct pipeline steps."""
+
+    @patch("cli.pages.executor.pipelines")
+    @patch("cli.pages.executor.Pipeline")
+    def test_logs_page_pipeline_steps(self, mock_pipeline, mock_pipelines):
+        mock_step_classes = [
+            "ValidatePageDirectoryStep",
+            "ReadPageMetadataStep",
+            "GetClientStep",
+            "GetContainerManagerStep",
+            "GetPageNameStep",
+            "GetPageLogsStep",
+            "PrintkeyStep",
+        ]
+
+        for step_class in mock_step_classes:
+            setattr(mock_pipelines, step_class, MagicMock())
+
+        mock_pipeline_instance = MagicMock()
+        mock_pipeline.return_value = mock_pipeline_instance
+
+        logs_local_dev_server(tail="50", follow=True, verbose=False)
+
+        for step_class in mock_step_classes:
+            getattr(mock_pipelines, step_class).assert_called_once()
+
+        # Verify GetPageLogsStep received tail and follow
+        mock_pipelines.GetPageLogsStep.assert_called_once_with(tail="50", follow=True)

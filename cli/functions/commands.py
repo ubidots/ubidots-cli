@@ -21,7 +21,6 @@ from cli.commons.validators import is_valid_json_string
 from cli.functions import executor
 from cli.functions.enums import FunctionLanguageEnum
 from cli.functions.enums import FunctionMethodEnum
-from cli.functions.enums import FunctionRuntimeLayerTypeEnum
 from cli.functions.helpers import read_manifest_project_file
 from cli.settings import settings
 
@@ -54,9 +53,13 @@ def create_function(
         ),
     ] = settings.FUNCTIONS.DEFAULT_LANGUAGE,
     runtime: Annotated[
-        FunctionRuntimeLayerTypeEnum,
+        str,
         typer.Option(
-            help="The runtime for the function.",
+            help=(
+                "Runtime for the function (e.g. 'python3.11:lite', 'nodejs20.x:lite'). "
+                "Allowed values depend on your account — if the runtime is rejected, "
+                "check your available runtimes in the Ubidots platform."
+            ),
         ),
     ] = settings.FUNCTIONS.DEFAULT_RUNTIME,
     cors: Annotated[
@@ -76,7 +79,6 @@ def create_function(
         int,
         typer.Option(
             help="Timeout for the function in seconds.",
-            hidden=True,
         ),
     ] = settings.FUNCTIONS.DEFAULT_TIMEOUT_SECONDS,
     methods: Annotated[
@@ -136,7 +138,7 @@ def create_function_deprecated(
         ),
     ] = settings.FUNCTIONS.DEFAULT_LANGUAGE,
     runtime: Annotated[
-        FunctionRuntimeLayerTypeEnum,
+        str,
         typer.Option(
             help="The runtime for the function.",
         ),
@@ -287,57 +289,6 @@ def logs_function_local(
     )
 
 
-@app.command(
-    name="push",
-    help="Update and synchronize your local function code with the remote server.",
-)
-@add_verbose_option()
-def push_function(
-    confirm: Annotated[
-        bool,
-        typer.Option("--yes", "-y", help="Confirm file overwrite without prompt."),
-    ] = False,
-    profile: Annotated[
-        str,
-        typer.Option("--profile", "-p", help="Profile to use."),
-    ] = "",
-    verbose: bool = False,
-):
-    executor.push_function(
-        confirm=confirm,
-        profile=profile,
-        verbose=verbose,
-    )
-
-
-@app.command(
-    name="pull",
-    help="Retrieve and update your local function code with the latest changes from the remote server.",
-)
-@add_verbose_option()
-def pull_function(
-    remote_id: Annotated[
-        str,
-        typer.Option("--remote-id", "-i", help="The remote function ID."),
-    ] = "",
-    profile: Annotated[
-        str,
-        typer.Option("--profile", "-p", help="Profile to use."),
-    ] = "",
-    confirm: Annotated[
-        bool,
-        typer.Option("--yes", "-y", help="Confirm file overwrite without prompt."),
-    ] = False,
-    verbose: bool = False,
-):
-    executor.pull_function(
-        remote_id=remote_id,
-        profile=profile,
-        verbose=verbose,
-        confirm=confirm,
-    )
-
-
 @dev_app.command(name="clean", help="Clean up local functions development environment.")
 @add_verbose_option()
 def clean_functions(
@@ -353,7 +304,11 @@ def clean_functions(
     )
 
 
-@app.command(name="logs", help="Retrieve and display logs from a remote function.")
+@app.command(
+    name="logs",
+    help="Retrieve and display logs from a remote function.",
+    rich_help_panel="Cloud Commands",
+)
 @add_verbose_option()
 def logs_function_remote(
     function_id: Annotated[
@@ -363,6 +318,14 @@ def logs_function_remote(
             show_default=False,
         ),
     ] = "",
+    tail: Annotated[
+        str,
+        typer.Option(
+            "--tail",
+            "-n",
+            help="Number of log lines to show from the end. Defaults to all.",
+        ),
+    ] = "all",
     profile: Annotated[
         str,
         typer.Option(
@@ -391,7 +354,7 @@ def logs_function_remote(
         raise typer.BadParameter(msg)
 
     executor.logs_function(
-        tail="all",
+        tail=tail,
         follow=False,
         remote=True,
         remote_id=remote_id,
@@ -400,7 +363,11 @@ def logs_function_remote(
     )
 
 
-@app.command(name="list", short_help="Lists all available functions.")
+@app.command(
+    name="list",
+    short_help="Lists all available functions.",
+    rich_help_panel="Cloud Commands",
+)
 @add_pagination_options()
 @add_sort_by_option()
 @add_filter_option()
@@ -434,7 +401,11 @@ def list_functions(
 
 
 # CRUD: Create
-@app.command(name="add", short_help="Adds a new function in the remote server.")
+@app.command(
+    name="add",
+    short_help="Adds a new function in the remote server.",
+    rich_help_panel="Cloud Commands",
+)
 def add_function(
     name: Annotated[
         str, typer.Argument(help="The name of the function.", show_default=False)
@@ -453,11 +424,11 @@ def add_function(
         ),
     ] = settings.FUNCTIONS.DEFAULT_TIMEOUT_SECONDS,
     runtime: Annotated[
-        FunctionRuntimeLayerTypeEnum,
+        str,
         typer.Option(
             help="The runtime for the function.",
         ),
-    ] = FunctionRuntimeLayerTypeEnum.NODEJS_20_LITE,
+    ] = settings.FUNCTIONS.DEFAULT_RUNTIME,
     raw: Annotated[
         bool,
         typer.Option(help="Flag to determine if the output should be in raw format."),
@@ -503,7 +474,9 @@ def add_function(
 
 # CRUD: Read
 @app.command(
-    name="get", short_help="Retrieves a specific function using its id or label."
+    name="get",
+    short_help="Retrieves a specific function using its id or label.",
+    rich_help_panel="Cloud Commands",
 )
 @simple_lookup_key(entity_name=EntityNameEnum.FUNCTION)
 @no_type_check
@@ -535,7 +508,9 @@ def get_function(
 
 
 # CRUD: Update
-@app.command(name="update", short_help="Update a function.")
+@app.command(
+    name="update", short_help="Update a function.", rich_help_panel="Cloud Commands"
+)
 @simple_lookup_key(entity_name=EntityNameEnum.FUNCTION)
 def update_function(
     id: str | None = None,
@@ -543,7 +518,7 @@ def update_function(
     new_label: Annotated[str, typer.Option(help="The label for the device.")] = "",
     new_name: Annotated[str, typer.Option(help="The name of the device.")] = "",
     runtime: Annotated[
-        FunctionRuntimeLayerTypeEnum | None,
+        str | None,
         typer.Option(
             help="The runtime for the function.",
         ),
@@ -606,7 +581,9 @@ def update_function(
 
 # CRUD: Delete.
 @app.command(
-    name="delete", short_help="Deletes a specific function using its id or label."
+    name="delete",
+    short_help="Deletes a specific function using its id or label.",
+    rich_help_panel="Cloud Commands",
 )
 @simple_lookup_key(entity_name=EntityNameEnum.FUNCTION)
 def delete_function(
@@ -631,6 +608,59 @@ def delete_function(
         profile=profile,
         confirm=confirm,
         verbose=verbose,
+    )
+
+
+@app.command(
+    name="push",
+    help="Update and synchronize your local function code with the remote server.",
+    rich_help_panel="Sync Commands",
+)
+@add_verbose_option()
+def push_function(
+    confirm: Annotated[
+        bool,
+        typer.Option("--yes", "-y", help="Confirm file overwrite without prompt."),
+    ] = False,
+    profile: Annotated[
+        str,
+        typer.Option("--profile", "-p", help="Profile to use."),
+    ] = "",
+    verbose: bool = False,
+):
+    executor.push_function(
+        confirm=confirm,
+        profile=profile,
+        verbose=verbose,
+    )
+
+
+@app.command(
+    name="pull",
+    help="Retrieve and update your local function code with the latest changes from the remote server.",
+    rich_help_panel="Sync Commands",
+)
+@add_verbose_option()
+def pull_function(
+    remote_id: Annotated[
+        str,
+        typer.Option("--remote-id", "-i", help="The remote function ID."),
+    ] = "",
+    profile: Annotated[
+        str,
+        typer.Option("--profile", "-p", help="Profile to use."),
+    ] = "",
+    confirm: Annotated[
+        bool,
+        typer.Option("--yes", "-y", help="Confirm file overwrite without prompt."),
+    ] = False,
+    verbose: bool = False,
+):
+    executor.pull_function(
+        remote_id=remote_id,
+        profile=profile,
+        verbose=verbose,
+        confirm=confirm,
     )
 
 

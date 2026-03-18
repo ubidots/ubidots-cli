@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "ubidots-cli"
-version = "0.2.0"
+version = "1.0.0"
 description = "A powerful CLI tool for efficient management and automation of cloud-based resources."
 authors = ["Ubidots <devel@ubidots.com>", "crubio <cristian.rubio@ubidots.com>", "Juan David <juan.david@ubidots.com>"]
 readme = "README.md"

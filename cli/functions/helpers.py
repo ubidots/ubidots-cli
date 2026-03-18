@@ -38,7 +38,6 @@ from cli.functions.engines.podman.container import FunctionPodmanContainerManage
 from cli.functions.engines.settings import engine_settings
 from cli.functions.enums import FunctionLanguageEnum
 from cli.functions.enums import FunctionMethodEnum
-from cli.functions.enums import FunctionRuntimeLayerTypeEnum
 from cli.functions.models import FunctionGlobalsModel
 from cli.functions.models import FunctionModel
 from cli.functions.models import FunctionProjectMetadata
@@ -84,7 +83,7 @@ def save_manifest_project_file(
     name: str,
     project_path: Path,
     language: FunctionLanguageEnum,
-    runtime: FunctionRuntimeLayerTypeEnum,
+    runtime: str,
     methods: list[FunctionMethodEnum],
     label: str,
     created_at: str,
@@ -145,7 +144,8 @@ def read_manifest_project_file(project_path: Path) -> FunctionProjectMetadata:
 
     if not manifest_file_path.exists():
         error_message = (
-            f"'{manifest_file}' not found. Are you in the correct project directory?"
+            "Not in a function directory. Run this command inside a function project "
+            "or use 'dev add' to create one."
         )
         raise FileNotFoundError(error_message)
 
@@ -362,10 +362,7 @@ def argo_container_manager(
                 container=container,
                 internal_port=engine_settings.CONTAINER.ARGO.INTERNAL_ADAPTER_PORT,
             )
-            ip_address = container.attrs["NetworkSettings"]["Networks"][network.name][
-                "IPAddress"
-            ]
-            url = f"http://{ip_address}:{argo_adapter_port}/{engine_settings.CONTAINER.ARGO.API_ADAPTER_BASE_PATH}/~{frie_label}"
+            url = f"http://{engine_settings.HOST_BIND}:{argo_adapter_port}/{engine_settings.CONTAINER.ARGO.API_ADAPTER_BASE_PATH}/~{frie_label}"
             response = httpx.get(url)
             if response.status_code == httpx.codes.OK:
                 httpx.delete(url)

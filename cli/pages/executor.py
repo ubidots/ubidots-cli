@@ -270,7 +270,6 @@ def push_page_to_cloud_platform(
         pipelines.ReadPageMetadataStep(),
         pipelines.ValidatePageStructureStep(),
         pipelines.ValidateRemotePageExistStep(),
-        pipelines.BuildPageEndpointStep(PAGE_API_ROUTES["base"]),
         pipelines.CreatePageIfNeededStep(),
         pipelines.SavePageRemoteIdStep(),
         pipelines.ConfirmOverwritePushPageStep(),
@@ -321,5 +320,51 @@ def pull_page_from_cloud_platform(
             "remote_id": remote_id,
             "verbose": verbose,
             "root": pull_page_from_cloud_platform.__name__,
+        }
+    )
+
+
+def update_page_from_cloud_platform(
+    page_key: str,
+    new_name: str,
+    profile: str,
+    verbose: bool,
+):
+    steps = [
+        pipelines.GetActiveConfigStep(),
+        pipelines.UpdatePageStep(),
+    ]
+    pipeline = Pipeline(steps, success_message=f"Page {page_key} updated successfully.")
+    pipeline.run(
+        {
+            "profile": profile,
+            "page_key": page_key,
+            "new_name": new_name,
+            "verbose": verbose,
+            "root": update_page_from_cloud_platform.__name__,
+        }
+    )
+
+
+def logs_local_dev_server(
+    tail: str,
+    follow: bool,
+    verbose: bool,
+):
+    steps = [
+        pipelines.ValidatePageDirectoryStep(),
+        pipelines.ReadPageMetadataStep(),
+        pipelines.GetClientStep(),
+        pipelines.GetContainerManagerStep(),
+        pipelines.GetPageNameStep(),
+        pipelines.GetPageLogsStep(tail=tail, follow=follow),
+        pipelines.PrintkeyStep(key="logs"),
+    ]
+    pipeline = Pipeline(steps, success_message="")
+    pipeline.run(
+        {
+            "project_path": Path.cwd(),
+            "verbose": verbose,
+            "root": logs_local_dev_server.__name__,
         }
     )

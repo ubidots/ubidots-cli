@@ -10,7 +10,8 @@ RUN pip install --no-cache-dir \
     tomli==2.0.1 \
     flask-cors==4.0.0 \
     requests==2.31.0 \
-    watchdog==3.0.0
+    watchdog==3.0.0 \
+    docker==7.1.0
 
 # Create a non-root user and group
 RUN groupadd --gid 1001 app && \

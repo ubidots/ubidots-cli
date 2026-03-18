@@ -113,14 +113,11 @@ def flask_manager_container_helper(
         if container is None:
             return None
 
-        # If paused or exited, restart it
+        # If paused or exited, remove it so it gets recreated with the current command
         if container.status in [ContainerStatusEnum.PAUSED, ContainerStatusEnum.EXITED]:
-            try:
-                container.restart()
-            except Exception:
+            with suppress(Exception):
                 container.remove()
-                return None
-            return container
+            return None
 
         # If running, return it
         if container.status == ContainerStatusEnum.RUNNING:
@@ -152,8 +149,9 @@ def flask_manager_container_helper(
             "/var/run/docker.sock": {"bind": "/var/run/docker.sock", "mode": "ro"},
             str(flask_manager_path): {"bind": "/app/manager.py", "mode": "ro"},
         },
-        command="sh -c 'pip install -q flask requests docker flask-cors && python /app/manager.py'",
+        command="python /app/manager.py",
         hostname=page_engine_settings.CONTAINER.FLASK_MANAGER.HOSTNAME,
+        user="root",
     )
 
 
@@ -206,8 +204,11 @@ def page_container_helper(
     routing_mode = settings.PAGES.ROUTING_MODE
 
     # Sanitize page name for container and subdomain
-    container_name = f"{page_engine_settings.CONTAINER.PAGE.PREFIX_NAME}-{page_name}"
-    subdomain = page_name  # Could add sanitization here if needed
+    sanitized_name = page_name.replace(" ", "-")
+    container_name = (
+        f"{page_engine_settings.CONTAINER.PAGE.PREFIX_NAME}-{sanitized_name}"
+    )
+    subdomain = sanitized_name
     upstream = f"{container_name}:{page_engine_settings.CONTAINER.PAGE.INTERNAL_PORT}"
 
     # Configure based on routing mode
@@ -242,7 +243,7 @@ def page_container_helper(
     elif routing_mode == "path":
         # Path mode: no external port allocation for main service
         external_port = None
-        url = f"http://localhost:{page_engine_settings.CONTAINER.FLASK_MANAGER.EXTERNAL_PORT}/{page_name}"
+        url = f"http://localhost:{page_engine_settings.CONTAINER.FLASK_MANAGER.EXTERNAL_PORT}/{sanitized_name}"
 
         # Always allocate a port for hot reload (separate from main service)
         hot_reload_port = get_next_available_port(container_manager, start_port=9000)
@@ -311,7 +312,7 @@ def page_container_helper(
             ),
         },
         "environment": {
-            "PAGE_NAME": page_name,
+            "PAGE_NAME": sanitized_name,
             "ROUTING_MODE": routing_mode,
             "FLASK_MANAGER_PORT": str(
                 page_engine_settings.CONTAINER.FLASK_MANAGER.EXTERNAL_PORT
@@ -361,5 +362,5 @@ def stop_page_container(
     page_name: str,
 ):
     """Stop and remove a page container"""
-    container_name = f"{page_engine_settings.CONTAINER.PAGE.PREFIX_NAME}-{page_name}"
+    container_name = f"{page_engine_settings.CONTAINER.PAGE.PREFIX_NAME}-{page_name.replace(' ', '-')}"
     container_manager.stop(container_name)

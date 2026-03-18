@@ -142,9 +142,20 @@ class ValidateAllowedRuntimeStep(PipelineStep):
         profile = data.get("profile", "")
         profile_config = get_configuration(profile=profile)
         allowed_runtimes = profile_config.runtimes
+        if not allowed_runtimes:
+            raise ValueError(
+                f"Runtime '{runtime}' is not allowed. No runtimes are configured "
+                "for your profile. Make sure you have a valid profile set up with "
+                "'ubidots config add'."
+            )
+
         if runtime not in allowed_runtimes:
-            error_message = f"Runtime '{runtime}' is not allowed"
-            raise ValueError(error_message)
+            formatted = ", ".join(allowed_runtimes)
+            raise ValueError(
+                f"Runtime '{runtime}' is not allowed. "
+                f"Available runtimes: {formatted}"
+            )
+
         return data
 
 
@@ -518,7 +529,7 @@ class CreateFunctionStep(PipelineStep):
             triggers["schedulerCron"] = project_metadata.function.triggers.schedulerCron
 
         serverless = {
-            "runtime": project_metadata.function.serverless.runtime.value,
+            "runtime": project_metadata.function.serverless.runtime,
             "isRawFunction": project_metadata.function.serverless.isRawFunction,
             "timeout": project_metadata.function.serverless.timeout,
         }
@@ -778,6 +789,18 @@ class GetRemoteFunctionDetailSteps(PipelineStep):
 
 
 @dataclass
+class TailResultsStep(PipelineStep):
+    def execute(self, data):
+        tail = data.get("tail", "all")
+        results = data.get("results", [])
+        if tail != "all" and str(tail).isdigit():
+            limit = int(tail)
+            if limit > 0:
+                data["results"] = results[-limit:]
+        return data
+
+
+@dataclass
 class PrintColoredTableStep(PipelineStep):
     key: str = ""
 
@@ -953,7 +976,12 @@ class RemoveNonDeployableFilesStep(PipelineStep):
 
             node_modules_path = project_path / "node_modules"
             if node_modules_path.exists() and node_modules_path.is_dir():
-                shutil.rmtree(node_modules_path)
+                mounts = container.attrs.get("Mounts", [])
+                if mounts:
+                    mount_dest = mounts[0]["Destination"]
+                    container.exec_run(f"rm -rf {mount_dest}/node_modules")
+                else:
+                    shutil.rmtree(node_modules_path)
         except ContainerNotFoundException:
             # Container doesn't exist, so there's nothing to clean up
             pass

@@ -5,9 +5,11 @@ from unittest.mock import patch
 from typer.testing import CliRunner
 
 from cli.functions.commands import app as function_app
+from cli.functions.constants import DEFAULT_RUNTIME
+from cli.functions.constants import PYTHON_3_9_BASE_RUNTIME
+from cli.functions.constants import PYTHON_3_9_LITE_RUNTIME
 from cli.functions.enums import FunctionLanguageEnum
 from cli.functions.enums import FunctionMethodEnum
-from cli.functions.enums import FunctionRuntimeLayerTypeEnum
 from cli.settings import settings
 
 runner = CliRunner()
@@ -28,7 +30,7 @@ class TestDevAddFunctionCommand(TestCase):
         mock_create_function.assert_called_once_with(
             name=settings.FUNCTIONS.DEFAULT_PROJECT_NAME,
             language=FunctionLanguageEnum(settings.FUNCTIONS.DEFAULT_LANGUAGE),
-            runtime=FunctionRuntimeLayerTypeEnum(settings.FUNCTIONS.DEFAULT_RUNTIME),
+            runtime=settings.FUNCTIONS.DEFAULT_RUNTIME,
             methods=settings.FUNCTIONS.DEFAULT_METHODS,
             is_raw=settings.FUNCTIONS.DEFAULT_IS_RAW,
             engine=settings.CONFIG.DEFAULT_CONTAINER_ENGINE,
@@ -46,7 +48,7 @@ class TestDevAddFunctionCommand(TestCase):
         # Action
         custom_name = "CustomFunctionName"
         language = "python"
-        runtime = "python3.9:base"
+        runtime = PYTHON_3_9_BASE_RUNTIME
         timeout = 40
         cron_expression = "0 4 * * *"
         result = runner.invoke(
@@ -78,7 +80,7 @@ class TestDevAddFunctionCommand(TestCase):
         mock_create_function.assert_called_once_with(
             name=custom_name,
             language=FunctionLanguageEnum(language),
-            runtime=FunctionRuntimeLayerTypeEnum(runtime),
+            runtime=runtime,
             methods=[FunctionMethodEnum.GET, FunctionMethodEnum.POST],
             engine=settings.CONFIG.DEFAULT_CONTAINER_ENGINE,
             is_raw=True,
@@ -276,7 +278,7 @@ class TestAddFunctionCommand(TestCase):
                 "profile": "",
                 "name": "TestFunction",
                 "label": "testfunction",  # Fix: Expect lowercase due to sanitization
-                "runtime": FunctionRuntimeLayerTypeEnum.NODEJS_20_LITE.value,  # Fix: Ensure string
+                "runtime": DEFAULT_RUNTIME,
                 "is_raw": False,
                 "http_methods": [
                     FunctionMethodEnum.get_default_method()
@@ -300,7 +302,7 @@ class TestAddFunctionCommand(TestCase):
                 "--label",
                 "functionLabel",
                 "--runtime",
-                "python3.9:base",
+                PYTHON_3_9_BASE_RUNTIME,
                 "--raw",
                 "--methods",
                 "GET",
@@ -346,7 +348,7 @@ class TestUpdateFunctionCommand(TestCase):
                 "--new-name",
                 "NewFunction",
                 "--runtime",
-                "python3.9:lite",
+                PYTHON_3_9_LITE_RUNTIME,
                 "--raw",
                 "--methods",
                 "GET",

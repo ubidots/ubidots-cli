@@ -8,14 +8,13 @@ from cli.functions import pipelines
 from cli.functions.engines.enums import FunctionEngineTypeEnum
 from cli.functions.enums import FunctionLanguageEnum
 from cli.functions.enums import FunctionMethodEnum
-from cli.functions.enums import FunctionRuntimeLayerTypeEnum
 from cli.settings import settings
 
 
 def create_function(
     name: str,
     language: FunctionLanguageEnum,
-    runtime: FunctionRuntimeLayerTypeEnum,
+    runtime: str,
     methods: list[FunctionMethodEnum],
     is_raw: bool,
     engine: FunctionEngineTypeEnum,
@@ -187,6 +186,7 @@ def logs_function(
                 pipelines.BuildEndpointStep(FUNCTION_API_ROUTES["logs"]),
                 pipelines.HttpGetRequestStep(),
                 pipelines.CheckResponseStep("response"),
+                pipelines.TailResultsStep(),
                 pipelines.PrintColoredTableStep(key="results"),
             ]
             pipeline = Pipeline(steps)
@@ -195,6 +195,7 @@ def logs_function(
                     "project_path": Path.cwd(),
                     "profile": profile,
                     "remote_id": remote_id,
+                    "tail": tail,
                     "verbose": verbose,
                     "root": logs_function.__name__,
                 }
@@ -210,6 +211,7 @@ def logs_function(
                 pipelines.BuildEndpointStep(FUNCTION_API_ROUTES["logs"]),
                 pipelines.HttpGetRequestStep(),
                 pipelines.CheckResponseStep("response"),
+                pipelines.TailResultsStep(),
                 pipelines.PrintColoredTableStep(key="results"),
             ]
             pipeline = Pipeline(steps)
@@ -217,6 +219,7 @@ def logs_function(
                 {
                     "project_path": Path.cwd(),
                     "profile": profile,
+                    "tail": tail,
                     "validations": {
                         "manifest_file_exists": True,
                         "function_exists": True,

@@ -34,8 +34,8 @@ class ValidatePageDirectoryStep(PipelineStep):
 
         if not manifest_file.exists():
             msg = (
-                f"Not in a page directory. Missing "
-                f"{settings.PAGES.PROJECT_MANIFEST_FILE} file."
+                "Not in a page directory. Run this command inside a page project "
+                "or use 'dev add' to create one."
             )
             raise FileNotFoundError(msg)
 
@@ -50,8 +50,8 @@ class ReadPageMetadataStep(PipelineStep):
             data["project_metadata"] = read_page_manifest(project_path)
         except FileNotFoundError as err:
             msg = (
-                f"Missing {settings.PAGES.PROJECT_METADATA_FILE} file. "
-                "This directory may not be a properly initialized page."
+                "Not in a page directory. Run this command inside a page project "
+                "or use 'dev add' to create one."
             )
             raise FileNotFoundError(msg) from err
         except Exception as e:
@@ -217,9 +217,7 @@ class RestartPageContainerStep(PipelineStep):
         container_manager = data["container_manager"]
         page_name = data["page_name"]
 
-        container_name = (
-            f"{page_engine_settings.CONTAINER.PAGE.PREFIX_NAME}-{page_name}"
-        )
+        container_name = f"{page_engine_settings.CONTAINER.PAGE.PREFIX_NAME}-{page_name.replace(' ', '-')}"
         container_manager.restart(container_name)
 
         return data
@@ -234,16 +232,20 @@ class GetPageLogsStep(PipelineStep):
         container_manager = data["container_manager"]
         page_name = data["page_name"]
 
-        container_name = (
-            f"{page_engine_settings.CONTAINER.PAGE.PREFIX_NAME}-{page_name}"
-        )
+        container_name = f"{page_engine_settings.CONTAINER.PAGE.PREFIX_NAME}-{page_name.replace(' ', '-')}"
         logs = container_manager.logs(
             name=container_name,
             tail=self.tail,
             follow=self.follow,
         )
 
-        data["logs"] = logs
+        if self.follow:
+            for chunk in logs:
+                typer.echo(chunk.decode("utf-8", errors="replace"), nl=False)
+            data["logs"] = b""
+        else:
+            data["logs"] = logs
+
         return data
 
 
@@ -396,4 +398,14 @@ class PrintPageUrlStep(PipelineStep):
                 typer.echo(f"\n🌐 Page URL (path-based): {page_url}\n")
             else:
                 typer.echo(f"\n🌐 Page URL: {page_url}\n")
+        return data
+
+
+@dataclass
+class PrintkeyStep(PipelineStep):
+    key: str = ""
+
+    def execute(self, data):
+        if self.key and self.key in data:
+            typer.echo(data[self.key])
         return data
