@@ -6,13 +6,17 @@ Build IoT applications — from raw sensor data to production-ready dashboards �
 
 The Ubidots CLI connects your local development environment to the Ubidots IoT platform. When paired with an AI coding assistant (Claude Code, GitHub Copilot, Codex, Cursor), it creates a tight feedback loop: write code locally, push to Ubidots, trigger it, read the logs, iterate — without leaving your terminal.
 
-**Two development models:**
+The CLI caters to both types of IoT application developers:
 
-- **Pure backend** — Use UbiFunctions as a serverless data processing layer. Ingest data from devices, run transformations, call external APIs, store results. Your application logic lives in functions; Ubidots handles the data infrastructure.
-- **Full-stack IoT application** — Combine UbiFunctions (backend logic) with Ubidots Pages (custom HTML/JS/CSS dashboards embedded in the Ubidots platform). Go from sensor data to a production UI without deploying any servers.
+- **Pure backend** — Use Ubidots as your data processing and storage layer. Leverage its built-in capabilities:
+  - **Device management** — Devices, device groups, and device types.
+  - **Data management** — Industry-proven time-series storage and retrieval at scale; events/rules engine; hybrid hot/cold storage for 10+ years of efficient retention; PDF/XLS reporting; Data APIs for querying and transforming time-series; synthetic variables; outbound data pipelines; and more.
+  - **Serverless computing** — Deploy Python or Node.js serverless functions to customize your backend. Ingest data from devices (HTTP / MQTT / CoAP), run transformations, call external APIs, apply business logic, or run ML models — Ubidots handles the data infrastructure.
+
+- **Full-stack IoT application** — Combine all of the above with Ubidots dashboards: use pre-built widgets, drop in custom HTML/JS widgets, or build entire UIs with Ubidots Pages (HTML/JS/CSS pages embedded directly in the platform). Go from sensor data to a production UI without deploying any servers.
 
 ```
-Devices → UbiFunctions → Ubidots (data store) → Pages (UI)
+Devices → Ubidots (data + events + APIs) → UbiFunctions (custom logic) → Pages (UI)
 ```
 
 ---
