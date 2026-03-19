@@ -11,5 +11,6 @@ FUNCTION_API_ROUTES = {
     "base": FUNCTION_BASE_ENDPOINT,
     "detail": f"{FUNCTION_BASE_ENDPOINT}/{{function_key}}",
     "logs": f"{FUNCTION_BASE_ENDPOINT}/{{function_key}}/logs",
+    "logs_detail": f"{FUNCTION_BASE_ENDPOINT}/{{function_key}}/logs/{{activation_id}}",
     "zip_file": f"{FUNCTION_BASE_ENDPOINT}/{{function_key}}/zip-file",
 }

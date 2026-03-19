@@ -444,14 +444,15 @@ class TestDevLogsCommand(TestCase):
 
 @patch("cli.functions.commands.executor.logs_function")
 class TestRootLogsCommand(TestCase):
-    def test_root_logs_with_explicit_id(self, mock_logs_function):
-        """Test root logs command with explicit function ID."""
+    def test_root_logs_with_explicit_label(self, mock_logs_function):
+        """Test root logs command with explicit function label."""
         # Action
         result = runner.invoke(
             function_app,
             [
                 "logs",
-                "abc123",
+                "--label",
+                "my-func",
                 "--profile",
                 "test_profile",
                 "--verbose",
@@ -464,7 +465,9 @@ class TestRootLogsCommand(TestCase):
             tail="all",
             follow=False,
             remote=True,
-            remote_id="abc123",
+            function_key="~my-func",
+            activation_id="",
+            last=0,
             profile="test_profile",
             verbose=True,
         )
