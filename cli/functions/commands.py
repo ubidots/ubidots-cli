@@ -358,29 +358,13 @@ def logs_function_remote(
     id: str | None = None,
     label: str | None = None,
     tail: Annotated[
-        str,
+        int,
         typer.Option(
             "--tail",
             "-n",
-            help="Number of activations to show in the summary table. Defaults to all.",
+            help="Number of most recent activations to show (detailed). Defaults to 5.",
         ),
-    ] = "all",
-    last: Annotated[
-        int,
-        typer.Option(
-            "--last",
-            help="Show full logs for the N most recent activations.",
-            show_default=False,
-        ),
-    ] = 0,
-    activation: Annotated[
-        str,
-        typer.Option(
-            "--activation",
-            help="Show full log for a specific activation ID.",
-            show_default=False,
-        ),
-    ] = "",
+    ] = 5,
     profile: Annotated[
         str,
         typer.Option(
@@ -398,8 +382,6 @@ def logs_function_remote(
         follow=False,
         remote=True,
         function_key=function_key,
-        activation_id=activation,
-        last=last,
         profile=profile,
         verbose=verbose,
     )

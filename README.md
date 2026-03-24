@@ -95,46 +95,43 @@ ubidots functions dev logs --follow
 #### 3. Push to production
 
 ```bash
-ubidots functions push --profile prod
+ubidots functions push
 ```
 
 #### 4. Trigger and inspect logs
 
 ```bash
 # Trigger with a payload and immediately print execution logs
-ubidots functions run --label my-function --payload '{"value": 42}' --logs --profile prod
+ubidots functions run --label my-function --payload '{"value": 42}' --logs
 
-# List recent activations
-ubidots functions logs --label my-function --profile prod
+# Show logs for the last 5 activations (default)
+ubidots functions logs --label my-function
 
-# Show the full log output of the last 3 activations
-ubidots functions logs --label my-function --last 3 --profile prod
-
-# Show the full log for a specific activation
-ubidots functions logs --label my-function --activation <activation-id> --profile prod
+# Show logs for the last 3 activations
+ubidots functions logs --label my-function --tail 3
 ```
 
 ### Managing functions in the cloud
 
 ```bash
 # List all functions
-ubidots functions list --profile prod
+ubidots functions list
 
 # Get details (including the webhook URL)
-ubidots functions get --label my-function --fields url,id,label,serverless,triggers --format json --profile prod
+ubidots functions get --label my-function --fields url,id,label,serverless,triggers --format json
 
 # Update runtime or configuration
-ubidots functions update --label my-function --runtime python3.11:base --timeout 30 --profile prod
+ubidots functions update --label my-function --runtime python3.11:base --timeout 30
 
 # Delete
-ubidots functions delete --label my-function --yes --profile prod
+ubidots functions delete --label my-function --yes
 ```
 
 ### Pull an existing remote function to edit locally
 
 ```bash
 # Run from the parent directory where you want the function folder created
-ubidots functions pull --remote-id <function-id> --profile prod
+ubidots functions pull --remote-id <function-id>
 cd <function-name>
 ubidots functions dev start
 ```
@@ -171,7 +168,7 @@ Prints a local URL. Open it in a browser. Edits to your files are reflected imme
 #### 3. Push to Ubidots
 
 ```bash
-ubidots pages push --profile prod
+ubidots pages push
 ```
 
 The page is now live inside the Ubidots platform.
@@ -180,22 +177,22 @@ The page is now live inside the Ubidots platform.
 
 ```bash
 # List all pages
-ubidots pages list --profile prod
+ubidots pages list
 
 # Get details (including the live URL)
-ubidots pages get --label fleet-monitor --fields id,label,url --format json --profile prod
+ubidots pages get --label fleet-monitor --fields id,label,url --format json
 
 # Update the display name
-ubidots pages update --label fleet-monitor --new-name "Fleet Monitor v2" --profile prod
+ubidots pages update --label fleet-monitor --new-name "Fleet Monitor v2"
 
 # Delete
-ubidots pages delete --label fleet-monitor --yes --profile prod
+ubidots pages delete --label fleet-monitor --yes
 ```
 
 ### Pull an existing remote page to edit locally
 
 ```bash
-ubidots pages pull --remote-id <page-id> --profile prod
+ubidots pages pull --remote-id <page-id>
 cd <page-name>
 ubidots pages dev start
 ```
@@ -206,19 +203,19 @@ ubidots pages dev start
 
 ```bash
 # Create a device
-ubidots devices add plant-sensor --name "Plant Sensor A" --tags climate,plantA --profile prod
+ubidots devices add plant-sensor --name "Plant Sensor A" --tags climate,plantA
 
 # List devices with a specific tag
-ubidots devices list --filter "tags__contains=plantA" --format json --profile prod
+ubidots devices list --filter "tags__contains=plantA" --format json
 
 # Get a device
-ubidots devices get --label plant-sensor --fields id,label,lastActivity,variables --profile prod
+ubidots devices get --label plant-sensor --fields id,label,lastActivity,variables
 
 # Create a variable on a device
-ubidots variables add ~plant-sensor temperature "Temperature" --unit "°C" --profile prod
+ubidots variables add ~plant-sensor temperature "Temperature" --unit "°C"
 
 # List variables in JSON
-ubidots variables list --fields id,label,lastValue,unit --format json --profile prod
+ubidots variables list --fields id,label,lastValue,unit --format json
 ```
 
 ---
@@ -270,7 +267,7 @@ ubidots pages push --yes --profile prod
 
 ```bash
 # Check what's running in production
-ubidots functions logs --label data-processor --last 5 --profile prod
+ubidots functions logs --label data-processor --tail 5 --profile prod  # target prod explicitly
 
 # Pull a function down to fix a bug
 ubidots functions pull --remote-id <id> --profile prod
@@ -284,7 +281,7 @@ ubidots functions push --yes --profile prod
 
 ## Profiles and multi-environment workflows
 
-The `--profile` flag is available on every cloud command. Use it to manage multiple environments (e.g. `dev`, `staging`, `prod`) without changing your default.
+Every cloud command uses your default profile (set by `ubidots config --default <name>`). The `--profile` flag lets you override that for a single command — useful when managing multiple environments (e.g. `staging`, `prod`) without changing your default.
 
 ```bash
 ubidots config --no-interactive --profile staging --token BBFF-staging-token
