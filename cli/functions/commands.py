@@ -318,13 +318,6 @@ def run_function(
             callback=is_valid_json_string,
         ),
     ] = "{}",
-    logs: Annotated[
-        bool,
-        typer.Option(
-            "--logs",
-            help="Wait and print the execution logs after triggering.",
-        ),
-    ] = False,
     profile: Annotated[
         str,
         typer.Option(
@@ -341,7 +334,6 @@ def run_function(
     executor.run_function(
         function_key=function_key,
         payload=payload_dict,
-        show_logs=logs,
         profile=profile,
         verbose=verbose,
     )

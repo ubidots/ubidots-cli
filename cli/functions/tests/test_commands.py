@@ -445,14 +445,13 @@ class TestDevLogsCommand(TestCase):
 @patch("cli.functions.commands.executor.run_function")
 class TestRunFunctionCommand(TestCase):
     def test_run_with_label(self, mock_run_function):
-        """Test run command with function label (default payload, no logs)."""
+        """Test run command with function label (default payload)."""
         result = runner.invoke(function_app, ["run", "--label", "my-func"])
 
         self.assertEqual(result.exit_code, 0)
         mock_run_function.assert_called_once_with(
             function_key="~my-func",
             payload={},
-            show_logs=False,
             profile="",
             verbose=False,
         )
@@ -466,7 +465,6 @@ class TestRunFunctionCommand(TestCase):
         mock_run_function.assert_called_once_with(
             function_key="abc123",
             payload={},
-            show_logs=False,
             profile="",
             verbose=False,
         )
@@ -482,22 +480,6 @@ class TestRunFunctionCommand(TestCase):
         mock_run_function.assert_called_once_with(
             function_key="~my-func",
             payload={"temp": 25},
-            show_logs=False,
-            profile="",
-            verbose=False,
-        )
-
-    def test_run_with_logs_flag(self, mock_run_function):
-        """Test run command with --logs flag."""
-        result = runner.invoke(
-            function_app, ["run", "--label", "my-func", "--logs"]
-        )
-
-        self.assertEqual(result.exit_code, 0)
-        mock_run_function.assert_called_once_with(
-            function_key="~my-func",
-            payload={},
-            show_logs=True,
             profile="",
             verbose=False,
         )

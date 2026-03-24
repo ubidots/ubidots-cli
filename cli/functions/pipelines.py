@@ -1289,11 +1289,8 @@ class InvokeFunctionStep(PipelineStep):
         return data
 
 
-@dataclass
 class PrintInvokeResponseStep(PipelineStep):
-    """Print the result of an /invoke/ call, optionally including execution logs."""
-
-    show_logs: bool = False
+    """Print the result and execution logs of an /invoke/ call."""
 
     def execute(self, data):
         invoke_response = data.get("invoke_response", {})
@@ -1302,7 +1299,7 @@ class PrintInvokeResponseStep(PipelineStep):
         start = invoke_response.get("start")
         end = invoke_response.get("end")
 
-        if self.show_logs and logs:
+        if logs:
             typer.echo("\n--- Execution logs ---")
             for line in logs:
                 typer.echo(line)

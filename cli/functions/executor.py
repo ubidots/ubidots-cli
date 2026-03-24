@@ -173,14 +173,13 @@ def status_function(
 def run_function(
     function_key: str,
     payload: dict,
-    show_logs: bool,
     profile: str,
     verbose: bool,
 ):
     steps = [
         pipelines.GetActiveConfigStep(),
         pipelines.InvokeFunctionStep(),
-        pipelines.PrintInvokeResponseStep(show_logs=show_logs),
+        pipelines.PrintInvokeResponseStep(),
     ]
     pipeline = Pipeline(steps)
     pipeline.run(

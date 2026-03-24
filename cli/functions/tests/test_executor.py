@@ -375,7 +375,7 @@ class TestRunFunction(TestCase):
     @patch("cli.functions.pipelines.GetActiveConfigStep")
     @patch("cli.functions.pipelines.InvokeFunctionStep")
     @patch("cli.functions.pipelines.PrintInvokeResponseStep")
-    def test_run_without_logs(
+    def test_run_function(
         self,
         MockPrintInvokeResponseStep,
         MockInvokeFunctionStep,
@@ -390,12 +390,11 @@ class TestRunFunction(TestCase):
         run_function(
             function_key="~my-func",
             payload={"temp": 25},
-            show_logs=False,
             profile="test_profile",
             verbose=False,
         )
 
-        # Expected: 3-step pipeline via /invoke/
+        # Expected: 3-step pipeline via /invoke/, always prints logs + result
         MockPipeline.assert_called_once_with(
             [
                 MockGetActiveConfigStep.return_value,
@@ -403,7 +402,6 @@ class TestRunFunction(TestCase):
                 MockPrintInvokeResponseStep.return_value,
             ]
         )
-        MockPrintInvokeResponseStep.assert_called_once_with(show_logs=False)
         mock_pipeline_instance.run.assert_called_once_with(
             {
                 "profile": "test_profile",
@@ -413,40 +411,6 @@ class TestRunFunction(TestCase):
                 "root": run_function.__name__,
             }
         )
-
-    @patch("cli.functions.executor.Pipeline")
-    @patch("cli.functions.pipelines.GetActiveConfigStep")
-    @patch("cli.functions.pipelines.InvokeFunctionStep")
-    @patch("cli.functions.pipelines.PrintInvokeResponseStep")
-    def test_run_with_logs(
-        self,
-        MockPrintInvokeResponseStep,
-        MockInvokeFunctionStep,
-        MockGetActiveConfigStep,
-        MockPipeline,
-    ):
-        # Setup
-        mock_pipeline_instance = MockPipeline.return_value
-        mock_pipeline_instance.run = MagicMock()
-
-        # Action
-        run_function(
-            function_key="~my-func",
-            payload={},
-            show_logs=True,
-            profile="",
-            verbose=False,
-        )
-
-        # Expected: same 3-step pipeline, show_logs=True passed to print step
-        MockPipeline.assert_called_once_with(
-            [
-                MockGetActiveConfigStep.return_value,
-                MockInvokeFunctionStep.return_value,
-                MockPrintInvokeResponseStep.return_value,
-            ]
-        )
-        MockPrintInvokeResponseStep.assert_called_once_with(show_logs=True)
 
 
 class TestLogsFunction(TestCase):
