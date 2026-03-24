@@ -373,14 +373,12 @@ class TestStatusFunction(TestCase):
 class TestRunFunction(TestCase):
     @patch("cli.functions.executor.Pipeline")
     @patch("cli.functions.pipelines.GetActiveConfigStep")
-    @patch("cli.functions.pipelines.FetchFunctionDetailStep")
-    @patch("cli.functions.pipelines.TriggerFunctionStep")
-    @patch("cli.functions.pipelines.PrintTriggerResponseStep")
+    @patch("cli.functions.pipelines.InvokeFunctionStep")
+    @patch("cli.functions.pipelines.PrintInvokeResponseStep")
     def test_run_without_logs(
         self,
-        MockPrintTriggerResponseStep,
-        MockTriggerFunctionStep,
-        MockFetchFunctionDetailStep,
+        MockPrintInvokeResponseStep,
+        MockInvokeFunctionStep,
         MockGetActiveConfigStep,
         MockPipeline,
     ):
@@ -397,15 +395,15 @@ class TestRunFunction(TestCase):
             verbose=False,
         )
 
-        # Expected: base 4-step pipeline, no log steps
+        # Expected: 3-step pipeline via /invoke/
         MockPipeline.assert_called_once_with(
             [
                 MockGetActiveConfigStep.return_value,
-                MockFetchFunctionDetailStep.return_value,
-                MockTriggerFunctionStep.return_value,
-                MockPrintTriggerResponseStep.return_value,
+                MockInvokeFunctionStep.return_value,
+                MockPrintInvokeResponseStep.return_value,
             ]
         )
+        MockPrintInvokeResponseStep.assert_called_once_with(show_logs=False)
         mock_pipeline_instance.run.assert_called_once_with(
             {
                 "profile": "test_profile",
@@ -418,18 +416,12 @@ class TestRunFunction(TestCase):
 
     @patch("cli.functions.executor.Pipeline")
     @patch("cli.functions.pipelines.GetActiveConfigStep")
-    @patch("cli.functions.pipelines.FetchFunctionDetailStep")
-    @patch("cli.functions.pipelines.TriggerFunctionStep")
-    @patch("cli.functions.pipelines.PrintTriggerResponseStep")
-    @patch("cli.functions.pipelines.WaitAndFetchLatestLogsStep")
-    @patch("cli.functions.pipelines.PrintActivationLogsStep")
+    @patch("cli.functions.pipelines.InvokeFunctionStep")
+    @patch("cli.functions.pipelines.PrintInvokeResponseStep")
     def test_run_with_logs(
         self,
-        MockPrintActivationLogsStep,
-        MockWaitAndFetchLatestLogsStep,
-        MockPrintTriggerResponseStep,
-        MockTriggerFunctionStep,
-        MockFetchFunctionDetailStep,
+        MockPrintInvokeResponseStep,
+        MockInvokeFunctionStep,
         MockGetActiveConfigStep,
         MockPipeline,
     ):
@@ -446,18 +438,15 @@ class TestRunFunction(TestCase):
             verbose=False,
         )
 
-        # Expected: 6-step pipeline (base + wait + print logs)
+        # Expected: same 3-step pipeline, show_logs=True passed to print step
         MockPipeline.assert_called_once_with(
             [
                 MockGetActiveConfigStep.return_value,
-                MockFetchFunctionDetailStep.return_value,
-                MockTriggerFunctionStep.return_value,
-                MockPrintTriggerResponseStep.return_value,
-                MockWaitAndFetchLatestLogsStep.return_value,
-                MockPrintActivationLogsStep.return_value,
+                MockInvokeFunctionStep.return_value,
+                MockPrintInvokeResponseStep.return_value,
             ]
         )
-        MockWaitAndFetchLatestLogsStep.assert_called_once_with(count=1, wait_seconds=3)
+        MockPrintInvokeResponseStep.assert_called_once_with(show_logs=True)
 
 
 class TestLogsFunction(TestCase):

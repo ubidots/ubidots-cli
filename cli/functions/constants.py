@@ -10,6 +10,7 @@ PYTHON_3_11_LITE_RUNTIME = "python3.11:lite"
 FUNCTION_API_ROUTES = {
     "base": FUNCTION_BASE_ENDPOINT,
     "detail": f"{FUNCTION_BASE_ENDPOINT}/{{function_key}}",
+    "invoke": f"{FUNCTION_BASE_ENDPOINT}/{{function_key}}/_/invoke/",
     "logs": f"{FUNCTION_BASE_ENDPOINT}/{{function_key}}/logs",
     "logs_detail": f"{FUNCTION_BASE_ENDPOINT}/{{function_key}}/logs/{{activation_id}}",
     "zip_file": f"{FUNCTION_BASE_ENDPOINT}/{{function_key}}/zip-file",

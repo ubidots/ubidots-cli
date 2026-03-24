@@ -179,14 +179,9 @@ def run_function(
 ):
     steps = [
         pipelines.GetActiveConfigStep(),
-        pipelines.FetchFunctionDetailStep(),
-        pipelines.TriggerFunctionStep(),
-        pipelines.PrintTriggerResponseStep(),
+        pipelines.InvokeFunctionStep(),
+        pipelines.PrintInvokeResponseStep(show_logs=show_logs),
     ]
-    if show_logs:
-        steps.append(pipelines.WaitAndFetchLatestLogsStep(count=1, wait_seconds=3))
-        steps.append(pipelines.PrintActivationLogsStep())
-
     pipeline = Pipeline(steps)
     pipeline.run(
         {

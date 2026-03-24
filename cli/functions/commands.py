@@ -362,9 +362,9 @@ def logs_function_remote(
         typer.Option(
             "--tail",
             "-n",
-            help="Number of most recent activations to show (detailed). Defaults to 5.",
+            help="Number of most recent activations to show (detailed). Defaults to 1.",
         ),
-    ] = 5,
+    ] = 1,
     profile: Annotated[
         str,
         typer.Option(

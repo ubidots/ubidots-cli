@@ -1267,6 +1267,56 @@ class PrintTriggerResponseStep(PipelineStep):
         return data
 
 
+class InvokeFunctionStep(PipelineStep):
+    """POST payload to /invoke/ and return execution result + logs synchronously."""
+
+    def execute(self, data):
+        active_config = data["active_config"]
+        function_key = data["function_key"]
+        payload = data.get("payload", {})
+        url, headers = build_endpoint(
+            route=FUNCTION_API_ROUTES["invoke"],
+            function_key=function_key,
+            active_config=active_config,
+        )
+        headers["Content-Type"] = "application/json"
+        response = httpx.post(url, headers=headers, json=payload)
+        check_response_status(
+            response,
+            custom_message=f"Function '{function_key}' not found.",
+        )
+        data["invoke_response"] = response.json()
+        return data
+
+
+@dataclass
+class PrintInvokeResponseStep(PipelineStep):
+    """Print the result of an /invoke/ call, optionally including execution logs."""
+
+    show_logs: bool = False
+
+    def execute(self, data):
+        invoke_response = data.get("invoke_response", {})
+        result = invoke_response.get("response", {}).get("result", {})
+        logs = invoke_response.get("logs", [])
+        start = invoke_response.get("start")
+        end = invoke_response.get("end")
+
+        if self.show_logs and logs:
+            typer.echo("\n--- Execution logs ---")
+            for line in logs:
+                typer.echo(line)
+
+        typer.echo("\n--- Result ---")
+        typer.echo(json.dumps(result, indent=2))
+
+        if start and end:
+            duration_ms = end - start
+            typer.echo(f"\nDuration: {duration_ms}ms")
+
+        return data
+
+
 @dataclass
 class WaitAndFetchLatestLogsStep(PipelineStep):
     """List activations and fetch detail for the latest N activations."""

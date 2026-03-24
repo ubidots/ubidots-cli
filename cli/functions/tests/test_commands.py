@@ -531,7 +531,7 @@ class TestRootLogsCommand(TestCase):
 
         self.assertEqual(result.exit_code, 0)
         mock_logs_function.assert_called_once_with(
-            tail=5,
+            tail=1,
             follow=False,
             remote=True,
             function_key="~my-func",
@@ -562,7 +562,7 @@ class TestRootLogsCommand(TestCase):
 
         self.assertEqual(result.exit_code, 0)
         mock_logs_function.assert_called_once_with(
-            tail=5,
+            tail=1,
             follow=False,
             remote=True,
             function_key="abc123",
