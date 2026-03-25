@@ -828,7 +828,11 @@ class TestInvokeFunctionStep:
         result = step.execute(data)
 
         assert result["invoke_response"] == {"status": "OK", "logs": ["line1"], "response": {"result": {}}}
-        mock_post.assert_called_once()
+        mock_post.assert_called_once_with(
+            "https://api.ubidots.com/invoke",
+            headers={"X-Auth-Token": "tok", "Content-Type": "application/json"},
+            json={"temp": 25},
+        )
 
     @patch("cli.functions.pipelines.check_response_status", side_effect=httpx.RequestError("Not found"))
     @patch("cli.functions.pipelines.httpx.post")
@@ -934,9 +938,10 @@ class TestWaitAndFetchLatestLogsStep:
         data = {"active_config": MagicMock(), "function_key": "~my-fn"}
         step.execute(data)
 
-        # Should pass only first 3 activations to _fetch_activation_details
+        # Should pass only the first 3 activations (newest-first from API)
         called_activations = mock_fetch.call_args[1]["activations"]
         assert len(called_activations) == 3
+        assert [a["activationId"] for a in called_activations] == ["act-0", "act-1", "act-2"]
 
     @patch("cli.functions.pipelines._fetch_activation_details")
     @patch("cli.functions.pipelines.check_response_status")
