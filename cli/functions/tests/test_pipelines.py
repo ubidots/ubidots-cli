@@ -804,3 +804,209 @@ def test_function_runtime_layer_type_enum_removed():
     import cli.functions.enums as enums
 
     assert not hasattr(enums, "FunctionRuntimeLayerTypeEnum")
+
+
+# --- InvokeFunctionStep ---
+
+
+class TestInvokeFunctionStep:
+    @patch("cli.functions.pipelines.httpx.post")
+    @patch("cli.functions.pipelines.build_endpoint")
+    def test_successful_invoke(self, mock_build_endpoint, mock_post):
+        mock_build_endpoint.return_value = ("https://api.ubidots.com/invoke", {"X-Auth-Token": "tok"})
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = {"status": "OK", "logs": ["line1"], "response": {"result": {}}}
+        mock_post.return_value = mock_response
+
+        step = pipelines.InvokeFunctionStep()
+        data = {
+            "active_config": MagicMock(),
+            "function_key": "~my-fn",
+            "payload": {"temp": 25},
+        }
+        result = step.execute(data)
+
+        assert result["invoke_response"] == {"status": "OK", "logs": ["line1"], "response": {"result": {}}}
+        mock_post.assert_called_once()
+
+    @patch("cli.functions.pipelines.check_response_status", side_effect=httpx.RequestError("Not found"))
+    @patch("cli.functions.pipelines.httpx.post")
+    @patch("cli.functions.pipelines.build_endpoint")
+    def test_invoke_non_200_raises(self, mock_build_endpoint, mock_post, mock_check):
+        mock_build_endpoint.return_value = ("https://api.ubidots.com/invoke", {"X-Auth-Token": "tok"})
+        mock_response = MagicMock()
+        mock_response.status_code = 404
+        mock_post.return_value = mock_response
+
+        step = pipelines.InvokeFunctionStep()
+        data = {"active_config": MagicMock(), "function_key": "~ghost", "payload": {}}
+
+        with pytest.raises(httpx.RequestError):
+            step.execute(data)
+
+
+# --- PrintInvokeResponseStep ---
+
+
+class TestPrintInvokeResponseStep:
+    @patch("typer.echo")
+    def test_prints_logs_and_result(self, mock_echo):
+        step = pipelines.PrintInvokeResponseStep()
+        data = {
+            "invoke_response": {
+                "logs": ["Args", "{'key': 'val'}"],
+                "response": {"result": {"value": 42}},
+                "start": 1000,
+                "end": 1500,
+            }
+        }
+        result = step.execute(data)
+
+        assert result is data
+        calls = [c.args[0] for c in mock_echo.call_args_list]
+        assert "\n--- Execution logs ---" in calls
+        assert "Args" in calls
+        assert "\n--- Result ---" in calls
+        assert "\nDuration: 500ms" in calls
+
+    @patch("typer.echo")
+    def test_no_logs_skips_logs_section(self, mock_echo):
+        step = pipelines.PrintInvokeResponseStep()
+        data = {
+            "invoke_response": {
+                "logs": [],
+                "response": {"result": {"ok": True}},
+            }
+        }
+        step.execute(data)
+
+        calls = [c.args[0] for c in mock_echo.call_args_list]
+        assert "\n--- Execution logs ---" not in calls
+        assert "\n--- Result ---" in calls
+
+    @patch("typer.echo")
+    def test_no_duration_when_missing_timestamps(self, mock_echo):
+        step = pipelines.PrintInvokeResponseStep()
+        data = {"invoke_response": {"logs": [], "response": {"result": {}}}}
+        step.execute(data)
+
+        calls = [str(c) for c in mock_echo.call_args_list]
+        assert not any("Duration" in c for c in calls)
+
+
+# --- WaitAndFetchLatestLogsStep ---
+
+
+class TestWaitAndFetchLatestLogsStep:
+    @patch("cli.functions.pipelines._fetch_activation_details", return_value=[])
+    @patch("cli.functions.pipelines.check_response_status")
+    @patch("cli.functions.pipelines.httpx.get")
+    @patch("cli.functions.pipelines.build_endpoint")
+    @patch("typer.echo")
+    def test_no_activations(self, mock_echo, mock_build, mock_get, mock_check, mock_fetch):
+        mock_build.return_value = ("https://api.ubidots.com/logs", {"X-Auth-Token": "tok"})
+        mock_response = MagicMock()
+        mock_response.json.return_value = {"results": []}
+        mock_get.return_value = mock_response
+
+        step = pipelines.WaitAndFetchLatestLogsStep(count=5)
+        data = {"active_config": MagicMock(), "function_key": "~my-fn"}
+        result = step.execute(data)
+
+        assert result["activation_logs"] == []
+        mock_echo.assert_called_with("No activations found.")
+        mock_fetch.assert_not_called()
+
+    @patch("cli.functions.pipelines._fetch_activation_details")
+    @patch("cli.functions.pipelines.check_response_status")
+    @patch("cli.functions.pipelines.httpx.get")
+    @patch("cli.functions.pipelines.build_endpoint")
+    def test_slices_to_count(self, mock_build, mock_get, mock_check, mock_fetch):
+        mock_build.return_value = ("https://api.ubidots.com/logs", {"X-Auth-Token": "tok"})
+        activations = [{"activationId": f"act-{i}"} for i in range(10)]
+        mock_response = MagicMock()
+        mock_response.json.return_value = {"results": activations}
+        mock_get.return_value = mock_response
+        mock_fetch.return_value = [{"_activation_id": f"act-{i}"} for i in range(3)]
+
+        step = pipelines.WaitAndFetchLatestLogsStep(count=3)
+        data = {"active_config": MagicMock(), "function_key": "~my-fn"}
+        step.execute(data)
+
+        # Should pass only first 3 activations to _fetch_activation_details
+        called_activations = mock_fetch.call_args[1]["activations"]
+        assert len(called_activations) == 3
+
+    @patch("cli.functions.pipelines._fetch_activation_details")
+    @patch("cli.functions.pipelines.check_response_status")
+    @patch("cli.functions.pipelines.httpx.get")
+    @patch("cli.functions.pipelines.build_endpoint")
+    def test_count_larger_than_available(self, mock_build, mock_get, mock_check, mock_fetch):
+        mock_build.return_value = ("https://api.ubidots.com/logs", {"X-Auth-Token": "tok"})
+        activations = [{"activationId": "act-0"}, {"activationId": "act-1"}]
+        mock_response = MagicMock()
+        mock_response.json.return_value = {"results": activations}
+        mock_get.return_value = mock_response
+        mock_fetch.return_value = []
+
+        step = pipelines.WaitAndFetchLatestLogsStep(count=10)
+        data = {"active_config": MagicMock(), "function_key": "~my-fn"}
+        step.execute(data)
+
+        called_activations = mock_fetch.call_args[1]["activations"]
+        assert len(called_activations) == 2
+
+
+# --- PrintActivationLogsStep ---
+
+
+class TestPrintActivationLogsStep:
+    @patch("typer.echo")
+    def test_no_logs_found(self, mock_echo):
+        step = pipelines.PrintActivationLogsStep()
+        data = {"activation_logs": []}
+        step.execute(data)
+
+        mock_echo.assert_called_with("No logs found.")
+
+    @patch("typer.echo")
+    def test_prints_list_logs(self, mock_echo):
+        step = pipelines.PrintActivationLogsStep()
+        data = {
+            "activation_logs": [
+                {"_activation_id": "act-1", "logs": ["line1\n", "line2\n"]}
+            ]
+        }
+        step.execute(data)
+
+        calls = [c.args[0] for c in mock_echo.call_args_list]
+        assert "\n--- Activation: act-1 ---" in calls
+        assert "line1\n" in calls
+
+    @patch("typer.echo")
+    def test_prints_string_logs(self, mock_echo):
+        step = pipelines.PrintActivationLogsStep()
+        data = {
+            "activation_logs": [
+                {"_activation_id": "act-1", "logs": "full log output"}
+            ]
+        }
+        step.execute(data)
+
+        calls = [c.args[0] for c in mock_echo.call_args_list]
+        assert "full log output" in calls
+
+    @patch("typer.echo")
+    def test_handles_error_entries(self, mock_echo):
+        step = pipelines.PrintActivationLogsStep()
+        data = {
+            "activation_logs": [
+                {"_activation_id": "act-1", "error": "Failed to fetch log detail"}
+            ]
+        }
+        step.execute(data)
+
+        calls = [c.args[0] for c in mock_echo.call_args_list]
+        assert "\n--- Activation: act-1 ---" in calls
+        assert "Error: Failed to fetch log detail" in calls

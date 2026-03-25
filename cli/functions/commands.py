@@ -326,14 +326,11 @@ def run_function(
     ] = "",
     verbose: bool = False,
 ):
-    import json as _json
-
     function_key = get_instance_key(id=id, label=label)
-    payload_dict = _json.loads(payload) if isinstance(payload, str) else payload
 
     executor.run_function(
         function_key=function_key,
-        payload=payload_dict,
+        payload=payload,
         profile=profile,
         verbose=verbose,
     )

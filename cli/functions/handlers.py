@@ -114,14 +114,9 @@ def add_function(active_config: ProfileConfigModel, **kwargs):
     }
 
 
-def trigger_function(url: str, headers: dict, payload: dict) -> httpx.Response:
-    response = httpx.post(url, headers=headers, json=payload)
-    return response
-
-
 def fetch_activation_log(url: str, headers: dict) -> httpx.Response:
-    response = httpx.get(url, headers=headers)
-    return response
+    with httpx.Client(follow_redirects=True, timeout=30.0) as client:
+        return client.get(url, headers=headers)
 
 
 def delete_function(url: str, headers: dict, function_key: str):

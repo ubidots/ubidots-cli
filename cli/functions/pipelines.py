@@ -32,7 +32,6 @@ from cli.functions.handlers import delete_function
 from cli.functions.handlers import fetch_activation_log
 from cli.functions.handlers import list_functions
 from cli.functions.handlers import retrieve_function
-from cli.functions.handlers import trigger_function
 from cli.functions.handlers import update_function
 from cli.functions.helpers import argo_container_manager
 from cli.functions.helpers import build_functions_payload
@@ -1220,53 +1219,6 @@ class CheckRemoteIdRequirementStep(PipelineStep):
         return data
 
 
-class FetchFunctionDetailStep(PipelineStep):
-    """GET function detail and extract the webhook URL."""
-
-    def execute(self, data):
-        active_config = data["active_config"]
-        function_key = data["function_key"]
-        url, headers = build_endpoint(
-            route=FUNCTION_API_ROUTES["detail"],
-            function_key=function_key,
-            active_config=active_config,
-        )
-        response = httpx.get(url, headers=headers)
-        check_response_status(
-            response,
-            custom_message=f"Function '{function_key}' not found.",
-        )
-        detail = response.json()
-        data["function_detail"] = detail
-        data["webhook_url"] = detail["triggers"]["httpUrl"]
-        return data
-
-
-class TriggerFunctionStep(PipelineStep):
-    """POST payload to the function webhook URL."""
-
-    def execute(self, data):
-        webhook_url = data["webhook_url"]
-        headers = {"Content-Type": "application/json"}
-        payload = data.get("payload", {})
-        response = trigger_function(url=webhook_url, headers=headers, payload=payload)
-        data["trigger_response"] = response
-        return data
-
-
-class PrintTriggerResponseStep(PipelineStep):
-    """Print the trigger HTTP response status and body."""
-
-    def execute(self, data):
-        response = data["trigger_response"]
-        typer.echo(f"Status: {response.status_code}")
-        try:
-            typer.echo(json.dumps(response.json(), indent=2))
-        except Exception:
-            typer.echo(response.text)
-        return data
-
-
 class InvokeFunctionStep(PipelineStep):
     """POST payload to /invoke/ and return execution result + logs synchronously."""
 
@@ -1314,6 +1266,29 @@ class PrintInvokeResponseStep(PipelineStep):
         return data
 
 
+def _fetch_activation_details(activations, function_key, active_config, headers):
+    """Fetch detailed logs for a list of activation summaries."""
+    activation_logs = []
+    for activation in activations:
+        activation_id = activation.get("activationId") or activation.get("id")
+        detail_url, _ = build_endpoint(
+            route=FUNCTION_API_ROUTES["logs_detail"],
+            function_key=function_key,
+            activation_id=activation_id,
+            active_config=active_config,
+        )
+        detail_response = fetch_activation_log(url=detail_url, headers=headers)
+        if detail_response.status_code == httpx.codes.OK:
+            entry = detail_response.json()
+            entry["_activation_id"] = activation_id
+            activation_logs.append(entry)
+        else:
+            activation_logs.append(
+                {"_activation_id": activation_id, "error": "Failed to fetch log detail"}
+            )
+    return activation_logs
+
+
 @dataclass
 class WaitAndFetchLatestLogsStep(PipelineStep):
     """List activations and fetch detail for the latest N activations."""
@@ -1342,50 +1317,12 @@ class WaitAndFetchLatestLogsStep(PipelineStep):
             data["activation_logs"] = []
             return data
 
-        latest = activations[: self.count] if self.count <= len(activations) else activations
-        activation_logs = []
-        for activation in latest:
-            activation_id = activation.get("activationId") or activation.get("id")
-            detail_url, _ = build_endpoint(
-                route=FUNCTION_API_ROUTES["logs_detail"],
-                function_key=function_key,
-                activation_id=activation_id,
-                active_config=active_config,
-            )
-            detail_response = fetch_activation_log(url=detail_url, headers=headers)
-            if detail_response.status_code == httpx.codes.OK:
-                entry = detail_response.json()
-                entry["_activation_id"] = activation_id
-                activation_logs.append(entry)
-            else:
-                activation_logs.append({"_activation_id": activation_id, "error": "Failed to fetch log detail"})
-
-        data["activation_logs"] = activation_logs
-        return data
-
-
-class FetchActivationDetailStep(PipelineStep):
-    """Fetch the log detail for a specific activation ID."""
-
-    def execute(self, data):
-        active_config = data["active_config"]
-        function_key = data["function_key"]
-        activation_id = data["activation_id"]
-
-        url, headers = build_endpoint(
-            route=FUNCTION_API_ROUTES["logs_detail"],
+        data["activation_logs"] = _fetch_activation_details(
+            activations=activations[: self.count],
             function_key=function_key,
-            activation_id=activation_id,
             active_config=active_config,
+            headers=headers,
         )
-        response = fetch_activation_log(url=url, headers=headers)
-        check_response_status(
-            response,
-            custom_message=f"Activation '{activation_id}' not found.",
-        )
-        entry = response.json()
-        entry["_activation_id"] = activation_id
-        data["activation_logs"] = [entry]
         return data
 
 
@@ -1401,6 +1338,9 @@ class PrintActivationLogsStep(PipelineStep):
         for log_entry in activation_logs:
             activation_id = log_entry.get("_activation_id", "unknown")
             typer.echo(f"\n--- Activation: {activation_id} ---")
+            if "error" in log_entry:
+                typer.echo(f"Error: {log_entry['error']}")
+                continue
             logs = log_entry.get("logs", [])
             if isinstance(logs, list):
                 for line in logs:
