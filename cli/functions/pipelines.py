@@ -1233,10 +1233,10 @@ class InvokeFunctionStep(PipelineStep):
         )
         headers["Content-Type"] = "application/json"
         response = httpx.post(url, headers=headers, json=payload)
-        check_response_status(
-            response,
-            custom_message=f"Function '{function_key}' not found.",
-        )
+        if response.status_code == httpx.codes.NOT_FOUND:
+            label = function_key.lstrip("~")
+            raise httpx.RequestError(f"Function '{label}' not found.")
+        check_response_status(response)
         data["invoke_response"] = response.json()
         return data
 
@@ -1309,6 +1309,9 @@ class WaitAndFetchLatestLogsStep(PipelineStep):
             active_config=active_config,
         )
         response = httpx.get(logs_url, headers=headers)
+        if response.status_code == httpx.codes.NOT_FOUND:
+            label = function_key.lstrip("~")
+            raise httpx.RequestError(f"Function '{label}' not found.")
         check_response_status(response)
         activations = response.json().get("results", [])
 

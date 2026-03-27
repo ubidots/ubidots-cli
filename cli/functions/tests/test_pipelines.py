@@ -813,10 +813,17 @@ class TestInvokeFunctionStep:
     @patch("cli.functions.pipelines.httpx.post")
     @patch("cli.functions.pipelines.build_endpoint")
     def test_successful_invoke(self, mock_build_endpoint, mock_post):
-        mock_build_endpoint.return_value = ("https://api.ubidots.com/invoke", {"X-Auth-Token": "tok"})
+        mock_build_endpoint.return_value = (
+            "https://api.ubidots.com/invoke",
+            {"X-Auth-Token": "tok"},
+        )
         mock_response = MagicMock()
         mock_response.status_code = 200
-        mock_response.json.return_value = {"status": "OK", "logs": ["line1"], "response": {"result": {}}}
+        mock_response.json.return_value = {
+            "status": "OK",
+            "logs": ["line1"],
+            "response": {"result": {}},
+        }
         mock_post.return_value = mock_response
 
         step = pipelines.InvokeFunctionStep()
@@ -827,18 +834,24 @@ class TestInvokeFunctionStep:
         }
         result = step.execute(data)
 
-        assert result["invoke_response"] == {"status": "OK", "logs": ["line1"], "response": {"result": {}}}
+        assert result["invoke_response"] == {
+            "status": "OK",
+            "logs": ["line1"],
+            "response": {"result": {}},
+        }
         mock_post.assert_called_once_with(
             "https://api.ubidots.com/invoke",
             headers={"X-Auth-Token": "tok", "Content-Type": "application/json"},
             json={"temp": 25},
         )
 
-    @patch("cli.functions.pipelines.check_response_status", side_effect=httpx.RequestError("Not found"))
     @patch("cli.functions.pipelines.httpx.post")
     @patch("cli.functions.pipelines.build_endpoint")
-    def test_invoke_non_200_raises(self, mock_build_endpoint, mock_post, mock_check):
-        mock_build_endpoint.return_value = ("https://api.ubidots.com/invoke", {"X-Auth-Token": "tok"})
+    def test_invoke_404_raises_function_not_found(self, mock_build_endpoint, mock_post):
+        mock_build_endpoint.return_value = (
+            "https://api.ubidots.com/invoke",
+            {"X-Auth-Token": "tok"},
+        )
         mock_response = MagicMock()
         mock_response.status_code = 404
         mock_post.return_value = mock_response
@@ -846,7 +859,7 @@ class TestInvokeFunctionStep:
         step = pipelines.InvokeFunctionStep()
         data = {"active_config": MagicMock(), "function_key": "~ghost", "payload": {}}
 
-        with pytest.raises(httpx.RequestError):
+        with pytest.raises(httpx.RequestError, match="Function 'ghost' not found."):
             step.execute(data)
 
 
@@ -908,8 +921,13 @@ class TestWaitAndFetchLatestLogsStep:
     @patch("cli.functions.pipelines.httpx.get")
     @patch("cli.functions.pipelines.build_endpoint")
     @patch("typer.echo")
-    def test_no_activations(self, mock_echo, mock_build, mock_get, mock_check, mock_fetch):
-        mock_build.return_value = ("https://api.ubidots.com/logs", {"X-Auth-Token": "tok"})
+    def test_no_activations(
+        self, mock_echo, mock_build, mock_get, mock_check, mock_fetch
+    ):
+        mock_build.return_value = (
+            "https://api.ubidots.com/logs",
+            {"X-Auth-Token": "tok"},
+        )
         mock_response = MagicMock()
         mock_response.json.return_value = {"results": []}
         mock_get.return_value = mock_response
@@ -927,7 +945,10 @@ class TestWaitAndFetchLatestLogsStep:
     @patch("cli.functions.pipelines.httpx.get")
     @patch("cli.functions.pipelines.build_endpoint")
     def test_slices_to_count(self, mock_build, mock_get, mock_check, mock_fetch):
-        mock_build.return_value = ("https://api.ubidots.com/logs", {"X-Auth-Token": "tok"})
+        mock_build.return_value = (
+            "https://api.ubidots.com/logs",
+            {"X-Auth-Token": "tok"},
+        )
         activations = [{"activationId": f"act-{i}"} for i in range(10)]
         mock_response = MagicMock()
         mock_response.json.return_value = {"results": activations}
@@ -941,14 +962,23 @@ class TestWaitAndFetchLatestLogsStep:
         # Should pass only the first 3 activations (newest-first from API)
         called_activations = mock_fetch.call_args[1]["activations"]
         assert len(called_activations) == 3
-        assert [a["activationId"] for a in called_activations] == ["act-0", "act-1", "act-2"]
+        assert [a["activationId"] for a in called_activations] == [
+            "act-0",
+            "act-1",
+            "act-2",
+        ]
 
     @patch("cli.functions.pipelines._fetch_activation_details")
     @patch("cli.functions.pipelines.check_response_status")
     @patch("cli.functions.pipelines.httpx.get")
     @patch("cli.functions.pipelines.build_endpoint")
-    def test_count_larger_than_available(self, mock_build, mock_get, mock_check, mock_fetch):
-        mock_build.return_value = ("https://api.ubidots.com/logs", {"X-Auth-Token": "tok"})
+    def test_count_larger_than_available(
+        self, mock_build, mock_get, mock_check, mock_fetch
+    ):
+        mock_build.return_value = (
+            "https://api.ubidots.com/logs",
+            {"X-Auth-Token": "tok"},
+        )
         activations = [{"activationId": "act-0"}, {"activationId": "act-1"}]
         mock_response = MagicMock()
         mock_response.json.return_value = {"results": activations}
@@ -961,6 +991,20 @@ class TestWaitAndFetchLatestLogsStep:
 
         called_activations = mock_fetch.call_args[1]["activations"]
         assert len(called_activations) == 2
+
+    @patch("cli.functions.pipelines.httpx.get")
+    @patch("cli.functions.pipelines.build_endpoint")
+    def test_404_raises_function_not_found(self, mock_build, mock_get):
+        mock_build.return_value = ("https://api.ubidots.com/logs", {"X-Auth-Token": "tok"})
+        mock_response = MagicMock()
+        mock_response.status_code = 404
+        mock_get.return_value = mock_response
+
+        step = pipelines.WaitAndFetchLatestLogsStep(count=1)
+        data = {"active_config": MagicMock(), "function_key": "~ghost"}
+
+        with pytest.raises(httpx.RequestError, match="Function 'ghost' not found."):
+            step.execute(data)
 
 
 # --- PrintActivationLogsStep ---
@@ -993,9 +1037,7 @@ class TestPrintActivationLogsStep:
     def test_prints_string_logs(self, mock_echo):
         step = pipelines.PrintActivationLogsStep()
         data = {
-            "activation_logs": [
-                {"_activation_id": "act-1", "logs": "full log output"}
-            ]
+            "activation_logs": [{"_activation_id": "act-1", "logs": "full log output"}]
         }
         step.execute(data)
 
