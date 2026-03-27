@@ -1220,38 +1220,49 @@ class CheckRemoteIdRequirementStep(PipelineStep):
 
 
 class InvokeFunctionStep(PipelineStep):
-    """Fetch the function's webhook URL, POST the payload to it, and store the result."""
+    """POST payload to /invoke/ and return execution result + logs synchronously."""
 
     def execute(self, data):
         active_config = data["active_config"]
         function_key = data["function_key"]
         payload = data.get("payload", {})
-
-        detail_url, headers = build_endpoint(
-            route=FUNCTION_API_ROUTES["detail"],
+        url, headers = build_endpoint(
+            route=FUNCTION_API_ROUTES["invoke"],
             function_key=function_key,
             active_config=active_config,
         )
-        detail_response = httpx.get(detail_url, headers=headers)
-        if detail_response.status_code == httpx.codes.NOT_FOUND:
+        body = {"payload": json.dumps(payload)}
+        response = httpx.post(url, headers=headers, json=body)
+        if response.status_code == httpx.codes.NOT_FOUND:
             label = function_key.lstrip("~")
             raise httpx.RequestError(f"Function '{label}' not found.")
-        check_response_status(detail_response)
-
-        webhook_url = detail_response.json()["triggers"]["httpUrl"]
-        response = httpx.post(webhook_url, headers=headers, json=payload)
         check_response_status(response)
         data["invoke_response"] = response.json()
         return data
 
 
 class PrintInvokeResponseStep(PipelineStep):
-    """Print the function result returned by the webhook."""
+    """Print the result and execution logs of an /invoke/ call."""
 
     def execute(self, data):
         invoke_response = data.get("invoke_response", {})
+        result = invoke_response.get("response", {}).get("result", {})
+        logs = invoke_response.get("logs", [])
+        start = invoke_response.get("start")
+        end = invoke_response.get("end")
+
+        if logs:
+            typer.echo("\n--- Execution logs ---")
+            for line in logs:
+                typer.echo(line)
+
         typer.echo("\n--- Result ---")
-        typer.echo(json.dumps(invoke_response, indent=2))
+        typer.echo(json.dumps(result, indent=2))
+
+        if start and end:
+            duration_ms = end - start
+            typer.echo(f"\nDuration: {duration_ms}ms")
+
         return data
 
 
