@@ -811,20 +811,24 @@ def test_function_runtime_layer_type_enum_removed():
 
 class TestInvokeFunctionStep:
     @patch("cli.functions.pipelines.httpx.post")
+    @patch("cli.functions.pipelines.httpx.get")
     @patch("cli.functions.pipelines.build_endpoint")
-    def test_successful_invoke(self, mock_build_endpoint, mock_post):
+    def test_successful_invoke(self, mock_build_endpoint, mock_get, mock_post):
         mock_build_endpoint.return_value = (
-            "https://api.ubidots.com/invoke",
+            "https://api.ubidots.com/api/-/functions/~my-fn",
             {"X-Auth-Token": "tok"},
         )
-        mock_response = MagicMock()
-        mock_response.status_code = 200
-        mock_response.json.return_value = {
-            "status": "OK",
-            "logs": ["line1"],
-            "response": {"result": {}},
+        mock_detail = MagicMock()
+        mock_detail.status_code = 200
+        mock_detail.json.return_value = {
+            "triggers": {"httpUrl": "https://parse.ubidots.com/prv/org/my-fn"}
         }
-        mock_post.return_value = mock_response
+        mock_get.return_value = mock_detail
+
+        mock_webhook = MagicMock()
+        mock_webhook.status_code = 200
+        mock_webhook.json.return_value = {"args": {"temp": 25}}
+        mock_post.return_value = mock_webhook
 
         step = pipelines.InvokeFunctionStep()
         data = {
@@ -834,27 +838,23 @@ class TestInvokeFunctionStep:
         }
         result = step.execute(data)
 
-        assert result["invoke_response"] == {
-            "status": "OK",
-            "logs": ["line1"],
-            "response": {"result": {}},
-        }
+        assert result["invoke_response"] == {"args": {"temp": 25}}
         mock_post.assert_called_once_with(
-            "https://api.ubidots.com/invoke",
-            headers={"X-Auth-Token": "tok", "Content-Type": "application/json"},
+            "https://parse.ubidots.com/prv/org/my-fn",
+            headers={"X-Auth-Token": "tok"},
             json={"temp": 25},
         )
 
-    @patch("cli.functions.pipelines.httpx.post")
+    @patch("cli.functions.pipelines.httpx.get")
     @patch("cli.functions.pipelines.build_endpoint")
-    def test_invoke_404_raises_function_not_found(self, mock_build_endpoint, mock_post):
+    def test_invoke_404_raises_function_not_found(self, mock_build_endpoint, mock_get):
         mock_build_endpoint.return_value = (
-            "https://api.ubidots.com/invoke",
+            "https://api.ubidots.com/api/-/functions/~ghost",
             {"X-Auth-Token": "tok"},
         )
-        mock_response = MagicMock()
-        mock_response.status_code = 404
-        mock_post.return_value = mock_response
+        mock_detail = MagicMock()
+        mock_detail.status_code = 404
+        mock_get.return_value = mock_detail
 
         step = pipelines.InvokeFunctionStep()
         data = {"active_config": MagicMock(), "function_key": "~ghost", "payload": {}}
@@ -868,48 +868,24 @@ class TestInvokeFunctionStep:
 
 class TestPrintInvokeResponseStep:
     @patch("typer.echo")
-    def test_prints_logs_and_result(self, mock_echo):
+    def test_prints_result_as_json(self, mock_echo):
         step = pipelines.PrintInvokeResponseStep()
-        data = {
-            "invoke_response": {
-                "logs": ["Args", "{'key': 'val'}"],
-                "response": {"result": {"value": 42}},
-                "start": 1000,
-                "end": 1500,
-            }
-        }
+        data = {"invoke_response": {"args": {"temp": 25}}}
         result = step.execute(data)
 
         assert result is data
         calls = [c.args[0] for c in mock_echo.call_args_list]
-        assert "\n--- Execution logs ---" in calls
-        assert "Args" in calls
         assert "\n--- Result ---" in calls
-        assert "\nDuration: 500ms" in calls
+        assert '{\n  "args": {\n    "temp": 25\n  }\n}' in calls
 
     @patch("typer.echo")
-    def test_no_logs_skips_logs_section(self, mock_echo):
+    def test_prints_empty_result(self, mock_echo):
         step = pipelines.PrintInvokeResponseStep()
-        data = {
-            "invoke_response": {
-                "logs": [],
-                "response": {"result": {"ok": True}},
-            }
-        }
+        data = {"invoke_response": {}}
         step.execute(data)
 
         calls = [c.args[0] for c in mock_echo.call_args_list]
-        assert "\n--- Execution logs ---" not in calls
         assert "\n--- Result ---" in calls
-
-    @patch("typer.echo")
-    def test_no_duration_when_missing_timestamps(self, mock_echo):
-        step = pipelines.PrintInvokeResponseStep()
-        data = {"invoke_response": {"logs": [], "response": {"result": {}}}}
-        step.execute(data)
-
-        calls = [str(c) for c in mock_echo.call_args_list]
-        assert not any("Duration" in c for c in calls)
 
 
 # --- WaitAndFetchLatestLogsStep ---

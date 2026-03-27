@@ -180,6 +180,8 @@ def run_function(
         pipelines.GetActiveConfigStep(),
         pipelines.InvokeFunctionStep(),
         pipelines.PrintInvokeResponseStep(),
+        pipelines.WaitAndFetchLatestLogsStep(count=1, wait_seconds=2),
+        pipelines.PrintActivationLogsStep(),
     ]
     pipeline = Pipeline(steps)
     pipeline.run(

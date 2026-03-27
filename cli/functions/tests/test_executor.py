@@ -9,10 +9,10 @@ from cli.functions.enums import FunctionMethodEnum
 from cli.functions.executor import clean_functions
 from cli.functions.executor import create_function
 from cli.functions.executor import logs_function
-from cli.functions.executor import run_function
 from cli.functions.executor import pull_function
 from cli.functions.executor import push_function
 from cli.functions.executor import restart_function
+from cli.functions.executor import run_function
 from cli.functions.executor import start_function
 from cli.functions.executor import status_function
 from cli.functions.executor import stop_function
@@ -375,8 +375,12 @@ class TestRunFunction(TestCase):
     @patch("cli.functions.pipelines.GetActiveConfigStep")
     @patch("cli.functions.pipelines.InvokeFunctionStep")
     @patch("cli.functions.pipelines.PrintInvokeResponseStep")
+    @patch("cli.functions.pipelines.WaitAndFetchLatestLogsStep")
+    @patch("cli.functions.pipelines.PrintActivationLogsStep")
     def test_run_function(
         self,
+        MockPrintActivationLogsStep,
+        MockWaitAndFetchLatestLogsStep,
         MockPrintInvokeResponseStep,
         MockInvokeFunctionStep,
         MockGetActiveConfigStep,
@@ -394,14 +398,17 @@ class TestRunFunction(TestCase):
             verbose=False,
         )
 
-        # Expected: 3-step pipeline via /invoke/, always prints logs + result
+        # Expected: 5-step pipeline — fetch webhook URL, POST payload, print result, then async logs
         MockPipeline.assert_called_once_with(
             [
                 MockGetActiveConfigStep.return_value,
                 MockInvokeFunctionStep.return_value,
                 MockPrintInvokeResponseStep.return_value,
+                MockWaitAndFetchLatestLogsStep.return_value,
+                MockPrintActivationLogsStep.return_value,
             ]
         )
+        MockWaitAndFetchLatestLogsStep.assert_called_once_with(count=1, wait_seconds=2)
         mock_pipeline_instance.run.assert_called_once_with(
             {
                 "profile": "test_profile",
