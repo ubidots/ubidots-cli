@@ -12,6 +12,7 @@ from cli.functions.executor import logs_function
 from cli.functions.executor import pull_function
 from cli.functions.executor import push_function
 from cli.functions.executor import restart_function
+from cli.functions.executor import run_function
 from cli.functions.executor import start_function
 from cli.functions.executor import status_function
 from cli.functions.executor import stop_function
@@ -369,75 +370,89 @@ class TestStatusFunction(TestCase):
         )
 
 
-class TestLogsFunction(TestCase):
+class TestRunFunction(TestCase):
     @patch("cli.functions.executor.Pipeline")
-    @patch("cli.functions.pipelines.ReadManifestStep")
-    @patch("cli.functions.pipelines.GetProjectFilesStep")
-    @patch("cli.functions.pipelines.ValidateProjectStep")
-    @patch("cli.functions.pipelines.GetFunctionIdFromManifestStep")
     @patch("cli.functions.pipelines.GetActiveConfigStep")
-    @patch("cli.functions.pipelines.BuildEndpointStep")
-    @patch("cli.functions.pipelines.HttpGetRequestStep")
-    @patch("cli.functions.pipelines.CheckResponseStep")
-    @patch("cli.functions.pipelines.TailResultsStep")
-    @patch("cli.functions.pipelines.PrintColoredTableStep")
-    def test_logs_function_remote(
+    @patch("cli.functions.pipelines.InvokeFunctionStep")
+    @patch("cli.functions.pipelines.PrintInvokeResponseStep")
+    def test_run_function(
         self,
-        MockPrintColoredTableStep,
-        MockTailResultsStep,
-        MockCheckResponseStep,
-        MockHttpGetRequestStep,
-        MockBuildEndpointStep,
+        MockPrintInvokeResponseStep,
+        MockInvokeFunctionStep,
         MockGetActiveConfigStep,
-        MockGetFunctionIdFromManifestStep,
-        MockValidateProjectStep,
-        MockGetProjectFilesStep,
-        MockReadManifestStep,
         MockPipeline,
     ):
         # Setup
         mock_pipeline_instance = MockPipeline.return_value
         mock_pipeline_instance.run = MagicMock()
-        tail = "10"
-        follow = True
-        remote = True
-        profile = "test_profile"
-        verbose = True
 
         # Action
-        logs_function(
-            tail=tail,
-            follow=follow,
-            profile=profile,
-            remote=remote,
-            verbose=verbose,
+        run_function(
+            function_key="~my-func",
+            payload={"temp": 25},
+            profile="test_profile",
+            verbose=False,
         )
 
-        # Expected
+        # Expected: 3-step pipeline via /invoke/ — synchronous logs + result
         MockPipeline.assert_called_once_with(
             [
-                MockReadManifestStep.return_value,
-                MockGetProjectFilesStep.return_value,
-                MockValidateProjectStep.return_value,
-                MockGetFunctionIdFromManifestStep.return_value,
                 MockGetActiveConfigStep.return_value,
-                MockBuildEndpointStep.return_value,
-                MockHttpGetRequestStep.return_value,
-                MockCheckResponseStep.return_value,
-                MockTailResultsStep.return_value,
-                MockPrintColoredTableStep.return_value,
+                MockInvokeFunctionStep.return_value,
+                MockPrintInvokeResponseStep.return_value,
             ]
         )
         mock_pipeline_instance.run.assert_called_once_with(
             {
-                "project_path": Path.cwd(),
-                "profile": profile,
-                "tail": tail,
-                "validations": {
-                    "manifest_file_exists": True,
-                    "function_exists": True,
-                },
-                "verbose": verbose,
+                "profile": "test_profile",
+                "function_key": "~my-func",
+                "payload": {"temp": 25},
+                "verbose": False,
+                "root": run_function.__name__,
+            }
+        )
+
+
+class TestLogsFunction(TestCase):
+    @patch("cli.functions.executor.Pipeline")
+    @patch("cli.functions.pipelines.GetActiveConfigStep")
+    @patch("cli.functions.pipelines.WaitAndFetchLatestLogsStep")
+    @patch("cli.functions.pipelines.PrintActivationLogsStep")
+    def test_logs_function_remote(
+        self,
+        MockPrintActivationLogsStep,
+        MockWaitAndFetchLatestLogsStep,
+        MockGetActiveConfigStep,
+        MockPipeline,
+    ):
+        # Setup
+        mock_pipeline_instance = MockPipeline.return_value
+        mock_pipeline_instance.run = MagicMock()
+
+        # Action
+        logs_function(
+            tail=5,
+            follow=False,
+            profile="test_profile",
+            remote=True,
+            verbose=True,
+            function_key="~my-func",
+        )
+
+        # Expected: 3-step pipeline — always detailed, no summary table
+        MockPipeline.assert_called_once_with(
+            [
+                MockGetActiveConfigStep.return_value,
+                MockWaitAndFetchLatestLogsStep.return_value,
+                MockPrintActivationLogsStep.return_value,
+            ]
+        )
+        MockWaitAndFetchLatestLogsStep.assert_called_once_with(count=5, wait_seconds=0)
+        mock_pipeline_instance.run.assert_called_once_with(
+            {
+                "profile": "test_profile",
+                "function_key": "~my-func",
+                "verbose": True,
                 "root": logs_function.__name__,
             }
         )

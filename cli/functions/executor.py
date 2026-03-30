@@ -170,64 +170,52 @@ def status_function(
     )
 
 
+def run_function(
+    function_key: str,
+    payload: dict,
+    profile: str,
+    verbose: bool,
+):
+    steps = [
+        pipelines.GetActiveConfigStep(),
+        pipelines.InvokeFunctionStep(),
+        pipelines.PrintInvokeResponseStep(),
+    ]
+    pipeline = Pipeline(steps)
+    pipeline.run(
+        {
+            "profile": profile,
+            "function_key": function_key,
+            "payload": payload,
+            "verbose": verbose,
+            "root": run_function.__name__,
+        }
+    )
+
+
 def logs_function(
-    tail: str,
+    tail: int,
     follow: bool,
     profile: str,
     remote: bool,
     verbose: bool,
-    remote_id: str = "",
+    function_key: str = "",
 ):
     if remote:
-        if remote_id:
-            # When remote_id is provided directly, use it without reading manifest
-            steps = [
-                pipelines.GetActiveConfigStep(),
-                pipelines.BuildEndpointStep(FUNCTION_API_ROUTES["logs"]),
-                pipelines.HttpGetRequestStep(),
-                pipelines.CheckResponseStep("response"),
-                pipelines.TailResultsStep(),
-                pipelines.PrintColoredTableStep(key="results"),
-            ]
-            pipeline = Pipeline(steps)
-            pipeline.run(
-                {
-                    "project_path": Path.cwd(),
-                    "profile": profile,
-                    "remote_id": remote_id,
-                    "tail": tail,
-                    "verbose": verbose,
-                    "root": logs_function.__name__,
-                }
-            )
-        else:
-            # When remote_id is not provided, read from manifest
-            steps = [
-                pipelines.ReadManifestStep(),
-                pipelines.GetProjectFilesStep(),
-                pipelines.ValidateProjectStep(),
-                pipelines.GetFunctionIdFromManifestStep(),
-                pipelines.GetActiveConfigStep(),
-                pipelines.BuildEndpointStep(FUNCTION_API_ROUTES["logs"]),
-                pipelines.HttpGetRequestStep(),
-                pipelines.CheckResponseStep("response"),
-                pipelines.TailResultsStep(),
-                pipelines.PrintColoredTableStep(key="results"),
-            ]
-            pipeline = Pipeline(steps)
-            pipeline.run(
-                {
-                    "project_path": Path.cwd(),
-                    "profile": profile,
-                    "tail": tail,
-                    "validations": {
-                        "manifest_file_exists": True,
-                        "function_exists": True,
-                    },
-                    "verbose": verbose,
-                    "root": logs_function.__name__,
-                }
-            )
+        steps = [
+            pipelines.GetActiveConfigStep(),
+            pipelines.WaitAndFetchLatestLogsStep(count=tail, wait_seconds=0),
+            pipelines.PrintActivationLogsStep(),
+        ]
+        pipeline = Pipeline(steps)
+        pipeline.run(
+            {
+                "profile": profile,
+                "function_key": function_key,
+                "verbose": verbose,
+                "root": logs_function.__name__,
+            }
+        )
     else:
         steps = [
             pipelines.ReadManifestStep(),

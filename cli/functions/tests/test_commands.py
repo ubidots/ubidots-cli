@@ -442,31 +442,114 @@ class TestDevLogsCommand(TestCase):
         self.assertNotEqual(result.exit_code, 0)
 
 
+@patch("cli.functions.commands.executor.run_function")
+class TestRunFunctionCommand(TestCase):
+    def test_run_with_label(self, mock_run_function):
+        """Test run command with function label (default payload)."""
+        result = runner.invoke(function_app, ["run", "--label", "my-func"])
+
+        self.assertEqual(result.exit_code, 0)
+        mock_run_function.assert_called_once_with(
+            function_key="~my-func",
+            payload={},
+            profile="",
+            verbose=False,
+        )
+
+    @patch("cli.functions.commands.get_instance_key", return_value="abc123")
+    def test_run_with_id(self, mock_get_instance_key, mock_run_function):
+        """Test run command with function ID."""
+        result = runner.invoke(function_app, ["run", "--id", "abc123"])
+
+        self.assertEqual(result.exit_code, 0)
+        mock_run_function.assert_called_once_with(
+            function_key="abc123",
+            payload={},
+            profile="",
+            verbose=False,
+        )
+
+    def test_run_with_payload(self, mock_run_function):
+        """Test run command with JSON payload."""
+        result = runner.invoke(
+            function_app,
+            ["run", "--label", "my-func", "--payload", '{"temp": 25}'],
+        )
+
+        self.assertEqual(result.exit_code, 0)
+        mock_run_function.assert_called_once_with(
+            function_key="~my-func",
+            payload={"temp": 25},
+            profile="",
+            verbose=False,
+        )
+
+    def test_run_invalid_json_payload(self, mock_run_function):
+        """Test run command rejects invalid JSON payload before any HTTP call."""
+        result = runner.invoke(
+            function_app,
+            ["run", "--label", "my-func", "--payload", "not-json"],
+        )
+
+        self.assertNotEqual(result.exit_code, 0)
+        mock_run_function.assert_not_called()
+
+
 @patch("cli.functions.commands.executor.logs_function")
 class TestRootLogsCommand(TestCase):
-    def test_root_logs_with_explicit_id(self, mock_logs_function):
-        """Test root logs command with explicit function ID."""
-        # Action
+    def test_root_logs_with_explicit_label(self, mock_logs_function):
+        """Test root logs command with explicit function label."""
         result = runner.invoke(
             function_app,
             [
                 "logs",
-                "abc123",
+                "--label",
+                "my-func",
                 "--profile",
                 "test_profile",
                 "--verbose",
             ],
         )
 
-        # Expected
         self.assertEqual(result.exit_code, 0)
         mock_logs_function.assert_called_once_with(
-            tail="all",
+            tail=1,
             follow=False,
             remote=True,
-            remote_id="abc123",
+            function_key="~my-func",
             profile="test_profile",
             verbose=True,
+        )
+
+    def test_root_logs_with_custom_tail(self, mock_logs_function):
+        """Test root logs command with custom --tail value."""
+        result = runner.invoke(
+            function_app, ["logs", "--label", "my-func", "--tail", "3"]
+        )
+
+        self.assertEqual(result.exit_code, 0)
+        mock_logs_function.assert_called_once_with(
+            tail=3,
+            follow=False,
+            remote=True,
+            function_key="~my-func",
+            profile="",
+            verbose=False,
+        )
+
+    @patch("cli.functions.commands.get_instance_key", return_value="abc123")
+    def test_root_logs_with_id(self, mock_get_instance_key, mock_logs_function):
+        """Test root logs command with function ID."""
+        result = runner.invoke(function_app, ["logs", "--id", "abc123"])
+
+        self.assertEqual(result.exit_code, 0)
+        mock_logs_function.assert_called_once_with(
+            tail=1,
+            follow=False,
+            remote=True,
+            function_key="abc123",
+            profile="",
+            verbose=False,
         )
 
 

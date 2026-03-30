@@ -29,6 +29,7 @@ from cli.functions.exceptions import PermissionDeniedError
 from cli.functions.exceptions import TemplateNotFoundError
 from cli.functions.handlers import add_function
 from cli.functions.handlers import delete_function
+from cli.functions.handlers import fetch_activation_log
 from cli.functions.handlers import list_functions
 from cli.functions.handlers import retrieve_function
 from cli.functions.handlers import update_function
@@ -1215,4 +1216,140 @@ class CheckRemoteIdRequirementStep(PipelineStep):
                 if not remote_id:
                     error_message = "The function has not been registered or synchronized with the platform."
                     raise ValueError(error_message) from e
+        return data
+
+
+class InvokeFunctionStep(PipelineStep):
+    """POST payload to /invoke/ and return execution result + logs synchronously."""
+
+    def execute(self, data):
+        active_config = data["active_config"]
+        function_key = data["function_key"]
+        payload = data.get("payload", {})
+        url, headers = build_endpoint(
+            route=FUNCTION_API_ROUTES["invoke"],
+            function_key=function_key,
+            active_config=active_config,
+        )
+        body = {"payload": json.dumps(payload)}
+        response = httpx.post(url, headers=headers, json=body)
+        if response.status_code == httpx.codes.NOT_FOUND:
+            label = function_key.lstrip("~")
+            raise httpx.RequestError(f"Function '{label}' not found.")
+        check_response_status(response)
+        data["invoke_response"] = response.json()
+        return data
+
+
+class PrintInvokeResponseStep(PipelineStep):
+    """Print the result and execution logs of an /invoke/ call."""
+
+    def execute(self, data):
+        invoke_response = data.get("invoke_response", {})
+        result = invoke_response.get("response", {}).get("result", {})
+        logs = invoke_response.get("logs", [])
+        start = invoke_response.get("start")
+        end = invoke_response.get("end")
+
+        if logs:
+            typer.echo("\n--- Execution logs ---")
+            for line in logs:
+                typer.echo(line)
+
+        typer.echo("\n--- Result ---")
+        typer.echo(json.dumps(result, indent=2))
+
+        if start and end:
+            duration_ms = end - start
+            typer.echo(f"\nDuration: {duration_ms}ms")
+
+        return data
+
+
+def _fetch_activation_details(activations, function_key, active_config, headers):
+    """Fetch detailed logs for a list of activation summaries."""
+    activation_logs = []
+    for activation in activations:
+        activation_id = activation.get("activationId") or activation.get("id")
+        detail_url, _ = build_endpoint(
+            route=FUNCTION_API_ROUTES["logs_detail"],
+            function_key=function_key,
+            activation_id=activation_id,
+            active_config=active_config,
+        )
+        detail_response = fetch_activation_log(url=detail_url, headers=headers)
+        if detail_response.status_code == httpx.codes.OK:
+            entry = detail_response.json()
+            entry["_activation_id"] = activation_id
+            activation_logs.append(entry)
+        else:
+            activation_logs.append(
+                {"_activation_id": activation_id, "error": "Failed to fetch log detail"}
+            )
+    return activation_logs
+
+
+@dataclass
+class WaitAndFetchLatestLogsStep(PipelineStep):
+    """List activations and fetch detail for the latest N activations."""
+
+    count: int = 1
+    wait_seconds: int = 0
+
+    def execute(self, data):
+        if self.wait_seconds > 0:
+            time.sleep(self.wait_seconds)
+
+        active_config = data["active_config"]
+        function_key = data["function_key"]
+
+        logs_url, headers = build_endpoint(
+            route=FUNCTION_API_ROUTES["logs"],
+            function_key=function_key,
+            active_config=active_config,
+        )
+        response = httpx.get(logs_url, headers=headers)
+        if response.status_code == httpx.codes.NOT_FOUND:
+            label = function_key.lstrip("~")
+            raise httpx.RequestError(f"Function '{label}' not found.")
+        check_response_status(response)
+        activations = response.json().get("results", [])
+
+        if not activations:
+            typer.echo("No activations found.")
+            data["activation_logs"] = []
+            return data
+
+        data["activation_logs"] = _fetch_activation_details(
+            activations=activations[: self.count],
+            function_key=function_key,
+            active_config=active_config,
+            headers=headers,
+        )
+        return data
+
+
+class PrintActivationLogsStep(PipelineStep):
+    """Format and print activation log entries."""
+
+    def execute(self, data):
+        activation_logs = data.get("activation_logs", [])
+        if not activation_logs:
+            typer.echo("No logs found.")
+            return data
+
+        for log_entry in activation_logs:
+            activation_id = log_entry.get("_activation_id", "unknown")
+            typer.echo(f"\n--- Activation: {activation_id} ---")
+            if "error" in log_entry:
+                typer.echo(f"Error: {log_entry['error']}")
+                continue
+            logs = log_entry.get("logs", [])
+            if isinstance(logs, list):
+                for line in logs:
+                    typer.echo(line, nl=False)
+            elif isinstance(logs, str):
+                typer.echo(logs)
+            else:
+                typer.echo(json.dumps(log_entry, indent=2))
         return data

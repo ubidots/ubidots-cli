@@ -1,7 +1,5 @@
-import contextlib
 from builtins import list as BuiltinList
 from datetime import datetime
-from pathlib import Path
 from typing import Annotated
 from typing import no_type_check
 
@@ -21,7 +19,6 @@ from cli.commons.validators import is_valid_json_string
 from cli.functions import executor
 from cli.functions.enums import FunctionLanguageEnum
 from cli.functions.enums import FunctionMethodEnum
-from cli.functions.helpers import read_manifest_project_file
 from cli.settings import settings
 
 DEFAULT_METHODS = FunctionMethodEnum.get_default_method()
@@ -305,27 +302,58 @@ def clean_functions(
 
 
 @app.command(
+    name="run",
+    short_help="Trigger a remote function.",
+    rich_help_panel="Cloud Commands",
+)
+@simple_lookup_key(entity_name=EntityNameEnum.FUNCTION)
+@add_verbose_option()
+def run_function(
+    id: str | None = None,
+    label: str | None = None,
+    payload: Annotated[
+        str,
+        typer.Option(
+            help="JSON payload to send to the function.",
+            callback=is_valid_json_string,
+        ),
+    ] = "{}",
+    profile: Annotated[
+        str,
+        typer.Option(
+            help="Name of the profile to use for remote server communication."
+        ),
+    ] = "",
+    verbose: bool = False,
+):
+    function_key = get_instance_key(id=id, label=label)
+
+    executor.run_function(
+        function_key=function_key,
+        payload=payload,
+        profile=profile,
+        verbose=verbose,
+    )
+
+
+@app.command(
     name="logs",
     help="Retrieve and display logs from a remote function.",
     rich_help_panel="Cloud Commands",
 )
+@simple_lookup_key(entity_name=EntityNameEnum.FUNCTION)
 @add_verbose_option()
 def logs_function_remote(
-    function_id: Annotated[
-        str,
-        typer.Argument(
-            help="The remote function ID. If omitted, uses ID from local manifest.",
-            show_default=False,
-        ),
-    ] = "",
+    id: str | None = None,
+    label: str | None = None,
     tail: Annotated[
-        str,
+        int,
         typer.Option(
             "--tail",
             "-n",
-            help="Number of log lines to show from the end. Defaults to all.",
+            help="Number of most recent activations to show (detailed). Defaults to 1.",
         ),
-    ] = "all",
+    ] = 1,
     profile: Annotated[
         str,
         typer.Option(
@@ -336,28 +364,13 @@ def logs_function_remote(
     ] = "",
     verbose: bool = False,
 ):
-
-    remote_id = function_id
-
-    if not remote_id:
-        manifest_file = Path.cwd() / settings.FUNCTIONS.PROJECT_METADATA_FILE
-        if manifest_file.exists():
-            with contextlib.suppress(ValueError, FileNotFoundError):
-                project_metadata = read_manifest_project_file(Path.cwd())
-                remote_id = project_metadata.function.id
-
-    if not remote_id:
-        msg = (
-            "Function ID required. Provide an ID as an argument or run from within a function "
-            "directory with a valid manifest file."
-        )
-        raise typer.BadParameter(msg)
+    function_key = get_instance_key(id=id, label=label)
 
     executor.logs_function(
         tail=tail,
         follow=False,
         remote=True,
-        remote_id=remote_id,
+        function_key=function_key,
         profile=profile,
         verbose=verbose,
     )

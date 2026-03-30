@@ -114,6 +114,11 @@ def add_function(active_config: ProfileConfigModel, **kwargs):
     }
 
 
+def fetch_activation_log(url: str, headers: dict) -> httpx.Response:
+    with httpx.Client(follow_redirects=True, timeout=30.0) as client:
+        return client.get(url, headers=headers)
+
+
 def delete_function(url: str, headers: dict, function_key: str):
     try:
         response = httpx.delete(url, headers=headers)
