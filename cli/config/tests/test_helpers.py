@@ -16,6 +16,7 @@ from cli.config.helpers import exist_config_file
 from cli.config.helpers import exists_default_profile
 from cli.config.helpers import extract_profile_paths
 from cli.config.helpers import get_active_profile_configuration
+from cli.config.helpers import get_configuration
 from cli.config.helpers import get_profile_configuration
 from cli.config.helpers import get_runtimes_from_api
 from cli.config.helpers import mask_token
@@ -229,6 +230,38 @@ class TestCLIHelperFunctions(TestCase):
         self.assertIsInstance(
             mock_exit.call_args[1]["exception"], CurrentPlanDoesNotIncludeRuntimes
         )
+
+    @patch("cli.config.helpers.exit_with_error_message")
+    @patch(
+        "cli.config.helpers.get_active_profile_configuration",
+        side_effect=ProfileConfigMissingFieldsError(
+            profile_file=Path("test.yaml"), missing_fields={"access_token", "runtimes"}
+        ),
+    )
+    def test_get_configuration_missing_fields_shows_friendly_message(
+        self, mock_get_active, mock_exit
+    ):
+        get_configuration()
+        mock_exit.assert_called_once()
+        call_kwargs = mock_exit.call_args[1]
+        self.assertIsInstance(call_kwargs["exception"], ProfileConfigMissingFieldsError)
+        self.assertIn("ubidots config", call_kwargs["hint"])
+
+    @patch("cli.config.helpers.exit_with_error_message")
+    @patch(
+        "cli.config.helpers.get_active_profile_configuration",
+        side_effect=ProfileConfigEmptyFieldsError(
+            profile_file=Path("test.yaml"), empty_fields={"access_token"}
+        ),
+    )
+    def test_get_configuration_empty_fields_shows_friendly_message(
+        self, mock_get_active, mock_exit
+    ):
+        get_configuration()
+        mock_exit.assert_called_once()
+        call_kwargs = mock_exit.call_args[1]
+        self.assertIsInstance(call_kwargs["exception"], ProfileConfigEmptyFieldsError)
+        self.assertIn("ubidots config", call_kwargs["hint"])
 
     @patch("cli.config.helpers.requests.get")
     def test_get_runtimes_from_api_invalid_response(self, mock_get):
