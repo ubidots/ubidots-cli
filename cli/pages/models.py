@@ -20,6 +20,7 @@ class AddPagePayload(TypedDict):
 
 class UpdatePagePayload(TypedDict, total=False):
     name: str
+    label: str
 
 
 class PageTypeEnum(StrEnum):

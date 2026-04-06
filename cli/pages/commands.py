@@ -38,6 +38,11 @@ STATUS_COMMAND_HELP_TEXT = (
 
 LIST_COMMAND_HELP_TEXT = "List all pages and their status. "
 
+CLEAN_COMMAND_HELP_TEXT = (
+    "Remove orphaned pages whose source directory no longer exists. "
+    "Deregisters each page from Argo and deletes its workspace directory."
+)
+
 LOGS_COMMAND_HELP_TEXT = "Display logs from the local page development server. "
 
 FIELDS_PAGE_HELP_TEXT = (
@@ -53,13 +58,6 @@ def create_page(
         str,
         typer.Option(help="The name for the page."),
     ] = settings.PAGES.DEFAULT_PAGE_NAME,
-    remote_id: Annotated[
-        str,
-        typer.Option(
-            "--remote-id",
-            help="Optional: remote page ID to pull from cloud.",
-        ),
-    ] = "",
     profile: Annotated[
         str,
         typer.Option(
@@ -70,18 +68,11 @@ def create_page(
         PageTypeEnum,
         typer.Option(
             help="The type of page to create.",
+            hidden=True,
         ),
     ] = PageTypeEnum.DASHBOARD,
     verbose: bool = False,
 ):
-    if remote_id:
-        # Future: executor.pull_page(remote_id, verbose, profile)
-        typer.echo(
-            "Remote page pulling not implemented yet. This feature is reserved for "
-            "future cloud integration."
-        )
-        typer.echo(f"Attempted to pull page with ID: {remote_id}")
-        return
     executor.create_local_page(
         name=name,
         verbose=verbose,
@@ -97,13 +88,6 @@ def create_page_deprecated(
         str,
         typer.Option(help="The name for the page."),
     ] = settings.PAGES.DEFAULT_PAGE_NAME,
-    remote_id: Annotated[
-        str,
-        typer.Option(
-            "--remote-id",
-            help="Optional: remote page ID to pull from cloud.",
-        ),
-    ] = "",
     profile: Annotated[
         str,
         typer.Option(
@@ -114,13 +98,13 @@ def create_page_deprecated(
         PageTypeEnum,
         typer.Option(
             help="The type of page to create.",
+            hidden=True,
         ),
     ] = PageTypeEnum.DASHBOARD,
     verbose: bool = False,
 ):
     create_page(
         name=name,
-        remote_id=remote_id,
         profile=profile,
         type=type,
         verbose=verbose,
@@ -177,6 +161,20 @@ def list_pages(
     )
 
 
+@dev_app.command(name="clean", help=CLEAN_COMMAND_HELP_TEXT)
+@add_verbose_option()
+def clean_pages(
+    confirm: Annotated[
+        bool,
+        typer.Option(
+            "--yes", "-y", help="Skip confirmation prompt and remove immediately."
+        ),
+    ] = False,
+    verbose: bool = False,
+):
+    executor.clean_orphaned_pages(confirm=confirm, verbose=verbose)
+
+
 @dev_app.command(name="logs", help=LOGS_COMMAND_HELP_TEXT)
 @add_verbose_option()
 def logs_page(
@@ -194,10 +192,7 @@ def logs_page(
     ] = False,
     verbose: bool = False,
 ):
-    """Display logs from the local page development server.
-
-    This command shows logs from your local Docker/Podman container.
-    """
+    """Shows dev server logs. Not yet implemented for the Argo-based engine."""
     executor.logs_local_dev_server(
         tail=tail,
         follow=follow,
@@ -346,15 +341,22 @@ def update_page(
         str,
         typer.Option("--new-name", help="New name for the page."),
     ] = "",
+    new_label: Annotated[
+        str,
+        typer.Option("--new-label", help="New label for the page."),
+    ] = "",
     verbose: bool = False,
 ):
-    if not new_name:
-        typer.echo("Error: --new-name is required.", err=True)
+    if not new_name and not new_label:
+        typer.echo(
+            "Error: at least one of --new-name or --new-label is required.", err=True
+        )
         raise typer.Exit(1)
     page_key = get_instance_key(id=id, label=label)
     executor.update_page_from_cloud_platform(
         page_key=page_key,
         new_name=new_name,
+        new_label=new_label,
         profile=profile,
         verbose=verbose,
     )

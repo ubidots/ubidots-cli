@@ -175,10 +175,14 @@ cli/pages/engines/
 │   ├── client.py       Concrete Docker client
 │   ├── container.py    Container lifecycle
 │   ├── network.py      Network management
-│   ├── models.py       Container status models
-│   └── helpers.py      Engine helper utilities
+│   └── models.py       Container status models
+├── helpers.py          Workspace + Argo registration helpers
+├── templates/
+│   ├── copy_watcher.py     Subprocess: watches source dir, copies to workspace
+│   └── hot_reload_server.py  Subprocess: SSE server that triggers browser reload
 └── manager.py          Engine client factory
 ```
 
-Pages has no Podman implementation. The rest of the codebase (executors, pipelines) calls the abstract interface
-and never imports Docker or Podman directly, keeping container engine concerns fully isolated.
+Pages has no Podman implementation. Pages shares the same Argo container as functions — there are no
+per-page Docker containers. The engine layer manages the workspace directory and the two long-running
+subprocesses (`copy_watcher`, `hot_reload_server`) rather than containers.

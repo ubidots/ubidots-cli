@@ -14,12 +14,11 @@ def create_local_page(
     profile: str,
     type: PageTypeEnum,
 ):
-
     label = sanitize_function_name(name)
-    project_path = Path.cwd() / name if not Path(name).is_absolute() else Path(name)
+    project_path = Path.cwd() / name  # plain directory, no workspace at add time
+
     steps = [
         pipelines.ValidateNotRunningFromPageDirectoryStep(),
-        pipelines.ValidateCurrentPageExistsStep(),
         pipelines.GetActiveConfigStep(),
         pipelines.ValidatePagesAvailabilityPerPlanStep(),
         pipelines.ValidateTemplateStep(),
@@ -27,10 +26,11 @@ def create_local_page(
         pipelines.ExtractTemplateStep(),
         pipelines.ValidateExtractedPageStep(),
         pipelines.SaveManifestStep(),
-        pipelines.EnsureDockerImageStep(),
+        pipelines.GetWorkspaceKeyStep(),
+        pipelines.CreateWorkspaceStep(),
     ]
     pipeline = Pipeline(
-        steps, success_message=f"Page '{name}' created in '{project_path}'."
+        steps, success_message=f"Page '{name}' created at {project_path}."
     )
     pipeline.run(
         {
@@ -46,9 +46,7 @@ def create_local_page(
     )
 
 
-def start_local_dev_server(
-    verbose: bool,
-):
+def start_local_dev_server(verbose: bool):
     steps = [
         pipelines.ValidatePageDirectoryStep(),
         pipelines.ReadPageMetadataStep(),
@@ -56,9 +54,22 @@ def start_local_dev_server(
         pipelines.GetClientStep(),
         pipelines.GetContainerManagerStep(),
         pipelines.GetPageNameStep(),
+        pipelines.GetWorkspaceKeyStep(),
         pipelines.ValidatePageNotRunningStep(),
-        pipelines.EnsureFlaskManagerStep(),
-        pipelines.StartPageContainerStep(),
+        pipelines.GetNetworkStep(),
+        pipelines.GetArgoImageNameStep(),
+        pipelines.ValidateArgoImageStep(),
+        pipelines.EnsureArgoRunningStep(),
+        pipelines.CleanOrphanedPagesStep(),
+        pipelines.CreateWorkspaceStep(),
+        pipelines.CopyTrackedFilesStep(),
+        pipelines.FindHotReloadPortStep(),
+        pipelines.RenderIndexHtmlStep(),
+        pipelines.DeregisterPageFromArgoStep(),
+        pipelines.RegisterPageInArgoStep(),
+        pipelines.StartCopyWatcherStep(),
+        pipelines.StartHotReloadSubprocessStep(),
+        pipelines.StoreHotReloadPortStep(),
         pipelines.PrintPageUrlStep(),
     ]
     pipeline = Pipeline(steps, success_message="Page started successfully.")
@@ -66,22 +77,29 @@ def start_local_dev_server(
         {
             "project_path": Path.cwd(),
             "verbose": verbose,
+            "confirm": True,
             "root": start_local_dev_server.__name__,
         }
     )
 
 
-def stop_local_dev_server(
-    verbose: bool,
-):
+def stop_local_dev_server(verbose: bool):
     steps = [
-        pipelines.ValidatePageDirectoryStep(),
+        # NOTE: ValidatePageDirectoryStep intentionally omitted — spec requires that
+        # dev stop works even on pages created with the old symlink layout.
         pipelines.ReadPageMetadataStep(),
         pipelines.GetClientStep(),
         pipelines.GetContainerManagerStep(),
         pipelines.GetPageNameStep(),
+        pipelines.GetWorkspaceKeyStep(),
         pipelines.ValidatePageRunningStep(),
-        pipelines.StopPageContainerStep(),
+        pipelines.GetNetworkStep(),
+        pipelines.GetArgoImageNameStep(),
+        pipelines.ValidateArgoImageStep(),
+        pipelines.EnsureArgoRunningStep(),
+        pipelines.DeregisterPageFromArgoStep(),
+        pipelines.StopCopyWatcherStep(),
+        pipelines.StopHotReloadSubprocessStep(),
     ]
     pipeline = Pipeline(steps, success_message="Page stopped successfully.")
     pipeline.run(
@@ -93,31 +111,6 @@ def stop_local_dev_server(
     )
 
 
-def restart_local_dev_server(
-    verbose: bool,
-):
-    steps = [
-        pipelines.ValidatePageDirectoryStep(),
-        pipelines.ReadPageMetadataStep(),
-        pipelines.GetClientStep(),
-        pipelines.GetContainerManagerStep(),
-        pipelines.GetPageNameStep(),
-        pipelines.ValidatePageRunningStep(),
-        pipelines.StopPageContainerStep(),
-        pipelines.EnsureFlaskManagerStep(),
-        pipelines.StartPageContainerStep(),
-        pipelines.PrintPageUrlStep(),
-    ]
-    pipeline = Pipeline(steps, success_message="Page restarted successfully.")
-    pipeline.run(
-        {
-            "project_path": Path.cwd(),
-            "verbose": verbose,
-            "root": restart_local_dev_server.__name__,
-        }
-    )
-
-
 def show_local_dev_server_status(
     verbose: bool,
 ):
@@ -125,10 +118,11 @@ def show_local_dev_server_status(
         pipelines.ValidatePageDirectoryStep(),
         pipelines.ReadPageMetadataStep(),
         pipelines.GetClientStep(),
-        pipelines.GetContainerManagerStep(),
         pipelines.GetPageNameStep(),
+        pipelines.GetWorkspaceKeyStep(),
+        pipelines.TryGetArgoPortStep(),
         pipelines.GetPageStatusTableStep(),
-        pipelines.PrintColoredTableStep(key="status"),
+        pipelines.PrintPageStatusStep(),
     ]
     pipeline = Pipeline(steps, success_message="")
     pipeline.run(
@@ -140,12 +134,36 @@ def show_local_dev_server_status(
     )
 
 
+def clean_orphaned_pages(confirm: bool, verbose: bool):
+    steps = [
+        pipelines.GetClientStep(),
+        pipelines.GetContainerManagerStep(),
+        pipelines.GetNetworkStep(),
+        pipelines.GetArgoImageNameStep(),
+        pipelines.ValidateArgoImageStep(),
+        pipelines.EnsureArgoRunningStep(),
+        pipelines.CleanOrphanedPagesStep(),
+    ]
+    pipeline = Pipeline(steps, success_message="")
+    pipeline.run(
+        {
+            "confirm": confirm,
+            "verbose": verbose,
+            "root": clean_orphaned_pages.__name__,
+        }
+    )
+
+
 def list_local_pages(
     verbose: bool,
 ):
     steps = [
         pipelines.GetClientStep(),
         pipelines.GetContainerManagerStep(),
+        pipelines.GetNetworkStep(),
+        pipelines.GetArgoImageNameStep(),
+        pipelines.ValidateArgoImageStep(),
+        pipelines.EnsureArgoRunningStep(),
         pipelines.ListAllPagesStep(),
         pipelines.PrintPagesListStep(),
     ]
@@ -305,6 +323,7 @@ def pull_page_from_cloud_platform(
         pipelines.GetRemotePageLocalMetadataStep(),
         pipelines.ValidatePageHasAlreadyBeenPulledStep(),
         pipelines.ConfirmOverwritePullPageStep(),
+        pipelines.CreatePullDirectoryStep(),
         pipelines.DownloadPageCodeStep(),
         pipelines.CheckPageResponseStep("page_zip_content"),
         pipelines.ExtractPageProjectStep(),
@@ -327,6 +346,7 @@ def pull_page_from_cloud_platform(
 def update_page_from_cloud_platform(
     page_key: str,
     new_name: str,
+    new_label: str,
     profile: str,
     verbose: bool,
 ):
@@ -340,31 +360,65 @@ def update_page_from_cloud_platform(
             "profile": profile,
             "page_key": page_key,
             "new_name": new_name,
+            "new_label": new_label,
             "verbose": verbose,
             "root": update_page_from_cloud_platform.__name__,
         }
     )
 
 
-def logs_local_dev_server(
-    tail: str,
-    follow: bool,
-    verbose: bool,
-):
+def restart_local_dev_server(verbose: bool):
     steps = [
         pipelines.ValidatePageDirectoryStep(),
         pipelines.ReadPageMetadataStep(),
+        pipelines.ValidatePageStructureStep(),
         pipelines.GetClientStep(),
         pipelines.GetContainerManagerStep(),
         pipelines.GetPageNameStep(),
-        pipelines.GetPageLogsStep(tail=tail, follow=follow),
-        pipelines.PrintkeyStep(key="logs"),
+        pipelines.GetWorkspaceKeyStep(),
+        pipelines.GetNetworkStep(),
+        pipelines.GetArgoImageNameStep(),
+        pipelines.ValidateArgoImageStep(),
+        pipelines.EnsureArgoRunningStep(),
+        pipelines.ValidatePageRunningStep(),
+        pipelines.DeregisterPageFromArgoStep(),
+        pipelines.StopCopyWatcherStep(),
+        pipelines.StopHotReloadSubprocessStep(),
+        pipelines.CreateWorkspaceStep(),
+        pipelines.CopyTrackedFilesStep(),
+        pipelines.FindHotReloadPortStep(),
+        pipelines.RenderIndexHtmlStep(),
+        pipelines.RegisterPageInArgoStep(),
+        pipelines.StartCopyWatcherStep(),
+        pipelines.StartHotReloadSubprocessStep(),
+        pipelines.StoreHotReloadPortStep(),
+        pipelines.PrintPageUrlStep(),
+    ]
+    pipeline = Pipeline(steps, success_message="Page restarted successfully.")
+    pipeline.run(
+        {
+            "project_path": Path.cwd(),
+            "verbose": verbose,
+            "root": restart_local_dev_server.__name__,
+        }
+    )
+
+
+def logs_local_dev_server(tail: str, follow: bool, verbose: bool):
+    steps = [
+        pipelines.ValidatePageDirectoryStep(),
+        pipelines.ReadPageMetadataStep(),
+        pipelines.GetPageNameStep(),  # NEW: GetWorkspaceKeyStep depends on page_name
+        pipelines.GetWorkspaceKeyStep(),
+        pipelines.ShowPageLogsStep(),
     ]
     pipeline = Pipeline(steps, success_message="")
     pipeline.run(
         {
             "project_path": Path.cwd(),
             "verbose": verbose,
+            "tail": tail,
+            "follow": follow,
             "root": logs_local_dev_server.__name__,
         }
     )

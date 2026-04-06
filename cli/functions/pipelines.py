@@ -13,6 +13,11 @@ import typer
 
 from cli.commons.enums import MessageColorEnum
 from cli.commons.pipelines import PipelineStep
+from cli.commons.settings import ARGO_IMAGE_NAME
+from cli.commons.settings import ARGO_INTERNAL_TARGET_PORT
+from cli.commons.settings import ARGO_LABEL_KEY
+from cli.commons.settings import HOST_BIND
+from cli.commons.settings import HUB_USERNAME
 from cli.commons.styles import print_colored_table
 from cli.commons.utils import build_endpoint
 from cli.commons.utils import check_response_status
@@ -843,15 +848,11 @@ class GetContainerManagerStep(PipelineStep):
 class GetImageNamesStep(PipelineStep):
     def execute(self, data):
         project_metadata = data["project_metadata"]
-        hub_username = engine_settings.HUB_USERNAME
-        function_image_name = (
-            f"{hub_username}/"
-            f"{engine_settings.HUB_PREFFIX}-{project_metadata.project.runtime}"
-        )
-        argo_image_name = (
-            f"{hub_username}/"
-            f"{engine_settings.HUB_PREFFIX}-{engine_settings.CONTAINER.ARGO.NAME}:2.0.1"
-        )
+        # TODO: consolidate FUNCTIONS_HUB_USERNAME into cli.commons.settings once
+        #       runtime images are published under the same hub account as the Argo image
+        FUNCTIONS_HUB_USERNAME = "ubidots"
+        function_image_name = f"{FUNCTIONS_HUB_USERNAME}/{engine_settings.HUB_PREFFIX}-{project_metadata.project.runtime}"
+        argo_image_name = ARGO_IMAGE_NAME
 
         data["image_names"] = [
             argo_image_name,
@@ -887,7 +888,7 @@ class GetArgoContainerManagerStep(PipelineStep):
         image_name = data["argo_image_name"]
         project_metadata = data["project_metadata"]
 
-        container, argo_adapter_port = argo_container_manager(
+        container, argo_adapter_port, argo_target_port = argo_container_manager(
             container_manager=container_manager,
             client=client,
             network=network,
@@ -896,6 +897,7 @@ class GetArgoContainerManagerStep(PipelineStep):
         )
         data["argo_container"] = container
         data["argo_adapter_port"] = argo_adapter_port
+        data["argo_target_port"] = argo_target_port
         return data
 
 
@@ -1001,10 +1003,8 @@ class GetFRIEContainerTargetStep(PipelineStep):
         timeout = project_metadata.function.serverless.timeout
         language = project_metadata.project.language
         label = project_metadata.function.label
-        argo_target_port = engine_settings.CONTAINER.ARGO.INTERNAL_TARGET_PORT.split(
-            "/"
-        )[0]
-        target_url = f"http://{engine_settings.HOST_BIND}:{argo_target_port}/{label}"
+        argo_target_port = ARGO_INTERNAL_TARGET_PORT.split("/")[0]
+        target_url = f"http://{HOST_BIND}:{argo_target_port}/{label}"
         frie_container_manager(
             container_manager=container_manager,
             project_path=project_path,
@@ -1089,19 +1089,19 @@ class CleanFunctionsStep(PipelineStep):
         client = data["client"]
         container_manager = data["container_manager"]
         for container in container_manager.list(
-            label=engine_settings.CONTAINER.FRIE.LABEL_KEY
+            label_filters={"label": engine_settings.CONTAINER.FRIE.LABEL_KEY}
         ):
             container.stop()
             container.remove()
 
         for container in container_manager.list(
-            label=engine_settings.CONTAINER.ARGO.LABEL_KEY
+            label_filters={"label": ARGO_LABEL_KEY}
         ):
             container.stop()
             container.remove()
 
         for image in client.client.images.list():
-            prefix = f"{engine_settings.HUB_USERNAME}/{engine_settings.HUB_PREFFIX}"
+            prefix = f"{HUB_USERNAME}/{engine_settings.HUB_PREFFIX}"
             if any(tag.startswith(prefix) for tag in image.tags):
                 client.client.images.remove(image.id, force=True)
 
