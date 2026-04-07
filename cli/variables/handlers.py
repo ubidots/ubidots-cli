@@ -1,13 +1,7 @@
-import json
-
 import httpx
-import typer
 
-from cli.commons.enums import OutputFormatFieldsEnum
-from cli.commons.styles import print_colored_table
+from cli.commons.formatters import OutputFormatter
 from cli.commons.utils import build_endpoint
-from cli.commons.utils import exit_with_error_message
-from cli.commons.utils import exit_with_success_message
 from cli.config.models import ProfileConfigModel
 from cli.variables.helpers import build_variables_payload
 
@@ -18,7 +12,7 @@ def list_variable(
     sort_by: str,
     page_size: int,
     page: int,
-    format: OutputFormatFieldsEnum,
+    formatter: OutputFormatter,
     active_config: ProfileConfigModel,
 ):
     url, headers = build_endpoint(
@@ -33,16 +27,13 @@ def list_variable(
         active_config=active_config,
     )
     response = httpx.get(url, headers=headers)
-    if format == OutputFormatFieldsEnum.JSON:
-        typer.echo(json.dumps(response.json()["results"]))
-    else:
-        print_colored_table(results=response.json()["results"])
+    formatter.emit_results(response.json()["results"])
 
 
 def retrieve_variable(
     variable_key: str,
     fields: str,
-    format: OutputFormatFieldsEnum,
+    formatter: OutputFormatter,
     active_config: ProfileConfigModel,
 ):
     url, headers = build_endpoint(
@@ -52,13 +43,10 @@ def retrieve_variable(
         active_config=active_config,
     )
     response = httpx.get(url, headers=headers)
-    if format == OutputFormatFieldsEnum.JSON:
-        typer.echo(json.dumps(response.json()))
-    else:
-        print_colored_table(results=[response.json()])
+    formatter.emit_results(response.json())
 
 
-def add_variable(active_config: ProfileConfigModel, **kwargs):
+def add_variable(active_config: ProfileConfigModel, formatter: OutputFormatter, **kwargs):
     data = build_variables_payload(**kwargs)
     url, headers = build_endpoint(
         route="/api/v2.0/variables/",
@@ -67,13 +55,13 @@ def add_variable(active_config: ProfileConfigModel, **kwargs):
     client = httpx.Client(follow_redirects=True)
     response = client.post(url, headers=headers, json=data)
     if response.status_code == httpx.codes.CREATED:
-        exit_with_success_message(
+        formatter.emit_success(
             f"The variable with 'id={response.json()['id']}' and 'label={data['label']}' was created successfully "
             f"on device with 'device.id={response.json()['device']['id']}' "
             f"and 'device.label={response.json()['device']['label']}'."
         )
     else:
-        exit_with_error_message(
+        formatter.emit_error(
             httpx.HTTPStatusError(
                 message=response._content.decode("utf-8"),
                 request=response.request,
@@ -82,7 +70,7 @@ def add_variable(active_config: ProfileConfigModel, **kwargs):
         )
 
 
-def update_variable(variable_key: str, active_config: ProfileConfigModel, **kwargs):
+def update_variable(variable_key: str, active_config: ProfileConfigModel, formatter: OutputFormatter, **kwargs):
     data = build_variables_payload(**kwargs)
     url, headers = build_endpoint(
         route="/api/v2.0/variables/{variable_key}/",
@@ -91,12 +79,12 @@ def update_variable(variable_key: str, active_config: ProfileConfigModel, **kwar
     )
     response = httpx.patch(url, headers=headers, json=data)
     if response.status_code == httpx.codes.OK:
-        exit_with_success_message(
+        formatter.emit_success(
             f"The variable with 'id={response.json()['id']}' and 'label={response.json()['label']}' "
             "was updated successfully."
         )
     else:
-        exit_with_error_message(
+        formatter.emit_error(
             httpx.HTTPStatusError(
                 message=response._content.decode("utf-8"),
                 request=response.request,
@@ -105,13 +93,11 @@ def update_variable(variable_key: str, active_config: ProfileConfigModel, **kwar
         )
 
 
-def delete_variable(variable_key: str, active_config: ProfileConfigModel):
+def delete_variable(variable_key: str, active_config: ProfileConfigModel, formatter: OutputFormatter):
     url, headers = build_endpoint(
         route="/api/v2.0/variables/{variable_key}/",
         variable_key=variable_key,
         active_config=active_config,
     )
     httpx.delete(url, headers=headers)
-    exit_with_success_message(
-        f"The variable '{variable_key}' was removed successfully."
-    )
+    formatter.emit_success(f"The variable '{variable_key}' was removed successfully.")
