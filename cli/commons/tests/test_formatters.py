@@ -1,17 +1,16 @@
 import json
 from datetime import datetime
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
+from unittest.mock import patch
 
 import pytest
 import typer
 
 from cli.commons.enums import OutputFormatFieldsEnum
-from cli.commons.formatters import (
-    HumanOutputFormatter,
-    MachineOutputFormatter,
-    OutputFormatter,
-    resolve_formatter,
-)
+from cli.commons.formatters import HumanOutputFormatter
+from cli.commons.formatters import MachineOutputFormatter
+from cli.commons.formatters import OutputFormatter
+from cli.commons.formatters import resolve_formatter
 
 
 def test_machine_emit_results_list(capsys):

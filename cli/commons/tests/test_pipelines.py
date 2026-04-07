@@ -1,9 +1,11 @@
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
+from unittest.mock import patch
 
 import pytest
 import typer
 
-from cli.commons.pipelines import Pipeline, PipelineStep
+from cli.commons.pipelines import Pipeline
+from cli.commons.pipelines import PipelineStep
 
 
 class _SuccessStep(PipelineStep):

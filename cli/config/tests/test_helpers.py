@@ -206,6 +206,7 @@ class TestCLIHelperFunctions(TestCase):
             "access_token": "token",
             "runtimes": [],  # Ensure it's included, even if empty
             "containerRepositoryBase": "",  # Ensure it's included, even if empty
+            "output_format": "machine",
         }
         with self.assertRaises(ProfileConfigEmptyFieldsError):
             validate_profile_config(profile_config, Path("test.yaml"))
