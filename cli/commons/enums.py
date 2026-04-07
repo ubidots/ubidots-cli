@@ -47,7 +47,8 @@ class DefaultInstanceFieldEnum(StrEnum):
 class OutputFormatFieldsEnum(StrEnum):
     TABLE = "table"
     JSON = "json"
+    MACHINE = "machine"
 
     @classmethod
     def get_default_format(cls) -> "OutputFormatFieldsEnum":
-        return cls.TABLE
+        return cls.MACHINE
