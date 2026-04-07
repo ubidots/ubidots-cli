@@ -10,10 +10,10 @@ from cli.commons.decorators import simple_lookup_key
 from cli.commons.enums import DefaultInstanceFieldEnum
 from cli.commons.enums import EntityNameEnum
 from cli.commons.enums import OutputFormatFieldsEnum
+from cli.commons.formatters import resolve_formatter
 from cli.commons.utils import get_instance_key
 from cli.commons.validators import is_valid_json_string
 from cli.config.helpers import get_configuration
-from cli.settings import settings
 from cli.variables import handlers
 from cli.variables.enums import VariableTypeEnum
 
@@ -38,10 +38,12 @@ def delete(
             help="Name of the profile to use for remote server communication."
         ),
     ] = "",
+    format: OutputFormatFieldsEnum | None = None,
 ):
     active_config = get_configuration(profile=profile)
     variable_key = get_instance_key(id=id)
-    handlers.delete_variable(variable_key=variable_key, active_config=active_config)
+    formatter = resolve_formatter(flag=format, active_config=active_config, command="variables delete")
+    handlers.delete_variable(variable_key=variable_key, active_config=active_config, formatter=formatter)
 
 
 @app.command(short_help="Retrieves a specific variable using its id.")
@@ -59,15 +61,16 @@ def get(
         str,
         typer.Option(help=FIELDS_VARIABLE_HELP_TEXT),
     ] = DefaultInstanceFieldEnum.get_default_fields(),
-    format: OutputFormatFieldsEnum = settings.CONFIG.DEFAULT_OUTPUT_FORMAT,
+    format: OutputFormatFieldsEnum | None = None,
 ):
     active_config = get_configuration(profile=profile)
     variable_key = get_instance_key(id=id)
+    formatter = resolve_formatter(flag=format, active_config=active_config, command="variables get")
     handlers.retrieve_variable(
         active_config=active_config,
         variable_key=variable_key,
         fields=fields,
-        format=format,
+        formatter=formatter,
     )
 
 
@@ -91,9 +94,10 @@ def list(
             help="Name of the profile to use for remote server communication."
         ),
     ] = "",
-    format: OutputFormatFieldsEnum = settings.CONFIG.DEFAULT_OUTPUT_FORMAT,
+    format: OutputFormatFieldsEnum | None = None,
 ):
     active_config = get_configuration(profile=profile)
+    formatter = resolve_formatter(flag=format, active_config=active_config, command="variables list")
     handlers.list_variable(
         active_config=active_config,
         fields=fields,
@@ -101,7 +105,7 @@ def list(
         sort_by=sort_by,
         page_size=page_size,
         page=page,
-        format=format,
+        formatter=formatter,
     )
 
 
@@ -169,14 +173,17 @@ def add(
             help="Name of the profile to use for remote server communication."
         ),
     ] = "",
+    format: OutputFormatFieldsEnum | None = None,
 ):
     active_config = get_configuration(profile=profile)
     if not label and not name:
         error_message = "Either 'label' or 'name' must be provided."
         raise typer.BadParameter(error_message)
 
+    formatter = resolve_formatter(flag=format, active_config=active_config, command="variables add")
     handlers.add_variable(
         active_config=active_config,
+        formatter=formatter,
         label=label,
         name=name,
         description=description,
@@ -250,12 +257,15 @@ def update(
             help="Profile to use.",
         ),
     ] = "",
+    format: OutputFormatFieldsEnum | None = None,
 ):
     active_config = get_configuration(profile=profile)
     variable_key = get_instance_key(id=id)
+    formatter = resolve_formatter(flag=format, active_config=active_config, command="variables update")
     handlers.update_variable(
         active_config=active_config,
         variable_key=variable_key,
+        formatter=formatter,
         label=new_label,
         name=new_name,
         description=description,
