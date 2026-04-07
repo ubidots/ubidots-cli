@@ -232,15 +232,15 @@ class TestCLIHelperFunctions(TestCase):
         )
 
     @patch("cli.config.helpers.exit_with_error_message")
-    @patch(
-        "cli.config.helpers.get_active_profile_configuration",
-        side_effect=ProfileConfigMissingFieldsError(
-            profile_file=Path("test.yaml"), missing_fields={"access_token", "runtimes"}
-        ),
-    )
+    @patch("cli.config.helpers.get_active_profile_configuration")
     def test_get_configuration_missing_fields_shows_friendly_message(
-        self, mock_get_active, mock_exit
+        self, mock_get_active, mock_exit,
     ):
+        error = ProfileConfigMissingFieldsError(
+            profile_file=Path("test.yaml"),
+            missing_fields={"access_token", "runtimes"},
+        )
+        mock_get_active.side_effect = error
         get_configuration()
         mock_exit.assert_called_once()
         call_kwargs = mock_exit.call_args[1]
@@ -248,15 +248,15 @@ class TestCLIHelperFunctions(TestCase):
         self.assertIn("ubidots config", call_kwargs["hint"])
 
     @patch("cli.config.helpers.exit_with_error_message")
-    @patch(
-        "cli.config.helpers.get_active_profile_configuration",
-        side_effect=ProfileConfigEmptyFieldsError(
-            profile_file=Path("test.yaml"), empty_fields={"access_token"}
-        ),
-    )
+    @patch("cli.config.helpers.get_active_profile_configuration")
     def test_get_configuration_empty_fields_shows_friendly_message(
-        self, mock_get_active, mock_exit
+        self, mock_get_active, mock_exit,
     ):
+        error = ProfileConfigEmptyFieldsError(
+            profile_file=Path("test.yaml"),
+            empty_fields={"access_token"},
+        )
+        mock_get_active.side_effect = error
         get_configuration()
         mock_exit.assert_called_once()
         call_kwargs = mock_exit.call_args[1]

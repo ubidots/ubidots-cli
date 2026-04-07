@@ -1,6 +1,7 @@
 import re
 import shutil
 from pathlib import Path
+from typing import NoReturn
 
 import httpx
 import typer
@@ -55,7 +56,9 @@ def get_instance_key(id: str | None = None, label: str | None = None) -> str:
     raise typer.BadParameter(error_message)
 
 
-def exit_with_error_message(exception: Exception, message: str = "", hint: str = ""):
+def exit_with_error_message(
+    exception: Exception, message: str = "", hint: str = ""
+) -> NoReturn:
     message = message if message else str(exception)
     typer.echo(
         typer.style(

@@ -89,11 +89,9 @@ def get_active_profile_configuration() -> ProfileConfigModel:
 
 def get_configuration(profile: str | None = None) -> ProfileConfigModel:
     try:
-        return (
-            get_profile_configuration(profile=profile)
-            if profile
-            else get_active_profile_configuration()
-        )
+        if not profile:
+            return get_active_profile_configuration()
+        return get_profile_configuration(profile=profile)
     except (ProfileConfigMissingFieldsError, ProfileConfigEmptyFieldsError) as e:
         exit_with_error_message(
             exception=e,
