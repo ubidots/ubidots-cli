@@ -1,14 +1,18 @@
 import json
 import os
-from abc import ABC, abstractmethod
-from datetime import datetime, timezone
-from typing import Any, NoReturn
+from abc import ABC
+from abc import abstractmethod
+from datetime import datetime
+from datetime import timezone
+from typing import Any
+from typing import NoReturn
 
 import typer
 
 from cli.commons.enums import OutputFormatFieldsEnum
 from cli.commons.styles import print_colored_table
-from cli.commons.utils import exit_with_error_message, exit_with_success_message
+from cli.commons.utils import exit_with_error_message
+from cli.commons.utils import exit_with_success_message
 from cli.config.models import ProfileConfigModel
 
 

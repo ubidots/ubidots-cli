@@ -1,7 +1,8 @@
 import logging
 from dataclasses import dataclass
 from dataclasses import field
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
+from typing import Any
 
 import typer
 

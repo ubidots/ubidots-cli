@@ -1,4 +1,5 @@
 from unittest import TestCase
+from unittest.mock import ANY
 from unittest.mock import patch
 
 import typer
@@ -21,7 +22,7 @@ class TestConfigCommand(TestCase):
         """Test setting a profile as default."""
         result = runner.invoke(app, ["--default", "test_profile"])
         self.assertEqual(result.exit_code, 0)
-        mock_set_default.assert_called_once_with(profile="test_profile")
+        mock_set_default.assert_called_once_with(profile="test_profile", formatter=ANY)
 
     @patch("cli.config.handlers.set_configuration")
     @patch("cli.config.handlers.get_access_token_configuration")
@@ -44,6 +45,7 @@ class TestConfigCommand(TestCase):
             api_domain="https://example.com",
             auth_method_key="TOKEN",
             access_token="original_token_value",
+            formatter=ANY,
         )
 
     @patch("cli.config.handlers.set_configuration")
@@ -69,6 +71,7 @@ class TestConfigCommand(TestCase):
             api_domain="https://example.com",
             auth_method_key="TOKEN",
             access_token="my_access_token",
+            formatter=ANY,
         )
 
     @patch("cli.config.handlers.validate_profile")  # Mock this instead
