@@ -41,6 +41,7 @@ class TestDevAddFunctionCommand(TestCase):
             token="",
             verbose=False,
             profile=ANY,
+            formatter=ANY,
         )
 
     @patch("cli.functions.commands.executor.create_function")
@@ -91,6 +92,7 @@ class TestDevAddFunctionCommand(TestCase):
             timeout=timeout,
             verbose=True,
             profile=ANY,
+            formatter=ANY,
         )
 
     def test_dev_add_rejects_remote_id_option(self):
@@ -372,7 +374,7 @@ class TestDevStartFunctionCommand(TestCase):
 
         # Expected
         self.assertEqual(result.exit_code, 0)
-        mock_start_function.assert_called_once_with(verbose=True)
+        mock_start_function.assert_called_once_with(verbose=True, formatter=ANY)
 
 
 @patch("cli.functions.commands.executor.stop_function")
@@ -383,7 +385,7 @@ class TestDevStopFunctionCommand(TestCase):
 
         # Expected
         self.assertEqual(result.exit_code, 0)
-        mock_stop_function.assert_called_once_with(verbose=True)
+        mock_stop_function.assert_called_once_with(verbose=True, formatter=ANY)
 
 
 @patch("cli.functions.commands.executor.restart_function")
@@ -395,6 +397,7 @@ class TestDevRestartFunctionCommand(TestCase):
         self.assertEqual(result.exit_code, 0)
         mock_restart_function.assert_called_once_with(
             verbose=False,
+            formatter=ANY,
         )
 
 
@@ -407,6 +410,7 @@ class TestDevStatusFunctionCommand(TestCase):
         self.assertEqual(result.exit_code, 0)
         mock_status_function.assert_called_once_with(
             verbose=False,
+            formatter=ANY,
         )
 
 
@@ -425,6 +429,7 @@ class TestDevLogsCommand(TestCase):
             profile="",
             remote=False,  # Always False for dev logs
             verbose=False,
+            formatter=ANY,
         )
 
     def test_dev_logs_rejects_remote_flag(self, mock_logs_function):
@@ -454,6 +459,7 @@ class TestRunFunctionCommand(TestCase):
             payload={},
             profile="",
             verbose=False,
+            formatter=ANY,
         )
 
     @patch("cli.functions.commands.get_instance_key", return_value="abc123")
@@ -467,6 +473,7 @@ class TestRunFunctionCommand(TestCase):
             payload={},
             profile="",
             verbose=False,
+            formatter=ANY,
         )
 
     def test_run_with_payload(self, mock_run_function):
@@ -482,6 +489,7 @@ class TestRunFunctionCommand(TestCase):
             payload={"temp": 25},
             profile="",
             verbose=False,
+            formatter=ANY,
         )
 
     def test_run_invalid_json_payload(self, mock_run_function):
@@ -519,6 +527,7 @@ class TestRootLogsCommand(TestCase):
             function_key="~my-func",
             profile="test_profile",
             verbose=True,
+            formatter=ANY,
         )
 
     def test_root_logs_with_custom_tail(self, mock_logs_function):
@@ -535,6 +544,7 @@ class TestRootLogsCommand(TestCase):
             function_key="~my-func",
             profile="",
             verbose=False,
+            formatter=ANY,
         )
 
     @patch("cli.functions.commands.get_instance_key", return_value="abc123")
@@ -550,6 +560,7 @@ class TestRootLogsCommand(TestCase):
             function_key="abc123",
             profile="",
             verbose=False,
+            formatter=ANY,
         )
 
 
@@ -563,6 +574,7 @@ class TestPushFunctionCommand(TestCase):
             confirm=False,
             profile="",
             verbose=False,
+            formatter=ANY,
         )
 
     def test_push_function_with_confirmation(self, mock_push_function):
@@ -574,6 +586,7 @@ class TestPushFunctionCommand(TestCase):
             confirm=True,
             profile="",
             verbose=True,
+            formatter=ANY,
         )
 
 
@@ -588,6 +601,7 @@ class TestPullFunctionCommand(TestCase):
             profile="",
             confirm=False,
             verbose=False,
+            formatter=ANY,
         )
 
     def test_pull_function_with_confirmation(self, mock_pull_function):
@@ -603,4 +617,5 @@ class TestPullFunctionCommand(TestCase):
             profile="",
             confirm=True,
             verbose=True,
+            formatter=ANY,
         )
