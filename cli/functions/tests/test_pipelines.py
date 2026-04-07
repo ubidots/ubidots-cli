@@ -855,7 +855,7 @@ class TestInvokeFunctionStep:
         step = pipelines.InvokeFunctionStep()
         data = {"active_config": MagicMock(), "function_key": "~ghost", "payload": {}}
 
-        with pytest.raises(httpx.RequestError, match="Function 'ghost' not found."):
+        with pytest.raises(httpx.RequestError, match=r"Function 'ghost' not found\."):
             step.execute(data)
 
 
@@ -986,7 +986,10 @@ class TestWaitAndFetchLatestLogsStep:
     @patch("cli.functions.pipelines.httpx.get")
     @patch("cli.functions.pipelines.build_endpoint")
     def test_404_raises_function_not_found(self, mock_build, mock_get):
-        mock_build.return_value = ("https://api.ubidots.com/logs", {"X-Auth-Token": "tok"})
+        mock_build.return_value = (
+            "https://api.ubidots.com/logs",
+            {"X-Auth-Token": "tok"},
+        )
         mock_response = MagicMock()
         mock_response.status_code = 404
         mock_get.return_value = mock_response
@@ -994,7 +997,7 @@ class TestWaitAndFetchLatestLogsStep:
         step = pipelines.WaitAndFetchLatestLogsStep(count=1)
         data = {"active_config": MagicMock(), "function_key": "~ghost"}
 
-        with pytest.raises(httpx.RequestError, match="Function 'ghost' not found."):
+        with pytest.raises(httpx.RequestError, match=r"Function 'ghost' not found\."):
             step.execute(data)
 
 

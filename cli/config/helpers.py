@@ -88,11 +88,19 @@ def get_active_profile_configuration() -> ProfileConfigModel:
 
 
 def get_configuration(profile: str | None = None) -> ProfileConfigModel:
-    return (
-        get_profile_configuration(profile=profile)
-        if profile
-        else get_active_profile_configuration()
-    )
+    try:
+        if not profile:
+            return get_active_profile_configuration()
+        return get_profile_configuration(profile=profile)
+    except (ProfileConfigMissingFieldsError, ProfileConfigEmptyFieldsError) as e:
+        exit_with_error_message(
+            exception=e,
+            message=str(e),
+            hint=(
+                "Run 'ubidots config' to set up your profile, "
+                "or use '--profile <name>' to specify one explicitly."
+            ),
+        )
 
 
 def mask_token(
