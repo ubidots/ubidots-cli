@@ -9,6 +9,7 @@ import typer
 from cli.commons.enums import OutputFormatFieldsEnum
 from cli.commons.styles import print_colored_table
 from cli.commons.utils import exit_with_error_message, exit_with_success_message
+from cli.config.models import ProfileConfigModel
 
 
 class OutputFormatter(ABC):
@@ -21,10 +22,13 @@ class OutputFormatter(ABC):
 
     @abstractmethod
     def emit_success(self, message: str, data: dict | None = None) -> NoReturn:
-        """Signal successful completion. Always raises typer.Exit(0)."""
+        """Signal successful completion. Always raises typer.Exit(0).
+
+        `data` is only surfaced in machine mode; human mode ignores it.
+        """
 
     @abstractmethod
-    def emit_error(self, exception: Exception, message: str = "", hint: str = "") -> NoReturn:
+    def emit_error(self, exception: Exception, message: str = "", hint: str | None = None) -> NoReturn:
         """Signal failure. Always raises typer.Exit(1)."""
 
 
@@ -57,7 +61,7 @@ class MachineOutputFormatter(OutputFormatter):
         })
         raise typer.Exit(0)
 
-    def emit_error(self, exception: Exception, message: str = "", hint: str = "") -> NoReturn:
+    def emit_error(self, exception: Exception, message: str = "", hint: str | None = None) -> NoReturn:
         self._dump({
             "status": "error",
             "command": self.command,
@@ -89,13 +93,13 @@ class HumanOutputFormatter(OutputFormatter):
         # data is intentionally not used in human mode — it carries machine-readable result keys only
         exit_with_success_message(message)
 
-    def emit_error(self, exception: Exception, message: str = "", hint: str = "") -> NoReturn:
-        exit_with_error_message(exception=exception, message=message, hint=hint)
+    def emit_error(self, exception: Exception, message: str = "", hint: str | None = None) -> NoReturn:
+        exit_with_error_message(exception=exception, message=message, hint=hint or "")
 
 
 def resolve_formatter(
     flag: OutputFormatFieldsEnum | None,
-    active_config: Any | None,
+    active_config: ProfileConfigModel | None,
     command: str,
 ) -> OutputFormatter:
     """Resolve output format via priority: flag → UBIDOTS_OUTPUT_FORMAT env → profile → default (machine)."""

@@ -1,4 +1,5 @@
 import json
+from datetime import datetime
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -26,7 +27,6 @@ def test_machine_emit_results_list(capsys):
 
 
 def test_machine_emit_results_timestamp_is_iso8601(capsys):
-    from datetime import datetime
     fmt = MachineOutputFormatter(command="test")
     fmt.emit_results([])
     out = json.loads(capsys.readouterr().out)
