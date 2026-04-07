@@ -1,4 +1,5 @@
 import unittest
+from unittest.mock import ANY
 from unittest.mock import patch
 
 from typer.testing import CliRunner
@@ -22,6 +23,7 @@ class TestDevAddCommand(unittest.TestCase):
             verbose=False,
             profile="",
             type=PageTypeEnum.DASHBOARD,
+            formatter=ANY,
         )
 
     @patch("cli.pages.commands.executor.create_local_page")
@@ -30,7 +32,7 @@ class TestDevAddCommand(unittest.TestCase):
 
         self.assertEqual(result.exit_code, 0)
         mock_create_page.assert_called_once_with(
-            name="test_page", verbose=False, profile="", type=PageTypeEnum.DASHBOARD
+            name="test_page", verbose=False, profile="", type=PageTypeEnum.DASHBOARD, formatter=ANY
         )
 
     @patch("cli.pages.commands.executor.create_local_page")
@@ -39,7 +41,7 @@ class TestDevAddCommand(unittest.TestCase):
 
         self.assertEqual(result.exit_code, 0)
         mock_create_page.assert_called_once_with(
-            name="my_page", verbose=False, profile="prod", type=PageTypeEnum.DASHBOARD
+            name="my_page", verbose=False, profile="prod", type=PageTypeEnum.DASHBOARD, formatter=ANY
         )
 
     @patch("cli.pages.commands.executor.create_local_page")
@@ -48,7 +50,7 @@ class TestDevAddCommand(unittest.TestCase):
 
         self.assertEqual(result.exit_code, 0)
         mock_create_page.assert_called_once_with(
-            name="my_page", verbose=False, profile="", type=PageTypeEnum.DASHBOARD
+            name="my_page", verbose=False, profile="", type=PageTypeEnum.DASHBOARD, formatter=ANY
         )
 
     @patch("cli.pages.commands.executor.create_local_page")
@@ -57,7 +59,7 @@ class TestDevAddCommand(unittest.TestCase):
 
         self.assertEqual(result.exit_code, 0)
         mock_create_page.assert_called_once_with(
-            name="my_page", verbose=True, profile="", type=PageTypeEnum.DASHBOARD
+            name="my_page", verbose=True, profile="", type=PageTypeEnum.DASHBOARD, formatter=ANY
         )
 
     @patch("cli.pages.commands.executor.create_local_page")
@@ -83,6 +85,7 @@ class TestDevAddCommand(unittest.TestCase):
             verbose=True,
             profile="staging",
             type=PageTypeEnum.DASHBOARD,
+            formatter=ANY,
         )
 
     def test_init_command_with_remote_id(self):
@@ -101,14 +104,14 @@ class TestStartCommand(unittest.TestCase):
         result = self.runner.invoke(app, ["dev", "start"])
 
         self.assertEqual(result.exit_code, 0)
-        mock_start_page.assert_called_once_with(verbose=False)
+        mock_start_page.assert_called_once_with(verbose=False, formatter=ANY)
 
     @patch("cli.pages.commands.executor.start_local_dev_server")
     def test_start_command_verbose(self, mock_start_page):
         result = self.runner.invoke(app, ["dev", "start", "--verbose"])
 
         self.assertEqual(result.exit_code, 0)
-        mock_start_page.assert_called_once_with(verbose=True)
+        mock_start_page.assert_called_once_with(verbose=True, formatter=ANY)
 
 
 class TestStopCommand(unittest.TestCase):
@@ -121,14 +124,14 @@ class TestStopCommand(unittest.TestCase):
         result = self.runner.invoke(app, ["dev", "stop"])
 
         self.assertEqual(result.exit_code, 0)
-        mock_stop_page.assert_called_once_with(verbose=False)
+        mock_stop_page.assert_called_once_with(verbose=False, formatter=ANY)
 
     @patch("cli.pages.commands.executor.stop_local_dev_server")
     def test_stop_command_verbose(self, mock_stop_page):
         result = self.runner.invoke(app, ["dev", "stop", "--verbose"])
 
         self.assertEqual(result.exit_code, 0)
-        mock_stop_page.assert_called_once_with(verbose=True)
+        mock_stop_page.assert_called_once_with(verbose=True, formatter=ANY)
 
 
 class TestRestartCommand(unittest.TestCase):
@@ -141,14 +144,14 @@ class TestRestartCommand(unittest.TestCase):
         result = self.runner.invoke(app, ["dev", "restart"])
 
         self.assertEqual(result.exit_code, 0)
-        mock_restart_page.assert_called_once_with(verbose=False)
+        mock_restart_page.assert_called_once_with(verbose=False, formatter=ANY)
 
     @patch("cli.pages.commands.executor.restart_local_dev_server")
     def test_restart_command_verbose(self, mock_restart_page):
         result = self.runner.invoke(app, ["dev", "restart", "--verbose"])
 
         self.assertEqual(result.exit_code, 0)
-        mock_restart_page.assert_called_once_with(verbose=True)
+        mock_restart_page.assert_called_once_with(verbose=True, formatter=ANY)
 
 
 class TestStatusCommand(unittest.TestCase):
@@ -161,14 +164,14 @@ class TestStatusCommand(unittest.TestCase):
         result = self.runner.invoke(app, ["dev", "status"])
 
         self.assertEqual(result.exit_code, 0)
-        mock_status_page.assert_called_once_with(verbose=False)
+        mock_status_page.assert_called_once_with(verbose=False, formatter=ANY)
 
     @patch("cli.pages.commands.executor.show_local_dev_server_status")
     def test_status_command_verbose(self, mock_status_page):
         result = self.runner.invoke(app, ["dev", "status", "--verbose"])
 
         self.assertEqual(result.exit_code, 0)
-        mock_status_page.assert_called_once_with(verbose=True)
+        mock_status_page.assert_called_once_with(verbose=True, formatter=ANY)
 
 
 class TestListCommand(unittest.TestCase):
@@ -181,14 +184,14 @@ class TestListCommand(unittest.TestCase):
         result = self.runner.invoke(app, ["dev", "list"])
 
         self.assertEqual(result.exit_code, 0)
-        mock_list_pages.assert_called_once_with(verbose=False)
+        mock_list_pages.assert_called_once_with(verbose=False, formatter=ANY)
 
     @patch("cli.pages.commands.executor.list_local_pages")
     def test_list_command_verbose(self, mock_list_pages):
         result = self.runner.invoke(app, ["dev", "list", "--verbose"])
 
         self.assertEqual(result.exit_code, 0)
-        mock_list_pages.assert_called_once_with(verbose=True)
+        mock_list_pages.assert_called_once_with(verbose=True, formatter=ANY)
 
 
 class TestCommandsIntegration(unittest.TestCase):
@@ -249,28 +252,28 @@ class TestLogsCommand(unittest.TestCase):
         result = self.runner.invoke(app, ["dev", "logs"])
 
         self.assertEqual(result.exit_code, 0)
-        mock_logs.assert_called_once_with(tail="all", follow=False, verbose=False)
+        mock_logs.assert_called_once_with(tail="all", follow=False, verbose=False, formatter=ANY)
 
     @patch("cli.pages.commands.executor.logs_local_dev_server")
     def test_logs_command_with_tail(self, mock_logs):
         result = self.runner.invoke(app, ["dev", "logs", "--tail", "50"])
 
         self.assertEqual(result.exit_code, 0)
-        mock_logs.assert_called_once_with(tail="50", follow=False, verbose=False)
+        mock_logs.assert_called_once_with(tail="50", follow=False, verbose=False, formatter=ANY)
 
     @patch("cli.pages.commands.executor.logs_local_dev_server")
     def test_logs_command_with_follow(self, mock_logs):
         result = self.runner.invoke(app, ["dev", "logs", "--follow"])
 
         self.assertEqual(result.exit_code, 0)
-        mock_logs.assert_called_once_with(tail="all", follow=True, verbose=False)
+        mock_logs.assert_called_once_with(tail="all", follow=True, verbose=False, formatter=ANY)
 
     @patch("cli.pages.commands.executor.logs_local_dev_server")
     def test_logs_command_with_verbose(self, mock_logs):
         result = self.runner.invoke(app, ["dev", "logs", "--verbose"])
 
         self.assertEqual(result.exit_code, 0)
-        mock_logs.assert_called_once_with(tail="all", follow=False, verbose=True)
+        mock_logs.assert_called_once_with(tail="all", follow=False, verbose=True, formatter=ANY)
 
     @patch("cli.pages.commands.executor.logs_local_dev_server")
     def test_logs_command_all_options(self, mock_logs):
@@ -279,7 +282,7 @@ class TestLogsCommand(unittest.TestCase):
         )
 
         self.assertEqual(result.exit_code, 0)
-        mock_logs.assert_called_once_with(tail="100", follow=True, verbose=True)
+        mock_logs.assert_called_once_with(tail="100", follow=True, verbose=True, formatter=ANY)
 
 
 class TestLogsCommandHelp(unittest.TestCase):
