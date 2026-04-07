@@ -1,4 +1,5 @@
 import unittest
+from unittest.mock import ANY
 from unittest.mock import patch
 
 from typer.testing import CliRunner
@@ -20,6 +21,7 @@ class TestPushCommand(unittest.TestCase):
             confirm=False,
             profile="",
             verbose=False,
+            formatter=ANY,
         )
 
     def test_push_with_yes_flag(self, mock_push_page):
@@ -30,6 +32,7 @@ class TestPushCommand(unittest.TestCase):
             confirm=True,
             profile="",
             verbose=False,
+            formatter=ANY,
         )
 
     def test_push_with_profile(self, mock_push_page):
@@ -40,6 +43,7 @@ class TestPushCommand(unittest.TestCase):
             confirm=False,
             profile="production",
             verbose=False,
+            formatter=ANY,
         )
 
 
@@ -60,6 +64,7 @@ class TestPullCommand(unittest.TestCase):
             profile="",
             verbose=False,
             confirm=False,
+            formatter=ANY,
         )
 
     def test_pull_without_remote_id(self, mock_pull_page_cloud):
@@ -71,6 +76,7 @@ class TestPullCommand(unittest.TestCase):
             profile="",
             verbose=False,
             confirm=False,
+            formatter=ANY,
         )
 
     def test_pull_with_yes_flag(self, mock_pull_page_cloud):
@@ -82,6 +88,7 @@ class TestPullCommand(unittest.TestCase):
             profile="",
             verbose=False,
             confirm=True,
+            formatter=ANY,
         )
 
     def test_pull_with_profile(self, mock_pull_page_cloud):
@@ -93,6 +100,7 @@ class TestPullCommand(unittest.TestCase):
             profile="staging",
             verbose=False,
             confirm=False,
+            formatter=ANY,
         )
 
 
