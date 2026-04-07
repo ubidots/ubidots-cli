@@ -1,7 +1,7 @@
 import logging
 from dataclasses import dataclass
 from dataclasses import field
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import typer
 
@@ -9,22 +9,37 @@ from cli.commons.enums import MessageColorEnum
 from cli.commons.utils import exit_with_error_message
 from cli.commons.utils import exit_with_success_message
 
+if TYPE_CHECKING:
+    from cli.commons.formatters import OutputFormatter
+
 
 @dataclass
 class Pipeline:
     steps: list["PipelineStep"]
     success_message: str = ""
+    result_keys: list[str] = field(default_factory=list)
+    formatter: "OutputFormatter | None" = None
 
-    def _handle_success(self) -> None:
-        if self.success_message:
+    def _handle_success(self, data: dict[str, Any]) -> None:
+        if self.formatter is not None:
+            if self.success_message:
+                result_data = {k: v for k, v in data.items() if k in self.result_keys}
+                self.formatter.emit_success(self.success_message, data=result_data)
+            # empty success_message → step already emitted output (list/get); nothing to do
+        elif self.success_message:
             exit_with_success_message(self.success_message)
 
     def _handle_failure(self, step: "PipelineStep", exception: Exception) -> None:
         _ = step
-        exit_with_error_message(exception=exception)
+        if self.formatter is not None:
+            self.formatter.emit_error(exception)
+        else:
+            exit_with_error_message(exception=exception)
 
     def run(self, initial_data: dict[str, Any]) -> dict[str, Any]:
-        data = initial_data
+        data = dict(initial_data)
+        if self.formatter is not None:
+            data["formatter"] = self.formatter
         for step in self.steps:
             try:
                 data = step.perform_step(data)
@@ -33,7 +48,7 @@ class Pipeline:
                 break
 
         else:
-            self._handle_success()
+            self._handle_success(data)
         return data
 
 
