@@ -764,6 +764,21 @@ class TestPrintColoredTableStep:
         assert result == data
         mock_print_table.assert_not_called()
 
+    @patch("cli.functions.pipelines.print_colored_table")
+    def test_execute_with_formatter_calls_emit_results(self, mock_print_table):
+        # Setup: when formatter is present, emit_results is called instead of print_colored_table
+        from unittest.mock import MagicMock
+        mock_formatter = MagicMock()
+        step = pipelines.PrintColoredTableStep(key="test_results")
+        results = [{"id": 1, "name": "Item1"}]
+        data = {"test_results": results, "formatter": mock_formatter}
+        # Action
+        result = step.execute(data)
+        # Assert
+        assert result == data
+        mock_formatter.emit_results.assert_called_once_with(results)
+        mock_print_table.assert_not_called()
+
 
 class TestPrintkeyStep:
     @patch("typer.echo")
@@ -793,6 +808,19 @@ class TestPrintkeyStep:
         # Setup
         step = pipelines.PrintkeyStep(key="")
         data = {"message": "Hello, World!"}
+        # Action
+        result = step.execute(data)
+        # Assert
+        assert result == data
+        mock_echo.assert_not_called()
+
+    @patch("typer.echo")
+    def test_execute_with_formatter_skips_echo(self, mock_echo):
+        # Setup: when formatter is present, typer.echo is NOT called (machine mode)
+        from unittest.mock import MagicMock
+        mock_formatter = MagicMock()
+        step = pipelines.PrintkeyStep(key="message")
+        data = {"message": "Hello, World!", "formatter": mock_formatter}
         # Action
         result = step.execute(data)
         # Assert

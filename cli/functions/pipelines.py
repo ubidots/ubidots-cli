@@ -808,7 +808,11 @@ class PrintColoredTableStep(PipelineStep):
     def execute(self, data):
         if self.key and self.key in data:
             results = data[self.key]
-            print_colored_table(results)
+            formatter = data.get("formatter")
+            if formatter is not None:
+                formatter.emit_results(results)
+            else:
+                print_colored_table(results)
         return data
 
 
@@ -818,8 +822,10 @@ class PrintkeyStep(PipelineStep):
 
     def execute(self, data):
         if self.key and self.key in data:
-            text = data[self.key]
-            typer.echo(text)
+            formatter = data.get("formatter")
+            if formatter is None:
+                text = data[self.key]
+                typer.echo(text)
         return data
 
 
@@ -1130,7 +1136,7 @@ class GetFunctionFromRemoteServerStep(PipelineStep):
     def execute(self, data):
         function_key = data["function_key"]
         active_config = data["active_config"]
-        format = data["format"]
+        formatter = data["formatter"]
         fields = data["fields"]
         url, headers = build_endpoint(
             route=FUNCTION_API_ROUTES["detail"],
@@ -1138,7 +1144,7 @@ class GetFunctionFromRemoteServerStep(PipelineStep):
             active_config=active_config,
             query_params={"fields": fields},
         )
-        response = retrieve_function(format=format, url=url, headers=headers)
+        response = retrieve_function(formatter=formatter, url=url, headers=headers)
         data["remote_function_detail"] = response
         return data
 
@@ -1146,7 +1152,7 @@ class GetFunctionFromRemoteServerStep(PipelineStep):
 class ListFunctionsFromRemoteServerStep(PipelineStep):
     def execute(self, data):
         active_config = data["active_config"]
-        format = data["format"]
+        formatter = data["formatter"]
         fields = data["fields"]
         filter = data["filter"]
         page_size = data["page_size"]
@@ -1163,7 +1169,7 @@ class ListFunctionsFromRemoteServerStep(PipelineStep):
                 "page": page,
             },
         )
-        list_functions(url, headers, format)
+        list_functions(url, headers, formatter)
         return data
 
 

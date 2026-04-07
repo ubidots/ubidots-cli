@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from cli.commons.enums import OutputFormatFieldsEnum
+from cli.commons.formatters import OutputFormatter
 from cli.commons.pipelines import Pipeline
 from cli.commons.utils import sanitize_function_name
 from cli.functions import FUNCTION_API_ROUTES
@@ -24,6 +24,7 @@ def create_function(
     timeout: int,
     created_at: str,
     profile: str,
+    formatter: OutputFormatter,
     token: str = "",
     function_id: str = "",
     params: str = "{}",
@@ -43,7 +44,9 @@ def create_function(
         pipelines.SaveManifestStep(),
     ]
     pipeline = Pipeline(
-        steps, success_message=f"Project '{name}' created in '{project_path}'."
+        steps,
+        success_message=f"Project '{name}' created in '{project_path}'.",
+        formatter=formatter,
     )
     pipeline.run(
         {
@@ -76,6 +79,7 @@ def create_function(
 
 def start_function(
     verbose: bool,
+    formatter: OutputFormatter,
 ):
     steps = [
         pipelines.ReadManifestStep(),
@@ -94,7 +98,12 @@ def start_function(
         pipelines.GetFRIEContainerTargetStep(),
         pipelines.PrintkeyStep(key="target_url"),
     ]
-    pipeline = Pipeline(steps, success_message="Function started successfully.")
+    pipeline = Pipeline(
+        steps,
+        success_message="Function started successfully.",
+        formatter=formatter,
+        result_keys=["target_url"],
+    )
     pipeline.run(
         {
             "project_path": Path.cwd(),
@@ -110,6 +119,7 @@ def start_function(
 
 def stop_function(
     verbose: bool,
+    formatter: OutputFormatter,
 ):
     steps = [
         pipelines.ReadManifestStep(),
@@ -120,7 +130,7 @@ def stop_function(
         pipelines.StopFunctionStep(),
         pipelines.PrintkeyStep(key="local_label"),
     ]
-    pipeline = Pipeline(steps, success_message="Function stoped successfully.")
+    pipeline = Pipeline(steps, success_message="Function stoped successfully.", formatter=formatter)
     pipeline.run(
         {
             "project_path": Path.cwd(),
@@ -132,6 +142,7 @@ def stop_function(
 
 def restart_function(
     verbose: bool,
+    formatter: OutputFormatter,
 ):
     steps = [
         pipelines.ReadManifestStep(),
@@ -140,7 +151,7 @@ def restart_function(
         pipelines.GetContainerKeyStep(),
         pipelines.RestartFunctionStep(),
     ]
-    pipeline = Pipeline(steps, success_message="Function restarted successfully.")
+    pipeline = Pipeline(steps, success_message="Function restarted successfully.", formatter=formatter)
     pipeline.run(
         {
             "project_path": Path.cwd(),
@@ -152,6 +163,7 @@ def restart_function(
 
 def status_function(
     verbose: bool,
+    formatter: OutputFormatter,
 ):
     steps = [
         pipelines.ReadManifestStep(),
@@ -160,7 +172,7 @@ def status_function(
         pipelines.GetFunctionStatusStep(),
         pipelines.PrintColoredTableStep(key="status"),
     ]
-    pipeline = Pipeline(steps)
+    pipeline = Pipeline(steps, formatter=formatter)
     pipeline.run(
         {
             "verbose": verbose,
@@ -175,13 +187,14 @@ def run_function(
     payload: dict,
     profile: str,
     verbose: bool,
+    formatter: OutputFormatter,
 ):
     steps = [
         pipelines.GetActiveConfigStep(),
         pipelines.InvokeFunctionStep(),
         pipelines.PrintInvokeResponseStep(),
     ]
-    pipeline = Pipeline(steps)
+    pipeline = Pipeline(steps, formatter=formatter)
     pipeline.run(
         {
             "profile": profile,
@@ -199,6 +212,7 @@ def logs_function(
     profile: str,
     remote: bool,
     verbose: bool,
+    formatter: OutputFormatter,
     function_key: str = "",
 ):
     if remote:
@@ -207,7 +221,7 @@ def logs_function(
             pipelines.WaitAndFetchLatestLogsStep(count=tail, wait_seconds=0),
             pipelines.PrintActivationLogsStep(),
         ]
-        pipeline = Pipeline(steps)
+        pipeline = Pipeline(steps, formatter=formatter)
         pipeline.run(
             {
                 "profile": profile,
@@ -225,7 +239,7 @@ def logs_function(
             pipelines.GetFunctionLogsStep(tail=tail, follow=follow),
             pipelines.PrintkeyStep(key="logs"),
         ]
-        pipeline = Pipeline(steps)
+        pipeline = Pipeline(steps, formatter=formatter)
         pipeline.run(
             {
                 "verbose": verbose,
@@ -239,6 +253,7 @@ def push_function(
     confirm: bool,
     profile: str,
     verbose: bool,
+    formatter: OutputFormatter,
 ):
     steps = [
         pipelines.GetActiveConfigStep(),
@@ -257,7 +272,7 @@ def push_function(
         pipelines.UploadFileStep(),
         pipelines.CheckResponseStep(response_key="response"),
     ]
-    pipeline = Pipeline(steps, success_message="Function uploaded successfully.")
+    pipeline = Pipeline(steps, success_message="Function uploaded successfully.", formatter=formatter)
     pipeline.run(
         {
             "project_path": Path.cwd(),
@@ -279,6 +294,7 @@ def push_function(
 def pull_function(
     remote_id: str,
     profile: str,
+    formatter: OutputFormatter,
     confirm: bool = False,
     verbose: bool = False,
 ):
@@ -302,7 +318,7 @@ def pull_function(
         pipelines.ValidateProjectStep(),
         pipelines.PrintFunctionPath(),
     ]
-    pipeline = Pipeline(steps)
+    pipeline = Pipeline(steps, formatter=formatter)
     pipeline.run(
         {
             "project_path": Path.cwd(),
@@ -322,6 +338,7 @@ def pull_function(
 def clean_functions(
     confirm: bool,
     verbose: bool,
+    formatter: OutputFormatter,
 ):
     steps = [
         pipelines.ReadManifestStep(),
@@ -330,7 +347,7 @@ def clean_functions(
         pipelines.GetContainerManagerStep(),
         pipelines.CleanFunctionsStep(),
     ]
-    pipeline = Pipeline(steps)
+    pipeline = Pipeline(steps, formatter=formatter)
     pipeline.run(
         {
             "overwrite": {
@@ -358,12 +375,13 @@ def add_function(
     scheduler_cron: str,
     timeout: int,
     environment: str,
+    formatter: OutputFormatter,
 ):
     steps = [
         pipelines.GetActiveConfigStep(),
         pipelines.CreateFunctionRemoteServerStep(),
     ]
-    pipeline = Pipeline(steps)
+    pipeline = Pipeline(steps, formatter=formatter)
     pipeline.run(
         {
             "profile": profile,
@@ -386,6 +404,7 @@ def delete_function(
     profile: str,
     confirm: bool,
     verbose: bool,
+    formatter: OutputFormatter,
 ):
     steps = [
         pipelines.GetActiveConfigStep(),
@@ -393,7 +412,9 @@ def delete_function(
         pipelines.DeleteFunctionStep(),
     ]
     pipeline = Pipeline(
-        steps, success_message=f"Function {function_key} deleted successfully."
+        steps,
+        success_message=f"Function {function_key} deleted successfully.",
+        formatter=formatter,
     )
     pipeline.run(
         {
@@ -413,19 +434,18 @@ def get_function(
     function_key: str,
     profile: str,
     verbose: bool,
-    format: OutputFormatFieldsEnum,
+    formatter: OutputFormatter,
     fields: str,
 ):
     steps = [
         pipelines.GetActiveConfigStep(),
         pipelines.GetFunctionFromRemoteServerStep(),
     ]
-    pipeline = Pipeline(steps)
+    pipeline = Pipeline(steps, formatter=formatter)
     pipeline.run(
         {
             "profile": profile,
             "function_key": function_key,
-            "format": format,
             "fields": fields,
             "verbose": verbose,
             "root": get_function.__name__,
@@ -440,19 +460,16 @@ def list_functions(
     sort_by: str,
     page_size: int,
     page: int,
-    format: OutputFormatFieldsEnum,
+    formatter: OutputFormatter,
 ):
     steps = [
         pipelines.GetActiveConfigStep(),
         pipelines.ListFunctionsFromRemoteServerStep(),
     ]
-    pipeline = Pipeline(
-        steps, success_message="Functions retrieved from remote server successfully."
-    )
+    pipeline = Pipeline(steps, success_message="", formatter=formatter)
     pipeline.run(
         {
             "profile": profile,
-            "format": format,
             "fields": fields,
             "filter": filter,
             "sort_by": sort_by,
@@ -475,6 +492,7 @@ def update_function(
     is_raw: bool | None,
     timeout: int | None,
     environment: str | None,
+    formatter: OutputFormatter,
 ):
     steps = [
         pipelines.GetActiveConfigStep(),
@@ -484,7 +502,9 @@ def update_function(
         pipelines.UpdateFunctionStep(),
     ]
     pipeline = Pipeline(
-        steps, success_message=f"Function {function_key} updated successfully."
+        steps,
+        success_message=f"Function {function_key} updated successfully.",
+        formatter=formatter,
     )
     pipeline.run(
         {
