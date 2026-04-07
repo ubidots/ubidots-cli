@@ -8,6 +8,7 @@ from unittest.mock import patch
 import httpx
 import pytest
 
+from cli.config.models import ProfileConfigModel
 from cli.functions import pipelines
 from cli.functions.constants import PYTHON_3_9_BASE_RUNTIME
 from cli.functions.constants import PYTHON_3_11_LITE_RUNTIME
@@ -18,6 +19,7 @@ from cli.functions.exceptions import FolderAlreadyExistsError
 from cli.functions.exceptions import PermissionDeniedError
 from cli.functions.exceptions import TemplateNotFoundError
 from cli.functions.models import FunctionProjectMetadata
+from cli.functions.pipelines import ValidateAllowedRuntimeStep
 from cli.settings import settings
 
 
@@ -1051,3 +1053,33 @@ class TestPrintActivationLogsStep:
         calls = [c.args[0] for c in mock_echo.call_args_list]
         assert "\n--- Activation: act-1 ---" in calls
         assert "Error: Failed to fetch log detail" in calls
+
+
+class TestValidateAllowedRuntimeStep:
+    @patch("cli.functions.pipelines.get_configuration")
+    def test_raises_with_plan_message_when_runtimes_empty(self, mock_get_config):
+        mock_get_config.return_value = ProfileConfigModel(runtimes=[])
+        step = ValidateAllowedRuntimeStep()
+        data = {"runtime": "python3.10", "profile": "stem-profile"}
+
+        with pytest.raises(ValueError, match="Your plan may not include UbiFunctions"):
+            step.execute(data)
+
+    @patch("cli.functions.pipelines.get_configuration")
+    def test_raises_when_runtime_not_in_allowed_list(self, mock_get_config):
+        mock_get_config.return_value = ProfileConfigModel(runtimes=["python3.10"])
+        step = ValidateAllowedRuntimeStep()
+        data = {"runtime": "nodejs16", "profile": "test-profile"}
+
+        with pytest.raises(ValueError, match="nodejs16"):
+            step.execute(data)
+
+    @patch("cli.functions.pipelines.get_configuration")
+    def test_passes_when_runtime_in_allowed_list(self, mock_get_config):
+        mock_get_config.return_value = ProfileConfigModel(runtimes=["python3.10"])
+        step = ValidateAllowedRuntimeStep()
+        data = {"runtime": "python3.10", "profile": "test-profile"}
+
+        result = step.execute(data)
+
+        assert result == data

@@ -128,10 +128,8 @@ def get_runtimes_from_api(access_token: str) -> list[dict]:
 
     except requests.RequestException as e:
         if e.response is not None and e.response.status_code == 402:
-            exit_with_error_message(
-                exception=CurrentPlanDoesNotIncludeRuntimes(),
-            )
-        return []  # Log or handle the error as needed
+            raise CurrentPlanDoesNotIncludeRuntimes from e
+        return []
 
     except ValueError:
         return []
@@ -166,7 +164,9 @@ def validate_profile_config(
     empty_fields = {
         field
         for field in required_fields
-        if field in profile_config and not profile_config[field]
+        if field in profile_config
+        and not isinstance(profile_config[field], list)
+        and not profile_config[field]
     }
     if empty_fields:
         raise ProfileConfigEmptyFieldsError(

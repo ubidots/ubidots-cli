@@ -204,11 +204,22 @@ class TestCLIHelperFunctions(TestCase):
             "api_domain": "",
             "auth_method": "TOKEN",
             "access_token": "token",
-            "runtimes": [],  # Ensure it's included, even if empty
-            "containerRepositoryBase": "",  # Ensure it's included, even if empty
+            "runtimes": [],  # empty list is valid — STEM plan users have no runtimes
+            "containerRepositoryBase": "",
         }
         with self.assertRaises(ProfileConfigEmptyFieldsError):
             validate_profile_config(profile_config, Path("test.yaml"))
+
+    def test_validate_profile_config_empty_runtimes_list_is_valid(self):
+        profile_config = {
+            "api_domain": "https://industrial.api.ubidots.com",
+            "auth_method": "X-Auth-Token",
+            "access_token": "valid_token",
+            "runtimes": [],
+            "containerRepositoryBase": "registry.ubidots.com",
+        }
+        result = validate_profile_config(profile_config, Path("test.yaml"))
+        self.assertEqual(result.runtimes, [])
 
     @patch("cli.config.helpers.requests.get")
     def test_get_runtimes_from_api_success(self, mock_get):
@@ -217,24 +228,21 @@ class TestCLIHelperFunctions(TestCase):
         runtimes = get_runtimes_from_api("valid_token")
         self.assertEqual(runtimes, [{"runtime": "python3.9"}])
 
-    @patch("cli.config.helpers.exit_with_error_message")
     @patch("cli.config.helpers.requests.get")
-    def test_get_runtimes_from_api_payment_required(self, mock_get, mock_exit):
+    def test_get_runtimes_from_api_payment_required(self, mock_get):
         mock_response = requests.Response()
         mock_response.status_code = 402
         mock_get.return_value = mock_response
 
-        get_runtimes_from_api("invalid_token")
-
-        mock_exit.assert_called_once()
-        self.assertIsInstance(
-            mock_exit.call_args[1]["exception"], CurrentPlanDoesNotIncludeRuntimes
-        )
+        with self.assertRaises(CurrentPlanDoesNotIncludeRuntimes):
+            get_runtimes_from_api("invalid_token")
 
     @patch("cli.config.helpers.exit_with_error_message")
     @patch("cli.config.helpers.get_active_profile_configuration")
     def test_get_configuration_missing_fields_shows_friendly_message(
-        self, mock_get_active, mock_exit,
+        self,
+        mock_get_active,
+        mock_exit,
     ):
         error = ProfileConfigMissingFieldsError(
             profile_file=Path("test.yaml"),
@@ -250,7 +258,9 @@ class TestCLIHelperFunctions(TestCase):
     @patch("cli.config.helpers.exit_with_error_message")
     @patch("cli.config.helpers.get_active_profile_configuration")
     def test_get_configuration_empty_fields_shows_friendly_message(
-        self, mock_get_active, mock_exit,
+        self,
+        mock_get_active,
+        mock_exit,
     ):
         error = ProfileConfigEmptyFieldsError(
             profile_file=Path("test.yaml"),

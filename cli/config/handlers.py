@@ -1,6 +1,6 @@
 from cli.commons.exceptions import EmptyTokenError
 from cli.commons.exceptions import InvalidOptionError
-from cli.commons.exceptions import RuntimeNotFoundError
+from cli.commons.exceptions import CurrentPlanDoesNotIncludeRuntimes
 from cli.commons.exceptions import UnexistentProfileError
 from cli.commons.styles import custom_prompt
 from cli.commons.utils import exit_with_error_message
@@ -39,7 +39,7 @@ def existing_profile(profile: str):
 def get_runtimes(access_token: str) -> list[str]:
     try:
         runtimes: list[dict] = get_runtimes_from_api(access_token=access_token)
-    except Exception:
+    except CurrentPlanDoesNotIncludeRuntimes:
         return []
     return [runtime["label"] for runtime in runtimes]
 
@@ -92,11 +92,9 @@ def set_configuration(
     existing_profile(profile=profile)
     # Validate the authentication method key and get the corresponding value
     auth_method_value = validate_auth_method(auth_method_key=auth_method_key)
-    # Get the user's runtimes from the API
-    if not (runtimes := get_runtimes(access_token=access_token)):
-        exit_with_error_message(
-            exception=RuntimeNotFoundError(),
-        )
+    # Get the user's runtimes from the API.
+    # Empty list is valid — it means the plan does not include UbiFunctions.
+    runtimes = get_runtimes(access_token=access_token)
     save_profile_configuration(
         profile=profile,
         config_model=ProfileConfigModel(

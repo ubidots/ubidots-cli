@@ -145,9 +145,9 @@ class ValidateAllowedRuntimeStep(PipelineStep):
         allowed_runtimes = profile_config.runtimes
         if not allowed_runtimes:
             raise ValueError(
-                f"Runtime '{runtime}' is not allowed. No runtimes are configured "
-                "for your profile. Make sure you have a valid profile set up with "
-                "'ubidots config add'."
+                f"Runtime '{runtime}' is not allowed. No runtimes are configured for your profile. "
+                "Your plan may not include UbiFunctions. Please verify your plan or reconfigure "
+                "with 'ubidots config'."
             )
 
         if runtime not in allowed_runtimes:

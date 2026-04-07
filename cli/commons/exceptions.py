@@ -40,15 +40,6 @@ class UnexistentProfileError(Exception):
         return f"Profile '{self.profile}' does not exist yet. Please provide a valid profile name."
 
 
-class RuntimeNotFoundError(Exception):
-    def __str__(self):
-        return (
-            "No runtimes were found. This may be due to an invalid or missing access token, "
-            "or an incorrect API domain. Please verify that your token is set correctly and "
-            "that you are using the correct API domain."
-        )
-
-
 class InvalidProfileError(Exception):
     def __init__(self, profile: str, exception: Exception):
         self.profile = profile
