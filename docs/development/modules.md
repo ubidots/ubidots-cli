@@ -224,7 +224,7 @@ commands.py  →  executor.py  →  pipelines.py  →  handlers.py
 
 ### Local Page Dev Engine
 
-Pages share the Argo reverse proxy container already used by Functions (`ubidots/functions-argo:2.0.2`,
+Pages share the Argo reverse proxy container already used by Functions (`ubidots/functions-argo:2.1.0`,
 network `ubidots_cli_functions`). There are no per-page Docker containers.
 
 Each page gets a **workspace directory** at `~/.ubidots_cli/pages/<workspace-key>/` (workspace key is

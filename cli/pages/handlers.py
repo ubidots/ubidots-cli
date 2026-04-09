@@ -36,6 +36,8 @@ def update_page(
         data["name"] = name
     if label:
         data["label"] = label
+    if not data:
+        raise ValueError("At least one of 'name' or 'label' must be provided.")
     client = httpx.Client(follow_redirects=True)
     return client.patch(url, headers=headers, json=data)
 

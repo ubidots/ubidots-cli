@@ -48,6 +48,10 @@ def find_available_ports(
                 break
             if port not in available and is_port_available(port):
                 available.append(port)
+    if len(available) < len(ports):
+        raise RuntimeError(
+            f"Could not find {len(ports)} available ports (found {len(available)})"
+        )
     return available
 
 
@@ -94,9 +98,9 @@ def argo_container_manager(
         if container.status == _RUNNING and frie_label:
             port = _get_external_port(container, ARGO_INTERNAL_ADAPTER_PORT)
             url = f"http://{HOST_BIND}:{port}/{ARGO_API_BASE_PATH}/~{frie_label}"
-            resp = httpx.get(url)
+            resp = httpx.get(url, timeout=5.0)
             if resp.status_code == httpx.codes.OK:
-                httpx.delete(url)
+                httpx.delete(url, timeout=5.0)
         return container
 
     container = _check()

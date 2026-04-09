@@ -1,3 +1,4 @@
+import logging
 import hashlib
 import time
 from contextlib import suppress
@@ -6,6 +7,8 @@ from pathlib import Path
 import httpx
 
 from cli.commons.settings import ARGO_API_BASE_PATH
+
+logger = logging.getLogger(__name__)
 
 _ARGO_ALLOWED_EXTENSIONS = [
     ".html",
@@ -68,6 +71,17 @@ def get_tracked_files(source_dir: Path) -> list[Path]:
     """
     from cli.pages.models import DashboardPageModel
 
+    source_root = source_dir.resolve()
+
+    def _resolve_local(rel_or_abs: str) -> Path | None:
+        candidate = (source_root / rel_or_abs).resolve()
+        try:
+            candidate.relative_to(source_root)
+        except ValueError:
+            logger.warning("Ignoring out-of-root tracked path: %s", rel_or_abs)
+            return None
+        return candidate
+
     tracked: list[Path] = [
         source_dir / "body.html",
         source_dir / "manifest.toml",
@@ -75,27 +89,35 @@ def get_tracked_files(source_dir: Path) -> list[Path]:
 
     try:
         model = DashboardPageModel.load_from_project(source_dir)
-    except Exception:
-        pass
+    except Exception as exc:
+        logger.debug("Could not load manifest from %s: %s", source_dir, exc)
     else:
         assert isinstance(model, DashboardPageModel)
         for entry in model.js_libraries:
             src = entry.get("src", "")
             if src and not src.startswith(("http://", "https://")):
-                tracked.append(source_dir / src)
+                local = _resolve_local(src)
+                if local:
+                    tracked.append(local)
 
         for entry in model.css_libraries:
             href = entry.get("href", "")
             if href and not href.startswith(("http://", "https://")):
-                tracked.append(source_dir / href)
+                local = _resolve_local(href)
+                if local:
+                    tracked.append(local)
 
         for entry in model.link_libraries:
             href = entry.get("href", "")
             if href and not href.startswith(("http://", "https://")):
-                tracked.append(source_dir / href)
+                local = _resolve_local(href)
+                if local:
+                    tracked.append(local)
 
         for static_path in model.static_paths:
-            static_abs = source_dir / static_path
+            static_abs = _resolve_local(static_path)
+            if not static_abs:
+                continue
             if static_abs.is_dir():
                 tracked.extend(f for f in static_abs.rglob("*") if f.is_file())
             elif static_abs.is_file():
@@ -193,11 +215,15 @@ def register_page_in_argo(workspace_key: str, argo_admin_port: int) -> None:
         },
     }
     url = f"http://localhost:{argo_admin_port}/{ARGO_API_BASE_PATH}/"
-    response = httpx.post(url, json=payload, timeout=10.0)
-    if not response.is_success:
-        time.sleep(2)
-        response = httpx.post(url, json=payload, timeout=10.0)
-        response.raise_for_status()
+    for attempt in range(2):
+        try:
+            response = httpx.post(url, json=payload, timeout=10.0)
+            response.raise_for_status()
+            return
+        except httpx.HTTPError:
+            if attempt == 1:
+                raise
+            time.sleep(2)
 
 
 def deregister_page_from_argo(workspace_key: str, argo_admin_port: int) -> None:

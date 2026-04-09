@@ -17,4 +17,5 @@ class PageDockerValidator:
         try:
             self.client.ping()
         except APIError as error:
-            raise EngineNotInstalledException(engine=self.engine) from error
+            raise EngineNotInstalledException(engine=self.engine.value) from error
+

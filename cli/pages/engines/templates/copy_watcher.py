@@ -114,7 +114,8 @@ def _run_watchdog(
                     logging.info("manifest.toml changed — re-syncing all files")
                     try:
                         new_tracked = _copy_all(source_dir, workspace_dir)
-                        tracked_set = {str(f) for f in new_tracked}
+                        tracked_set.clear()
+                        tracked_set.update(str(f) for f in new_tracked)
                         _render(source_dir, workspace_dir)
                     except Exception as exc:
                         logging.error("manifest.toml re-sync failed: %s", exc)
