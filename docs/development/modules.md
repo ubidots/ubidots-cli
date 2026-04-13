@@ -132,7 +132,7 @@ across all running local functions.
 
 | Property | Value |
 |---|---|
-| Image | `ubidots/functions-argo:2.0.1` |
+| Image | `ubidots/functions-argo:2.1.0` |
 | Container name | `argo` |
 | Container label key | `ubidots_cli_argo` |
 | Hostname inside network | `ubi.argo` |

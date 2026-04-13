@@ -59,10 +59,28 @@ def _render(source_dir: Path, workspace_dir: Path) -> None:
         logging.error("Failed to render index.html: %s", exc)
 
 
-def _copy_all(source_dir: Path, workspace_dir: Path) -> list[Path]:
+def _copy_all(
+    source_dir: Path,
+    workspace_dir: Path,
+    previous_tracked: set[str] | None = None,
+) -> list[Path]:
     tracked = _get_tracked(source_dir)
     for f in tracked:
         _copy_file(f, source_dir, workspace_dir)
+
+    if previous_tracked is not None:
+        current = {str(f) for f in tracked}
+        for old_str in previous_tracked - current:
+            old_path = Path(old_str)
+            try:
+                rel = old_path.relative_to(source_dir)
+            except ValueError:
+                continue
+            dst = workspace_dir / rel
+            if dst.exists():
+                dst.unlink()
+                logging.info("Removed stale file %s", rel)
+
     return tracked
 
 
@@ -110,10 +128,12 @@ def _run_watchdog(
 
             for path_str in ready:
                 path = Path(path_str)
-                if path.name == "manifest.toml":
+                if path == source_dir / "manifest.toml":
                     logging.info("manifest.toml changed — re-syncing all files")
                     try:
-                        new_tracked = _copy_all(source_dir, workspace_dir)
+                        new_tracked = _copy_all(
+                            source_dir, workspace_dir, previous_tracked=tracked_set
+                        )
                         tracked_set.clear()
                         tracked_set.update(str(f) for f in new_tracked)
                         _render(source_dir, workspace_dir)
@@ -158,9 +178,11 @@ def _run_polling(
                 mtimes[key] = mtime
                 changed.append(f)
 
-        if any(f.name == "manifest.toml" for f in changed):
+        if any(f == source_dir / "manifest.toml" for f in changed):
             try:
-                tracked = _copy_all(source_dir, workspace_dir)
+                tracked = _copy_all(
+                    source_dir, workspace_dir, previous_tracked=set(mtimes.keys())
+                )
                 mtimes = {str(f): f.stat().st_mtime for f in tracked if f.exists()}
                 _render(source_dir, workspace_dir)
             except Exception as exc:

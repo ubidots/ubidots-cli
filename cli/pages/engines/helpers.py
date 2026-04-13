@@ -1,5 +1,5 @@
-import logging
 import hashlib
+import logging
 import time
 from contextlib import suppress
 from pathlib import Path

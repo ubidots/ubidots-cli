@@ -188,7 +188,7 @@ class TestFunctionUtils:
 
         captured_urls = []
 
-        def fake_httpx_get(url):
+        def fake_httpx_get(url, **kwargs):
             captured_urls.append(url)
             response = MagicMock()
             response.status_code = 404
