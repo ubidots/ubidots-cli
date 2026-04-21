@@ -1,5 +1,6 @@
 import re
 
+from cli.commons.settings import ARGO_LABEL_KEY
 from cli.functions.engines.settings import engine_settings
 
 
@@ -76,7 +77,7 @@ class ContainerNotFoundException(ContainerException):
     def __init__(self, label: str):
         container_keys = [
             engine_settings.CONTAINER.FRIE.LABEL_KEY,
-            engine_settings.CONTAINER.ARGO.LABEL_KEY,
+            ARGO_LABEL_KEY,
         ]
 
         regex_pattern = "|".join(container_keys)

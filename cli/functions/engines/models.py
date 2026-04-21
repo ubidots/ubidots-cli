@@ -52,6 +52,11 @@ class ArgoAdapterTargetBaseModel(BaseModel):
     auth_token: str = ""
 
 
+class ArgoBridgeBaseModel(BaseModel):
+    label: str
+    target: ArgoAdapterTargetBaseModel
+
+
 class ArgoAdapterBaseModel(BaseModel):
     label: str
     path: str
@@ -60,7 +65,7 @@ class ArgoAdapterBaseModel(BaseModel):
         ArgoAdapterMiddlewareAllowedMethodsBaseModel
         | ArgoAdapterMiddlewareCorsBaseModel
     ] = Field(default=[ArgoAdapterMiddlewareAllowedMethodsBaseModel()])
-    target: ArgoAdapterTargetBaseModel
+    bridge: ArgoBridgeBaseModel
 
 
 class ContainerStatusListBaseModel(BaseModel):

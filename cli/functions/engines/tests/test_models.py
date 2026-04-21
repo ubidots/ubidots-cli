@@ -8,6 +8,7 @@ from cli.functions.engines.models import ArgoAdapterBaseModel
 from cli.functions.engines.models import ArgoAdapterMiddlewareAllowedMethodsBaseModel
 from cli.functions.engines.models import ArgoAdapterMiddlewareCorsBaseModel
 from cli.functions.engines.models import ArgoAdapterTargetBaseModel
+from cli.functions.engines.models import ArgoBridgeBaseModel
 
 
 class TestArgoAdapterMiddlewareAllowedMethodsBaseModel:
@@ -91,8 +92,11 @@ class TestArgoAdapterBaseModel:
                 ArgoAdapterMiddlewareAllowedMethodsBaseModel(),
                 ArgoAdapterMiddlewareCorsBaseModel(),
             ],
-            target=ArgoAdapterTargetBaseModel(
-                type=TargetTypeEnum.RIE_FUNCTION, url="https://example.com"
+            bridge=ArgoBridgeBaseModel(
+                label="Test Adapter",
+                target=ArgoAdapterTargetBaseModel(
+                    type=TargetTypeEnum.RIE_FUNCTION, url="https://example.com"
+                ),
             ),
         )
         # Assert
@@ -100,7 +104,7 @@ class TestArgoAdapterBaseModel:
         assert model.path == "/test/path"
         assert model.is_strict is True
         assert len(model.middlewares) == 2
-        assert model.target.type == TargetTypeEnum.RIE_FUNCTION
+        assert model.bridge.target.type == TargetTypeEnum.RIE_FUNCTION
 
     def test_invalid_middleware_in_argo_adapter(self):
         # Action
@@ -109,8 +113,11 @@ class TestArgoAdapterBaseModel:
                 label="Test Adapter",
                 path="/test/path",
                 middlewares=["INVALID_MIDDLEWARE"],
-                target=ArgoAdapterTargetBaseModel(
-                    type=TargetTypeEnum.RIE_FUNCTION, url="https://example.com"
+                bridge=ArgoBridgeBaseModel(
+                    label="Test Adapter",
+                    target=ArgoAdapterTargetBaseModel(
+                        type=TargetTypeEnum.RIE_FUNCTION, url="https://example.com"
+                    ),
                 ),
             )
         # Assert
