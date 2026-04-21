@@ -57,6 +57,7 @@ class FunctionSettings(BaseModel):
 
 class PagesSettings(BaseModel):
     DEFAULT_PAGE_NAME: str = "my_page"
+    WORKSPACE_DIR_NAME: str = "pages"
     PROJECT_MANIFEST_FILE: str = "manifest.toml"
     PROJECT_METADATA_FILE: str = ".manifest.yaml"
     PAGE_INDEX_HTML_FILE: str = ".page.html"
@@ -70,6 +71,8 @@ class PagesSettings(BaseModel):
     # Hot reload configuration
     HOT_RELOAD_ENABLED: bool = True
     HOT_RELOAD_ENDPOINT: str = "/__dev/reload"  # SSE endpoint path
+    HOT_RELOAD_PORT_DEFAULT: int = 9000
+    HOT_RELOAD_PORT_FALLBACK_START: int = 9001
     HOT_RELOAD_WATCH_EXTENSIONS: list[str] = [
         ".html",
         ".css",
@@ -110,6 +113,12 @@ class PagesSettings(BaseModel):
     )
     UBIDOTS_PAGE_LAYOUT_ZIP: dict[str, Path] = {
         "dashboard": TEMPLATES_DIR / "default-page.zip",
+    }
+    UBIDOTS_PAGE_HTML: dict[str, Path] = {
+        "dashboard": TEMPLATES_DIR / "ubidots-page.html.template",
+    }
+    INDEX_HTML: dict[str, Path] = {
+        "dashboard": TEMPLATES_DIR / "index.html.template",
     }
 
     API_ROUTES: dict[str, str] = {
