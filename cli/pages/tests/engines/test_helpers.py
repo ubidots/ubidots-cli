@@ -114,34 +114,29 @@ from cli.pages.engines.helpers import get_page_workspace  # noqa: E402
 from cli.pages.engines.helpers import get_pages_workspace  # noqa: E402
 from cli.pages.engines.helpers import get_tracked_files  # noqa: E402
 from cli.pages.engines.helpers import register_page_in_argo  # noqa: E402
+from cli.pages.engines.helpers import render_index_html  # noqa: E402
 
 
 def test_compute_workspace_key_format():
     key = compute_workspace_key("my-page", Path("/some/dir/my-page"))
     assert key.startswith("my-page-")
-    suffix = key[len("my-page-") :]
+    suffix = key[len("my-page-"):]
     assert len(suffix) == 8
     assert all(c in "0123456789abcdef" for c in suffix)
 
 
 def test_compute_workspace_key_deterministic():
     path = Path("/home/dev/projects/my-page")
-    assert compute_workspace_key("my-page", path) == compute_workspace_key(
-        "my-page", path
-    )
+    assert compute_workspace_key("my-page", path) == compute_workspace_key("my-page", path)
 
 
 def test_compute_workspace_key_differs_by_path():
-    assert compute_workspace_key(
-        "my-page", Path("/a/my-page")
-    ) != compute_workspace_key("my-page", Path("/b/my-page"))
+    assert compute_workspace_key("my-page", Path("/a/my-page")) != compute_workspace_key("my-page", Path("/b/my-page"))
 
 
 def test_compute_workspace_key_differs_by_name():
     path = Path("/some-dir/page")
-    assert compute_workspace_key("page-a", path) != compute_workspace_key(
-        "page-b", path
-    )
+    assert compute_workspace_key("page-a", path) != compute_workspace_key("page-b", path)
 
 
 def test_get_pages_workspace_returns_expected_path(tmp_path):

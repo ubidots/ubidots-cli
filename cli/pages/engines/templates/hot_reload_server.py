@@ -46,7 +46,7 @@ def _push_reload() -> None:
 
 
 class _Handler(BaseHTTPRequestHandler):
-    def log_message(self, format_, *args):
+    def log_message(self, format, *args):
         pass  # Suppress default request logging
 
     def do_OPTIONS(self):
@@ -86,12 +86,8 @@ class _Handler(BaseHTTPRequestHandler):
             _sse_clients.append(self.wfile)
         try:
             while True:
-                self.wfile.write(b": ping\n\n")
-                self.wfile.flush()
-                time.sleep(15)
-        except (BrokenPipeError, ConnectionResetError, OSError):
-            pass
-        finally:
+                time.sleep(1)
+        except (BrokenPipeError, ConnectionResetError):
             with _lock:
                 if self.wfile in _sse_clients:
                     _sse_clients.remove(self.wfile)
@@ -121,10 +117,8 @@ class _Handler(BaseHTTPRequestHandler):
                 f"({error.get('source', '')}:{error.get('line', '')})",
                 flush=True,
             )
-        except json.JSONDecodeError:
+        except (json.JSONDecodeError, Exception):
             pass
-        except Exception as exc:
-            print(f"[browser error capture failed] {exc}", flush=True)
         self.send_response(200)
         self._cors()
         self.end_headers()
@@ -142,18 +136,6 @@ class _ChangeHandler(FileSystemEventHandler):
         self._schedule()
 
     on_created = on_modified
-
-    def on_deleted(self, event):
-        self.on_modified(event)
-
-    def on_moved(self, event):
-        if event.is_directory:
-            return
-        if (
-            Path(event.src_path).name not in _INTERNAL_FILES
-            or Path(event.dest_path).name not in _INTERNAL_FILES
-        ):
-            self._schedule()
 
     def _schedule(self):
         if self._timer:

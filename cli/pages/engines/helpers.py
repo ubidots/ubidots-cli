@@ -1,10 +1,5 @@
-import re
 import subprocess
 import sys
-import hashlib
-import logging
-import time
-import httpx
 from contextlib import suppress
 from pathlib import Path
 
@@ -17,7 +12,6 @@ from cli.pages.engines.enums import ContainerStatusEnum
 from cli.pages.engines.exceptions import ContainerNotFoundException
 from cli.pages.engines.settings import page_engine_settings
 from cli.settings import settings
-from cli.commons.settings import ARGO_API_BASE_PATH
 
 
 def get_or_create_pages_network(client: PageDockerClient):
@@ -372,6 +366,16 @@ def stop_page_container(
     container_manager.stop(container_name)
 
 
+# ── Argo-based workspace helpers (new architecture) ────────────────────────────
+
+import hashlib  # noqa: E402
+import logging  # noqa: E402
+import time  # noqa: E402
+
+import httpx  # noqa: E402
+
+from cli.commons.settings import ARGO_API_BASE_PATH  # noqa: E402
+
 logger = logging.getLogger(__name__)
 
 _ARGO_ALLOWED_EXTENSIONS = [
@@ -381,18 +385,10 @@ _ARGO_ALLOWED_EXTENSIONS = [
     ".toml",
     ".json",
     ".png",
-    ".jpg",
-    ".jpeg",
-    ".gif",
-    ".webp",
-    ".avif",
     ".svg",
     ".ico",
     ".woff",
     ".woff2",
-    ".ttf",
-    ".otf",
-    ".eot",
     ".map",
     ".txt",
     ".md",
@@ -401,11 +397,9 @@ _ARGO_ALLOWED_EXTENSIONS = [
 
 def compute_workspace_key(page_name: str, page_dir_path: Path) -> str:
     """Return '<page_name>-<8-hex>' stable key from page directory path."""
-    safe_name = re.sub(r"[^A-Za-z0-9_.-]+", "-", page_name.strip()).strip(".-")
-    safe_name = safe_name or "page"
-    raw = str(page_dir_path.resolve())
+    raw = str(page_dir_path.absolute())
     short = hashlib.sha256(raw.encode()).hexdigest()[:8]
-    return f"{safe_name}-{short}"
+    return f"{page_name}-{short}"
 
 
 def get_pages_workspace() -> Path:
@@ -461,21 +455,26 @@ def get_tracked_files(source_dir: Path) -> list[Path]:
         logger.debug("Could not load manifest from %s: %s", source_dir, exc)
     else:
         assert isinstance(model, DashboardPageModel)
-        library_fields = (
-            (model.js_libraries, "src"),
-            (model.js_thirdparty_libraries, "src"),
-            (model.css_libraries, "href"),
-            (model.css_thirdparty_libraries, "href"),
-            (model.link_libraries, "href"),
-            (model.link_thirdparty_libraries, "href"),
-        )
-        for entries, path_key in library_fields:
-            for entry in entries:
-                asset_path = entry.get(path_key, "")
-                if asset_path and not asset_path.startswith(("http://", "https://")):
-                    local = _resolve_local(asset_path)
-                    if local:
-                        tracked.append(local)
+        for entry in model.js_libraries:
+            src = entry.get("src", "")
+            if src and not src.startswith(("http://", "https://")):
+                local = _resolve_local(src)
+                if local:
+                    tracked.append(local)
+
+        for entry in model.css_libraries:
+            href = entry.get("href", "")
+            if href and not href.startswith(("http://", "https://")):
+                local = _resolve_local(href)
+                if local:
+                    tracked.append(local)
+
+        for entry in model.link_libraries:
+            href = entry.get("href", "")
+            if href and not href.startswith(("http://", "https://")):
+                local = _resolve_local(href)
+                if local:
+                    tracked.append(local)
 
         for static_path in model.static_paths:
             static_abs = _resolve_local(static_path)

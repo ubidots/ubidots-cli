@@ -98,8 +98,6 @@ def _run_watchdog(
         if skip_initial_copy
         else _copy_all(source_dir, workspace_dir)
     )
-    if not skip_initial_copy:
-        _render(source_dir, workspace_dir)
     tracked_set = {str(f) for f in tracked}
 
     class _Handler(FileSystemEventHandler):
@@ -141,30 +139,10 @@ def _run_watchdog(
                         _render(source_dir, workspace_dir)
                     except Exception as exc:
                         logging.error("manifest.toml re-sync failed: %s", exc)
-                elif path_str in tracked_set:
-                    if not path.is_file():
-                        tracked_set.discard(path_str)
-                        try:
-                            rel = path.relative_to(source_dir)
-                            dst = workspace_dir / rel
-                            if dst.exists():
-                                dst.unlink()
-                                logging.info("Removed deleted file %s", rel)
-                        except Exception as exc:
-                            logging.error("Failed to remove %s: %s", path, exc)
-                    else:
-                        _copy_file(path, source_dir, workspace_dir)
-                        if path.name == "body.html":
-                            _render(source_dir, workspace_dir)
-                elif path.is_file():
-                    try:
-                        new_tracked = _get_tracked(source_dir)
-                        new_set = {str(f) for f in new_tracked}
-                        if path_str in new_set:
-                            tracked_set.update(new_set)
-                            _copy_file(path, source_dir, workspace_dir)
-                    except Exception as exc:
-                        logging.error("Failed to handle new file %s: %s", path, exc)
+                elif path_str in tracked_set and path.is_file():
+                    _copy_file(path, source_dir, workspace_dir)
+                    if path.name == "body.html":
+                        _render(source_dir, workspace_dir)
     finally:
         observer.stop()
         observer.join()
@@ -179,8 +157,6 @@ def _run_polling(
         if skip_initial_copy
         else _copy_all(source_dir, workspace_dir)
     )
-    if not skip_initial_copy:
-        _render(source_dir, workspace_dir)
     mtimes: dict[str, float] = {
         str(f): f.stat().st_mtime for f in tracked if f.exists()
     }
@@ -193,18 +169,6 @@ def _run_polling(
             new_tracked = tracked
 
         changed: list[Path] = []
-        new_keys = {str(f) for f in new_tracked}
-        for key in list(mtimes):
-            if key not in new_keys or not Path(key).exists():
-                del mtimes[key]
-                try:
-                    rel = Path(key).relative_to(source_dir)
-                    dst = workspace_dir / rel
-                    if dst.exists():
-                        dst.unlink()
-                        logging.info("Removed deleted file %s", rel)
-                except Exception as exc:
-                    logging.error("Failed to remove %s: %s", key, exc)
         for f in new_tracked:
             if not f.exists():
                 continue
