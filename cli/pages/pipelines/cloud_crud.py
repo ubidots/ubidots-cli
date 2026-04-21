@@ -155,11 +155,13 @@ class UpdatePageStep(PipelineStep):
     def execute(self, data):
         active_config = data["active_config"]
         page_key = data["page_key"]
-        new_name = data["new_name"]
+        new_name = data.get("new_name", "")
+        new_label = data.get("new_label", "")
         response = update_page(
             active_config=active_config,
             page_key=page_key,
             name=new_name,
+            label=new_label,
         )
         response.raise_for_status()
         return data

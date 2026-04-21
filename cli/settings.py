@@ -73,43 +73,9 @@ class PagesSettings(BaseModel):
     HOT_RELOAD_ENDPOINT: str = "/__dev/reload"  # SSE endpoint path
     HOT_RELOAD_PORT_DEFAULT: int = 9000
     HOT_RELOAD_PORT_FALLBACK_START: int = 9001
-    HOT_RELOAD_WATCH_EXTENSIONS: list[str] = [
-        ".html",
-        ".css",
-        ".js",
-        ".json",
-        ".toml",
-        ".md",
-        ".txt",
-        ".py",
-    ]
-    HOT_RELOAD_IGNORE_PATTERNS: list[str] = [
-        "*.pyc",
-        "__pycache__",
-        ".git",
-        ".DS_Store",
-        "*.tmp",
-    ]
-    HOT_RELOAD_DEBOUNCE_MS: int = 1000  # Debounce in milliseconds
 
     TEMPLATES_DIR: Path = (
         Path(__file__).resolve().parent.parent / "cli" / "pages" / "templates"
-    )
-    FLASK_MANAGER_TEMPLATE: Path = (
-        Path(__file__).resolve().parent.parent
-        / "cli"
-        / "pages"
-        / "engines"
-        / "templates"
-        / "flask_manager.py"
-    )
-    PAGE_SERVER_TEMPLATE: Path = (
-        Path(__file__).resolve().parent.parent
-        / "cli"
-        / "pages"
-        / "engines"
-        / "templates"
-        / "page_server.py"
     )
     UBIDOTS_PAGE_LAYOUT_ZIP: dict[str, Path] = {
         "dashboard": TEMPLATES_DIR / "default-page.zip",

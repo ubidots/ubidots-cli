@@ -7,7 +7,6 @@ from unittest.mock import patch
 from cli.pages.exceptions import PageAlreadyExistsInCurrentDirectoryError
 from cli.pages.exceptions import PageIsAlreadyRunningError
 from cli.pages.exceptions import PageIsAlreadyStoppedError
-from cli.pages.exceptions import PageWithNameAlreadyExistsError
 from cli.pages.models import PageTypeEnum
 from cli.pages.pipelines import CreateProjectFolderStep
 from cli.pages.pipelines import GetPageStatusStep
@@ -15,8 +14,6 @@ from cli.pages.pipelines import ListAllPagesStep
 from cli.pages.pipelines import PrintkeyStep
 from cli.pages.pipelines import ReadPageMetadataStep
 from cli.pages.pipelines import SaveManifestStep
-from cli.pages.pipelines import StopPageContainerStep
-from cli.pages.pipelines import ValidateCurrentPageExistsStep
 from cli.pages.pipelines import ValidateNotRunningFromPageDirectoryStep
 from cli.pages.pipelines import ValidatePageDirectoryStep
 from cli.pages.pipelines import ValidatePageNotRunningStep
@@ -54,35 +51,6 @@ class TestValidationSteps(unittest.TestCase):
                 result = step.execute({})
 
             self.assertEqual(result, {})
-
-    @patch("cli.pages.pipelines.dev_scaffold.settings")
-    def test_validate_current_page_exists_step_exists(self, mock_settings):
-        mock_settings.PAGES.PROJECT_METADATA_FILE = ".manifest.yaml"
-
-        with TemporaryDirectory() as temp_dir:
-            project_path = Path(temp_dir) / "test_page"
-            project_path.mkdir()
-
-            data = {"project_path": project_path, "page_name": "test_page"}
-
-            step = ValidateCurrentPageExistsStep()
-
-            with self.assertRaises(PageWithNameAlreadyExistsError):
-                step.execute(data)
-
-    @patch("cli.pages.pipelines.dev_scaffold.settings")
-    def test_validate_current_page_exists_step_not_exists(self, mock_settings):
-        mock_settings.PAGES.PROJECT_METADATA_FILE = ".manifest.yaml"
-
-        with TemporaryDirectory() as temp_dir:
-            project_path = Path(temp_dir) / "test_page"
-
-            data = {"project_path": project_path, "page_name": "test_page"}
-
-            step = ValidateCurrentPageExistsStep()
-            result = step.execute(data)
-
-            self.assertEqual(result, data)
 
     def test_validate_page_directory_step_exists(self):
         with TemporaryDirectory() as temp_dir:
@@ -172,165 +140,149 @@ class TestCreationSteps(unittest.TestCase):
             step.execute(data)
 
 
-class TestContainerSteps(unittest.TestCase):
+class TestPidBasedSteps(unittest.TestCase):
+    """Tests for new pid-file-based pipeline steps."""
 
-    @patch("cli.pages.pipelines.dev_engine.get_page_container")
-    @patch("cli.pages.pipelines.dev_engine.is_container_running")
-    @patch("cli.pages.pipelines.dev_engine.generate_page_url")
-    @patch("cli.pages.pipelines.dev_engine.settings")
-    def test_validate_page_not_running_step_not_running(
-        self, mock_settings, mock_generate_url, mock_is_running, mock_get_container
-    ):
-        mock_container = MagicMock()
-        mock_get_container.return_value = mock_container
-        mock_is_running.return_value = False
+    def test_validate_page_not_running_step_not_running(self):
+        with TemporaryDirectory() as temp_dir:
+            project_path = Path(temp_dir)
+            data = {"project_path": project_path, "workspace_key": "test-page-abc123"}
+            step = ValidatePageNotRunningStep()
+            result = step.execute(data)
+            self.assertEqual(result, data)
 
-        data = {"container_manager": MagicMock(), "page_name": "test_page"}
+    def test_validate_page_not_running_step_is_running(self):
+        with TemporaryDirectory() as temp_dir:
+            project_path = Path(temp_dir)
+            pid_file = project_path / ".pid"
+            pid_file.write_text("12345")
 
-        step = ValidatePageNotRunningStep()
-        result = step.execute(data)
+            data = {"project_path": project_path, "workspace_key": "test-page-abc123"}
+            step = ValidatePageNotRunningStep()
 
-        self.assertEqual(result, data)
+            with patch("os.kill"), self.assertRaises(
+                PageIsAlreadyRunningError
+            ):  # Simulate process exists
+                step.execute(data)
 
-    @patch("cli.pages.pipelines.dev_engine.get_page_container")
-    @patch("cli.pages.pipelines.dev_engine.is_container_running")
-    @patch("cli.pages.pipelines.dev_engine.generate_page_url")
-    @patch("cli.pages.pipelines.dev_engine.settings")
-    def test_validate_page_not_running_step_is_running(
-        self, mock_settings, mock_generate_url, mock_is_running, mock_get_container
-    ):
-        mock_container = MagicMock()
-        mock_get_container.return_value = mock_container
-        mock_is_running.return_value = True
-        mock_generate_url.return_value = "http://localhost:8090/"
-        mock_settings.PAGES.ROUTING_MODE = "port"
+    def test_validate_page_running_step_is_running(self):
+        with TemporaryDirectory() as temp_dir:
+            project_path = Path(temp_dir)
+            pid_file = project_path / ".pid"
+            pid_file.write_text("12345")
 
-        data = {"container_manager": MagicMock(), "page_name": "test_page"}
+            data = {"project_path": project_path, "workspace_key": "test-page-abc123"}
+            step = ValidatePageRunningStep()
 
-        step = ValidatePageNotRunningStep()
+            with patch("os.kill"):  # Simulate process exists
+                result = step.execute(data)
 
-        with self.assertRaises(PageIsAlreadyRunningError):
-            step.execute(data)
+            self.assertEqual(result, data)
 
-    @patch("cli.pages.pipelines.dev_engine.get_page_container")
-    @patch("cli.pages.pipelines.dev_engine.is_container_running")
-    def test_validate_page_running_step_is_running(
-        self, mock_is_running, mock_get_container
-    ):
-        mock_container = MagicMock()
-        mock_get_container.return_value = mock_container
-        mock_is_running.return_value = True
+    def test_validate_page_running_step_not_running(self):
+        with TemporaryDirectory() as temp_dir:
+            project_path = Path(temp_dir)
+            data = {"project_path": project_path, "workspace_key": "test-page-abc123"}
+            step = ValidatePageRunningStep()
 
-        data = {"container_manager": MagicMock(), "page_name": "test_page"}
+            with self.assertRaises(PageIsAlreadyStoppedError):
+                step.execute(data)
 
-        step = ValidatePageRunningStep()
-        result = step.execute(data)
+    def test_get_page_status_step_stopped_no_pid(self):
+        with TemporaryDirectory() as temp_dir:
+            project_path = Path(temp_dir)
+            data = {
+                "project_path": project_path,
+                "workspace_key": "test-page",
+                "argo_adapter_port": 8040,
+            }
+            step = GetPageStatusStep()
+            with patch("httpx.get", side_effect=Exception("connection refused")):
+                result = step.execute(data)
+            self.assertEqual(result["page_status"], "stopped")
+            self.assertEqual(result["page_url"], "")
 
-        self.assertEqual(result, data)
+    def test_list_all_pages_step_empty_workspace(self):
+        with TemporaryDirectory() as temp_dir:
+            data = {"argo_adapter_port": 8040}
+            step = ListAllPagesStep()
+            with (
+                patch(
+                    "cli.pages.pipelines.dev_engine.get_pages_workspace",
+                    return_value=Path(temp_dir),
+                ),
+                patch("httpx.get", side_effect=Exception("connection refused")),
+            ):
+                result = step.execute(data)
+            self.assertEqual(result["pages_info"], [])
 
-    @patch("cli.pages.pipelines.dev_engine.get_page_container")
-    @patch("cli.pages.pipelines.dev_engine.is_container_running")
-    def test_validate_page_running_step_not_running(
-        self, mock_is_running, mock_get_container
-    ):
-        mock_container = MagicMock()
-        mock_get_container.return_value = mock_container
-        mock_is_running.return_value = False
+    def test_list_all_pages_step_includes_source_path(self):
+        with TemporaryDirectory() as temp_dir:
+            workspace = Path(temp_dir)
+            page_dir = workspace / "my-page-abc12345"
+            page_dir.mkdir()
+            (page_dir / ".source_path").write_text(
+                "/home/user/my-page", encoding="utf-8"
+            )
 
-        data = {"container_manager": MagicMock(), "page_name": "test_page"}
+            data = {"argo_adapter_port": 8040}
+            step = ListAllPagesStep()
+            with (
+                patch(
+                    "cli.pages.pipelines.dev_engine.get_pages_workspace",
+                    return_value=workspace,
+                ),
+                patch("httpx.get", side_effect=Exception("connection refused")),
+            ):
+                result = step.execute(data)
 
-        step = ValidatePageRunningStep()
+            self.assertEqual(len(result["pages_info"]), 1)
+            self.assertEqual(result["pages_info"][0]["path"], "/home/user/my-page")
 
-        with self.assertRaises(PageIsAlreadyStoppedError):
-            step.execute(data)
+    def test_list_all_pages_step_path_fallback_when_missing(self):
+        with TemporaryDirectory() as temp_dir:
+            workspace = Path(temp_dir)
+            page_dir = workspace / "my-page-abc12345"
+            page_dir.mkdir()
+            # No .source_path file
 
-    @patch("cli.pages.pipelines.dev_engine.stop_page_container")
-    def test_stop_page_container_step(self, mock_stop_container):
-        data = {"container_manager": MagicMock(), "page_name": "test_page"}
+            data = {"argo_adapter_port": 8040}
+            step = ListAllPagesStep()
+            with (
+                patch(
+                    "cli.pages.pipelines.dev_engine.get_pages_workspace",
+                    return_value=workspace,
+                ),
+                patch("httpx.get", side_effect=Exception("connection refused")),
+            ):
+                result = step.execute(data)
 
-        step = StopPageContainerStep()
-        result = step.execute(data)
+            self.assertEqual(result["pages_info"][0]["path"], "-")
 
-        self.assertEqual(result, data)
-        mock_stop_container.assert_called_once_with(
-            container_manager=data["container_manager"], page_name="test_page"
-        )
+    def test_list_all_pages_step_orphaned_when_source_dir_deleted(self):
+        with TemporaryDirectory() as temp_dir:
+            workspace = Path(temp_dir)
+            page_dir = workspace / "my-page-abc12345"
+            page_dir.mkdir()
+            # .source_path points to a directory that no longer exists
+            (page_dir / ".source_path").write_text(
+                "/nonexistent/path/my-page", encoding="utf-8"
+            )
 
-    @patch("cli.pages.pipelines.dev_engine.get_page_container")
-    @patch("cli.pages.pipelines.dev_engine.is_container_running")
-    @patch("cli.pages.pipelines.dev_engine.generate_page_url")
-    @patch("cli.pages.pipelines.dev_engine.settings")
-    def test_get_page_status_step_running(
-        self, mock_settings, mock_generate_url, mock_is_running, mock_get_container
-    ):
-        mock_container = MagicMock()
-        mock_get_container.return_value = mock_container
-        mock_is_running.return_value = True
-        mock_generate_url.return_value = "http://localhost:8090/"
-        mock_settings.PAGES.ROUTING_MODE = "port"
+            data = {"argo_adapter_port": 8040}
+            step = ListAllPagesStep()
+            with (
+                patch(
+                    "cli.pages.pipelines.dev_engine.get_pages_workspace",
+                    return_value=workspace,
+                ),
+                patch("httpx.get", side_effect=Exception("connection refused")),
+            ):
+                result = step.execute(data)
 
-        data = {"container_manager": MagicMock(), "page_name": "test_page"}
-
-        step = GetPageStatusStep()
-        result = step.execute(data)
-
-        expected_data = data.copy()
-        expected_data.update(
-            {"page_status": "running", "page_url": "http://localhost:8090/"}
-        )
-        self.assertEqual(result, expected_data)
-
-    @patch("cli.pages.pipelines.dev_engine.get_page_container")
-    def test_get_page_status_step_stopped(self, mock_get_container):
-        mock_get_container.return_value = None
-
-        data = {"container_manager": MagicMock(), "page_name": "test_page"}
-
-        step = GetPageStatusStep()
-        result = step.execute(data)
-
-        expected_data = data.copy()
-        expected_data.update({"page_status": "stopped", "page_url": ""})
-        self.assertEqual(result, expected_data)
-
-    @patch("cli.pages.pipelines.dev_engine.page_engine_settings")
-    @patch("cli.pages.pipelines.dev_engine.generate_page_url")
-    @patch("cli.pages.pipelines.dev_engine.settings")
-    def test_list_all_pages_step(
-        self, mock_settings, mock_generate_url, mock_page_settings
-    ):
-        mock_page_settings.CONTAINER.PAGE.PREFIX_NAME = "page"
-        mock_settings.PAGES.ROUTING_MODE = "port"
-        mock_generate_url.return_value = "http://localhost:8090/"
-
-        mock_container1 = MagicMock()
-        mock_container1.name = "page-test_page1"
-        mock_container1.status = "running"
-
-        mock_container2 = MagicMock()
-        mock_container2.name = "page-test_page2"
-        mock_container2.status = "exited"
-
-        mock_container_manager = MagicMock()
-        mock_container_manager.list.return_value = [mock_container1, mock_container2]
-
-        data = {"container_manager": mock_container_manager}
-
-        step = ListAllPagesStep()
-        result = step.execute(data)
-
-        expected_pages_info = [
-            {
-                "name": "test_page1",
-                "status": "running",
-                "url": "http://localhost:8090/",
-            },
-            {"name": "test_page2", "status": "stopped", "url": "-"},
-        ]
-
-        expected_data = data.copy()
-        expected_data["pages_info"] = expected_pages_info
-        self.assertEqual(result, expected_data)
+            entry = result["pages_info"][0]
+            self.assertEqual(entry["status"], "orphaned")
+            self.assertEqual(entry["url"], "-")
 
 
 class TestPrintkeyStep(unittest.TestCase):

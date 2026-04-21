@@ -23,13 +23,21 @@ def add_page(active_config: ProfileConfigModel, name: str, label: str):
     return client.post(url, headers=headers, json=data)
 
 
-def update_page(active_config: ProfileConfigModel, page_key: str, name: str):
+def update_page(
+    active_config: ProfileConfigModel, page_key: str, name: str = "", label: str = ""
+):
     url, headers = build_endpoint(
         route=PAGE_API_ROUTES["detail"],
         page_key=page_key,
         active_config=active_config,
     )
-    data: UpdatePagePayload = {"name": name}
+    data: UpdatePagePayload = {}
+    if name:
+        data["name"] = name
+    if label:
+        data["label"] = label
+    if not data:
+        raise ValueError("At least one of 'name' or 'label' must be provided.")
     client = httpx.Client(follow_redirects=True)
     return client.patch(url, headers=headers, json=data)
 
