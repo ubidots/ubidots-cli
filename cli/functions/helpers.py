@@ -15,10 +15,10 @@ from docker.models.networks import Network
 from pydantic import ValidationError
 
 from cli.commons.enums import MessageColorEnum
-from cli.commons.helpers import argo_container_manager  # noqa: F401  (re-exported for existing callers)
+from cli.commons.helpers import argo_container_manager  # noqa: F401
 from cli.commons.helpers import find_available_ports
 from cli.commons.helpers import is_port_available
-from cli.commons.helpers import verify_and_fetch_images  # noqa: F401  (re-exported for existing callers)
+from cli.commons.helpers import verify_and_fetch_images  # noqa: F401
 from cli.functions.engines.docker.client import FunctionDockerClient
 from cli.functions.engines.docker.container import FunctionDockerContainerManager
 from cli.functions.engines.enums import ArgoMethodEnum
