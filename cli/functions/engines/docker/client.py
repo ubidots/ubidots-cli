@@ -3,7 +3,7 @@ from dataclasses import field
 
 from docker import DockerClient
 
-from cli.functions.engines.abstracts.client import AbstractEngineClient
+from cli.commons.engines.docker.client import BaseDockerClient
 from cli.functions.engines.docker.container import FunctionDockerContainerManager
 from cli.functions.engines.docker.image import FunctionDockerImageDownloader
 from cli.functions.engines.docker.network import FunctionDockerNetworkManager
@@ -12,7 +12,7 @@ from cli.functions.engines.enums import FunctionEngineTypeEnum
 
 
 @dataclass
-class FunctionDockerClient(AbstractEngineClient):
+class FunctionDockerClient(BaseDockerClient):
     client: DockerClient = field(default_factory=DockerClient)
     engine: FunctionEngineTypeEnum = field(default=FunctionEngineTypeEnum.DOCKER)
 

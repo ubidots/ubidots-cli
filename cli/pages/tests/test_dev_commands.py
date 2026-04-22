@@ -88,8 +88,7 @@ class TestDevAddCommand(unittest.TestCase):
     def test_init_command_with_remote_id(self):
         result = self.runner.invoke(app, ["dev", "add", "--remote-id", "page123"])
 
-        self.assertEqual(result.exit_code, 0)
-        self.assertIn("not implemented yet", result.stdout.lower())
+        self.assertEqual(result.exit_code, 2)
 
 
 class TestStartCommand(unittest.TestCase):

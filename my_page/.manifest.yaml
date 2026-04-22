@@ -1,0 +1,9 @@
+page:
+  id: ''
+  label: my_page
+  name: my_page
+project:
+  createdAt: '2026-04-21T14:58:42.984625'
+  label: my_page
+  name: my_page
+  type: dashboard

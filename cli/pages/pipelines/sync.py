@@ -55,10 +55,11 @@ class CreatePageIfNeededStep(PipelineStep):
         if data["needs_update"]:
             return data
 
+        confirm = data.get("confirm", False)
         message = (
             "This page is not created. Would you like to create a new page and push it?"
         )
-        if not typer.confirm(message):
+        if not confirm and not typer.confirm(message):
             error_message = "Operation cancelled: Page pushing was aborted by the user."
             raise typer.Abort(error_message)
 
@@ -348,24 +349,10 @@ class ExtractPageProjectStep(PipelineStep):
     def execute(self, data):
         if not data.get("has_code", True):
             return data
-
         project_path = data["project_path"]
         response = data["page_zip_content"]
-        remote_page_name = data["remote_page_detail"]["name"]
-
-        metadata_file = project_path / settings.PAGES.PROJECT_METADATA_FILE
-        in_page_dir = metadata_file.exists()
-
-        extract_path = (
-            project_path if in_page_dir else Path(project_path / remote_page_name)
-        )
-
         with zipfile.ZipFile(BytesIO(response.content), "r") as zip_ref:
-            zip_ref.extractall(extract_path)
-
-        if not in_page_dir:
-            data["project_path"] = extract_path
-
+            zip_ref.extractall(project_path)
         return data
 
 
@@ -375,21 +362,12 @@ class SavePullPageManifestStep(PipelineStep):
         remote_page_detail = data["remote_page_detail"]
         page_name = remote_page_detail["name"]
         page_id = remote_page_detail["id"]
-        has_code = data.get("has_code", True)
-
-        if not has_code and data.get("is_new_page_pull", False):
-            page_dir = project_path / page_name
-            page_dir.mkdir(parents=True, exist_ok=True)
-            data["project_path"] = page_dir
-            project_path = page_dir
-
         create_and_save_page_manifest(
             project_path=project_path,
             page_name=page_name,
             page_type=PageTypeEnum.DASHBOARD,
             page_id=page_id,
         )
-
         return data
 
 
@@ -420,4 +398,16 @@ class PrintPagePathStep(PipelineStep):
                     bold=True,
                 )
             )
+        return data
+
+
+class CreatePullDirectoryStep(PipelineStep):
+    def execute(self, data):
+        if not data.get("is_new_page_pull", False):
+            return data  # existing pull — project_path is already the page dir
+        project_path = data["project_path"]
+        remote_page_name = data["remote_page_detail"]["name"]
+        page_dir = project_path / remote_page_name
+        page_dir.mkdir(parents=True, exist_ok=True)
+        data["project_path"] = page_dir
         return data

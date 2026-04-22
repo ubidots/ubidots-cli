@@ -67,7 +67,7 @@ class BaseDockerContainerManager(ABC):
             existing = self.client.containers.get(container_name)
             if existing.status == "running":
                 raise ContainerAlreadyRunningException(container_name=container_name)
-            existing.remove()
+            existing.remove(force=True)
 
         try:
             return self.client.containers.run(**kwargs)
