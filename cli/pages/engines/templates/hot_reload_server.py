@@ -46,7 +46,7 @@ def _push_reload() -> None:
 
 
 class _Handler(BaseHTTPRequestHandler):
-    def log_message(self, format, *args):
+    def log_message(self, format_, *args):
         pass  # Suppress default request logging
 
     def do_OPTIONS(self):
@@ -86,8 +86,12 @@ class _Handler(BaseHTTPRequestHandler):
             _sse_clients.append(self.wfile)
         try:
             while True:
-                time.sleep(1)
-        except (BrokenPipeError, ConnectionResetError):
+                self.wfile.write(b": ping\n\n")
+                self.wfile.flush()
+                time.sleep(15)
+        except (BrokenPipeError, ConnectionResetError, OSError):
+            pass
+        finally:
             with _lock:
                 if self.wfile in _sse_clients:
                     _sse_clients.remove(self.wfile)
@@ -117,8 +121,10 @@ class _Handler(BaseHTTPRequestHandler):
                 f"({error.get('source', '')}:{error.get('line', '')})",
                 flush=True,
             )
-        except (json.JSONDecodeError, Exception):
+        except json.JSONDecodeError:
             pass
+        except Exception as exc:
+            print(f"[browser error capture failed] {exc}", flush=True)
         self.send_response(200)
         self._cors()
         self.end_headers()

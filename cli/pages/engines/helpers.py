@@ -1,5 +1,10 @@
+import re
 import subprocess
 import sys
+import hashlib
+import logging
+import time
+import httpx
 from contextlib import suppress
 from pathlib import Path
 
@@ -12,6 +17,7 @@ from cli.pages.engines.enums import ContainerStatusEnum
 from cli.pages.engines.exceptions import ContainerNotFoundException
 from cli.pages.engines.settings import page_engine_settings
 from cli.settings import settings
+from cli.commons.settings import ARGO_API_BASE_PATH
 
 
 def get_or_create_pages_network(client: PageDockerClient):
@@ -366,16 +372,6 @@ def stop_page_container(
     container_manager.stop(container_name)
 
 
-# ── Argo-based workspace helpers (new architecture) ────────────────────────────
-
-import hashlib  # noqa: E402
-import logging  # noqa: E402
-import time  # noqa: E402
-
-import httpx  # noqa: E402
-
-from cli.commons.settings import ARGO_API_BASE_PATH  # noqa: E402
-
 logger = logging.getLogger(__name__)
 
 _ARGO_ALLOWED_EXTENSIONS = [
@@ -385,10 +381,18 @@ _ARGO_ALLOWED_EXTENSIONS = [
     ".toml",
     ".json",
     ".png",
+    ".jpg",
+    ".jpeg",
+    ".gif",
+    ".webp",
+    ".avif",
     ".svg",
     ".ico",
     ".woff",
     ".woff2",
+    ".ttf",
+    ".otf",
+    ".eot",
     ".map",
     ".txt",
     ".md",
@@ -397,9 +401,11 @@ _ARGO_ALLOWED_EXTENSIONS = [
 
 def compute_workspace_key(page_name: str, page_dir_path: Path) -> str:
     """Return '<page_name>-<8-hex>' stable key from page directory path."""
-    raw = str(page_dir_path.absolute())
+    safe_name = re.sub(r"[^A-Za-z0-9_.-]+", "-", page_name.strip()).strip(".-")
+    safe_name = safe_name or "page"
+    raw = str(page_dir_path.resolve())
     short = hashlib.sha256(raw.encode()).hexdigest()[:8]
-    return f"{page_name}-{short}"
+    return f"{safe_name}-{short}"
 
 
 def get_pages_workspace() -> Path:
