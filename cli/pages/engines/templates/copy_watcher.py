@@ -183,7 +183,12 @@ def _run_watchdog(
                         _render(source_dir, workspace_dir)
                     except Exception as exc:
                         logging.error("manifest.toml re-sync failed: %s", exc)
-                elif path_str in tracked_set and path.is_file():
+                elif path.is_file():
+                    if path_str not in tracked_set:
+                        current_tracked = {str(f) for f in _get_tracked(source_dir)}
+                        tracked_set.update(current_tracked)
+                    if path_str not in tracked_set:
+                        continue
                     _copy_file(path, source_dir, workspace_dir)
                     if path.name == "body.html":
                         _render(source_dir, workspace_dir)
@@ -219,6 +224,20 @@ def _run_polling(
             new_tracked = _get_tracked(source_dir)
         except Exception:
             new_tracked = tracked
+
+        current_keys = {str(f) for f in new_tracked}
+        for old_key in set(mtimes) - current_keys:
+            old_path = Path(old_key)
+            try:
+                rel = old_path.relative_to(source_dir)
+            except ValueError:
+                mtimes.pop(old_key, None)
+                continue
+            dst = workspace_dir / rel
+            if dst.exists():
+                dst.unlink()
+                logging.info("Removed deleted file %s", rel)
+            mtimes.pop(old_key, None)
 
         changed: list[Path] = []
         for f in new_tracked:

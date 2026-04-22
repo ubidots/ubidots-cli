@@ -480,8 +480,14 @@ class ExtractProjectStep(PipelineStep):
             else Path(project_path / remote_function_name)
         )
 
+        destination = extract_path.resolve()
         with zipfile.ZipFile(BytesIO(response.content), "r") as zip_ref:
-            zip_ref.extractall(extract_path)
+            for member in zip_ref.infolist():
+                member_path = (destination / member.filename).resolve()
+                if not member_path.is_relative_to(destination):
+                    msg = f"Unsafe path in archive: {member.filename}"
+                    raise ValueError(msg)
+            zip_ref.extractall(destination)
 
         # Update the project_path in data if we extracted to a subdirectory
         if not in_function_dir:

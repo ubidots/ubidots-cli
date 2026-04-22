@@ -4,3 +4,10 @@ __pycache__/
 *.pyc
 dist/
 .worktrees/
+
+# Sample/test pages
+my_page/
+some-other-page/
+
+# Spec documents
+pages-v1-migration-spec.md

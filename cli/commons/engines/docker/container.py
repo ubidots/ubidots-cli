@@ -16,9 +16,17 @@ from cli.commons.exceptions import ContainerNotFoundError
 class BaseDockerContainerManager(ABC):
     client: DockerClient
 
-    def get(self, label: str):
-        """Label-based container lookup. Raises ContainerNotFoundError if not found."""
-        containers = self.list({"label": label})
+    def get(self, label: str, label_key: str | None = None):
+        """Label-based container lookup. Raises ContainerNotFoundError if not found.
+
+        If label_key is provided, constructs filter as "{label_key}={label}".
+        Otherwise, expects label to be in "{key}={value}" format already.
+        """
+        if label_key:
+            filter_label = f"{label_key}={label}"
+        else:
+            filter_label = label
+        containers = self.list({"label": filter_label})
         container = next(iter(containers), None)
         if container is None:
             raise ContainerNotFoundError(label)

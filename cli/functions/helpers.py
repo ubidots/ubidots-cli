@@ -240,7 +240,10 @@ def frie_container_manager(
 
         container = None
         with suppress(ContainerNotFoundException):
-            container = container_manager.get(label=label)
+            container = container_manager.get(
+                label=label,
+                label_key=engine_settings.CONTAINER.FRIE.LABEL_KEY,
+            )
 
         if container is None:
             return None
@@ -301,7 +304,7 @@ def get_argo_input_adapter(
     from cli.commons.settings import HOST_BIND
 
     frie_port = engine_settings.CONTAINER.FRIE.INTERNAL_PORT.split("/")[0]
-    url = f"http://{HOST_BIND}:{argo_adapter_port}/{ARGO_API_BASE_PATH}"
+    url = f"http://{HOST_BIND}:{argo_adapter_port}/{ARGO_API_BASE_PATH}/"
     argo_methods = [ArgoMethodEnum(method.value) for method in methods]
     if has_cors:
         argo_methods.append(ArgoMethodEnum.OPTIONS)

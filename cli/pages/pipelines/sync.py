@@ -351,8 +351,14 @@ class ExtractPageProjectStep(PipelineStep):
             return data
         project_path = data["project_path"]
         response = data["page_zip_content"]
+        destination = project_path.resolve()
         with zipfile.ZipFile(BytesIO(response.content), "r") as zip_ref:
-            zip_ref.extractall(project_path)
+            for member in zip_ref.infolist():
+                member_path = (destination / member.filename).resolve()
+                if not member_path.is_relative_to(destination):
+                    msg = f"Unsafe path in archive: {member.filename}"
+                    raise ValueError(msg)
+            zip_ref.extractall(destination)
         return data
 
 
@@ -407,7 +413,20 @@ class CreatePullDirectoryStep(PipelineStep):
             return data  # existing pull — project_path is already the page dir
         project_path = data["project_path"]
         remote_page_name = data["remote_page_detail"]["name"]
-        page_dir = project_path / remote_page_name
-        page_dir.mkdir(parents=True, exist_ok=True)
+        base_path = project_path.resolve()
+        page_dir = (base_path / remote_page_name).resolve()
+        if not page_dir.is_relative_to(base_path):
+            msg = f"Invalid remote page name: {remote_page_name}"
+            raise ValueError(msg)
+        if page_dir.exists():
+            if not page_dir.is_dir():
+                msg = f"Cannot pull page into existing file: {page_dir}"
+                raise FileExistsError(msg)
+            metadata_file = page_dir / settings.PAGES.PROJECT_METADATA_FILE
+            if not metadata_file.exists() and any(page_dir.iterdir()):
+                msg = f"Refusing to overwrite non-page directory: {page_dir}"
+                raise FileExistsError(msg)
+        else:
+            page_dir.mkdir(parents=True)
         data["project_path"] = page_dir
         return data
