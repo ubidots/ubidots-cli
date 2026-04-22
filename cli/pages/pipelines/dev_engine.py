@@ -268,12 +268,17 @@ class StopHotReloadSubprocessStep(PipelineStep):
         with suppress(ProcessLookupError, OSError):
             os.kill(pid, signal.SIGTERM)
         deadline = time.monotonic() + 5
+        stopped = False
         while time.monotonic() < deadline:
             try:
                 os.kill(pid, 0)
                 time.sleep(0.1)
             except (ProcessLookupError, OSError):
+                stopped = True
                 break
+        if not stopped:
+            with suppress(ProcessLookupError, OSError):
+                os.kill(pid, signal.SIGKILL)
         pid_file.unlink(missing_ok=True)
         return data
 
@@ -334,14 +339,18 @@ class CopyTrackedFilesStep(PipelineStep):
         source_dir = data["project_path"]
         workspace_dir = data["workspace_path"]
         tracked = get_tracked_files(source_dir)
+        failures: list[str] = []
         for src_file in tracked:
             try:
                 rel = src_file.relative_to(source_dir)
                 dst = workspace_dir / rel
                 dst.parent.mkdir(parents=True, exist_ok=True)
                 shutil.copy2(src_file, dst)
-            except (OSError, ValueError):
-                pass
+            except (OSError, ValueError) as exc:
+                failures.append(f"{src_file}: {exc}")
+        if failures:
+            msg = "Failed to copy tracked page files:\n" + "\n".join(failures)
+            raise RuntimeError(msg)
         return data
 
 
@@ -377,12 +386,17 @@ class StopCopyWatcherStep(PipelineStep):
         with suppress(ProcessLookupError, OSError):
             os.kill(pid, signal.SIGTERM)
         deadline = time.monotonic() + 5
+        stopped = False
         while time.monotonic() < deadline:
             try:
                 os.kill(pid, 0)
                 time.sleep(0.1)
             except (ProcessLookupError, OSError):
+                stopped = True
                 break
+        if not stopped:
+            with suppress(ProcessLookupError, OSError):
+                os.kill(pid, signal.SIGKILL)
         watcher_pid_file.unlink(missing_ok=True)
         return data
 

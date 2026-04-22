@@ -14,7 +14,8 @@ def create_local_page(
     profile: str,
     type: PageTypeEnum,
 ):
-    if Path(name).is_absolute() or Path(name).name != name:
+    name_path = Path(name)
+    if not name or name in {".", ".."} or name_path.is_absolute() or name_path.name != name:
         raise ValueError(f"Page name must be a single safe path segment, got: {name}")
     label = sanitize_function_name(name)
     project_path = Path.cwd() / name  # plain directory, no workspace at add time
