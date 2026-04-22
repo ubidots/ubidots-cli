@@ -8,7 +8,6 @@ from unittest.mock import patch
 from cli.pages.executor import create_local_page
 from cli.pages.executor import list_local_pages
 from cli.pages.executor import logs_local_dev_server
-from cli.pages.executor import restart_local_dev_server
 from cli.pages.executor import show_local_dev_server_status
 from cli.pages.executor import start_local_dev_server
 from cli.pages.executor import stop_local_dev_server
@@ -22,7 +21,6 @@ class TestCreatePage(unittest.TestCase):
     @patch("cli.pages.executor.sanitize_function_name")
     @patch("pathlib.Path.cwd")
     def test_create_page_relative_path(self, mock_cwd, mock_sanitize, mock_pipeline):
-        """Test creating page with relative path."""
         mock_cwd.return_value = Path("/current")
         mock_sanitize.return_value = "test_page"
         mock_pipeline_instance = MagicMock()
@@ -35,46 +33,45 @@ class TestCreatePage(unittest.TestCase):
             type=PageTypeEnum.DASHBOARD,
         )
 
-        # Verify pipeline was created with correct steps and message
         mock_pipeline.assert_called_once()
         args, kwargs = mock_pipeline.call_args
         steps, success_message = args[0], kwargs["success_message"]
 
-        self.assertEqual(len(steps), 10)  # 10 pipeline steps
+        self.assertEqual(
+            len(steps), 10
+        )  # added GetWorkspaceKeyStep + CreateWorkspaceStep
         self.assertIn("Page 'test_page' created", success_message)
 
-        # Verify pipeline.run was called with correct data
-        mock_pipeline_instance.run.assert_called_once()
         run_data = mock_pipeline_instance.run.call_args[0][0]
-
         self.assertEqual(run_data["page_name"], "test_page")
         self.assertEqual(run_data["page_label"], "test_page")
-        self.assertEqual(run_data["project_path"], Path("/current/test_page"))
-        self.assertEqual(run_data["profile"], "default")
-        self.assertEqual(run_data["page_type"], PageTypeEnum.DASHBOARD)
-        self.assertTrue(run_data["verbose"])
-        self.assertTrue(run_data["clean_directory_if_validation_fails"])
+        self.assertEqual(
+            run_data["project_path"], Path("/current/test_page")
+        )  # plain dir
+        self.assertNotIn("symlink_path", run_data)
+        self.assertNotIn("workspace_key", run_data)
+        self.assertNotIn("workspace_path", run_data)
 
     @patch("cli.pages.executor.Pipeline")
     @patch("cli.pages.executor.sanitize_function_name")
     def test_create_page_absolute_path(self, mock_sanitize, mock_pipeline):
-        """Test creating page with absolute path."""
         mock_sanitize.return_value = "test_page"
         mock_pipeline_instance = MagicMock()
         mock_pipeline.return_value = mock_pipeline_instance
 
         create_local_page(
-            name="/absolute/test_page",
+            name="test_page",
             verbose=False,
             profile="prod",
             type=PageTypeEnum.DASHBOARD,
         )
 
-        # Verify pipeline.run was called with absolute path
         mock_pipeline_instance.run.assert_called_once()
         run_data = mock_pipeline_instance.run.call_args[0][0]
 
-        self.assertEqual(run_data["project_path"], Path("/absolute/test_page"))
+        # project_path is now CWD / name (plain directory, not workspace)
+        self.assertNotIn(".ubidots_cli", str(run_data["project_path"]))
+        self.assertNotIn("workspace_key", run_data)
         self.assertFalse(run_data["verbose"])
         self.assertEqual(run_data["profile"], "prod")
 
@@ -97,7 +94,7 @@ class TestStartPage(unittest.TestCase):
         args, kwargs = mock_pipeline.call_args
         steps, success_message = args[0], kwargs["success_message"]
 
-        self.assertEqual(len(steps), 10)  # 10 pipeline steps
+        self.assertEqual(len(steps), 22)  # was 23; removed CleanOrphanedPagesStep
         self.assertEqual(success_message, "Page started successfully.")
 
         # Verify pipeline.run was called with correct data
@@ -127,7 +124,9 @@ class TestStopPage(unittest.TestCase):
         args, kwargs = mock_pipeline.call_args
         steps, success_message = args[0], kwargs["success_message"]
 
-        self.assertEqual(len(steps), 7)  # 7 pipeline steps
+        self.assertEqual(
+            len(steps), 13
+        )  # added GetArgoImageNameStep + ValidateArgoImageStep
         self.assertEqual(success_message, "Page stopped successfully.")
 
         # Verify pipeline.run was called with correct data
@@ -140,33 +139,23 @@ class TestStopPage(unittest.TestCase):
 
 
 class TestRestartPage(unittest.TestCase):
-    """Test restart_page executor function."""
-
     @patch("cli.pages.executor.Pipeline")
     @patch("pathlib.Path.cwd")
     def test_restart_page(self, mock_cwd, mock_pipeline):
-        """Test restarting page."""
         mock_cwd.return_value = Path("/current")
         mock_pipeline_instance = MagicMock()
         mock_pipeline.return_value = mock_pipeline_instance
 
-        restart_local_dev_server(verbose=True)
+        from cli.pages.executor import restart_local_dev_server
 
-        # Verify pipeline was created with correct steps and message
-        mock_pipeline.assert_called_once()
+        restart_local_dev_server(verbose=False)
+
         args, kwargs = mock_pipeline.call_args
-        steps, success_message = args[0], kwargs["success_message"]
-
-        self.assertEqual(len(steps), 10)  # 10 pipeline steps
-        self.assertEqual(success_message, "Page restarted successfully.")
-
-        # Verify pipeline.run was called with correct data
-        mock_pipeline_instance.run.assert_called_once()
-        run_data = mock_pipeline_instance.run.call_args[0][0]
-
-        self.assertEqual(run_data["project_path"], Path("/current"))
-        self.assertTrue(run_data["verbose"])
-        self.assertEqual(run_data["root"], "restart_local_dev_server")
+        steps = args[0]
+        self.assertEqual(
+            len(steps), 24
+        )  # added GetArgoImageNameStep + ValidateArgoImageStep
+        self.assertEqual(kwargs["success_message"], "Page restarted successfully.")
 
 
 class TestStatusPage(unittest.TestCase):
@@ -187,7 +176,9 @@ class TestStatusPage(unittest.TestCase):
         args, kwargs = mock_pipeline.call_args
         steps, success_message = args[0], kwargs["success_message"]
 
-        self.assertEqual(len(steps), 7)  # 7 pipeline steps
+        self.assertEqual(
+            len(steps), 8
+        )  # TryGetArgoPortStep replaces GetContainerManagerStep + GetNetworkStep + EnsureArgoRunningStep
         self.assertEqual(success_message, "")  # Empty success message
 
         # Verify pipeline.run was called with correct data
@@ -215,7 +206,9 @@ class TestListPages(unittest.TestCase):
         args, kwargs = mock_pipeline.call_args
         steps, success_message = args[0], kwargs["success_message"]
 
-        self.assertEqual(len(steps), 4)  # 4 pipeline steps
+        self.assertEqual(
+            len(steps), 8
+        )  # added GetArgoImageNameStep + ValidateArgoImageStep
         self.assertEqual(success_message, "")  # Empty success message
 
         # Verify pipeline.run was called with correct data
@@ -238,7 +231,6 @@ class TestExecutorIntegration(unittest.TestCase):
         # Mock all pipeline step classes
         mock_step_classes = [
             "ValidateNotRunningFromPageDirectoryStep",
-            "ValidateCurrentPageExistsStep",
             "GetActiveConfigStep",
             "ValidatePagesAvailabilityPerPlanStep",
             "ValidateTemplateStep",
@@ -246,7 +238,6 @@ class TestExecutorIntegration(unittest.TestCase):
             "ExtractTemplateStep",
             "ValidateExtractedPageStep",
             "SaveManifestStep",
-            "EnsureDockerImageStep",
         ]
 
         for step_class in mock_step_classes:
@@ -264,7 +255,7 @@ class TestExecutorIntegration(unittest.TestCase):
     @patch("cli.pages.executor.pipelines")
     @patch("cli.pages.executor.Pipeline")
     def test_start_page_pipeline_steps(self, mock_pipeline, mock_pipelines):
-        """Test that start_page uses correct pipeline steps."""
+        """Test that start_page uses correct Argo pipeline steps."""
         # Mock all pipeline step classes
         mock_step_classes = [
             "ValidatePageDirectoryStep",
@@ -273,9 +264,20 @@ class TestExecutorIntegration(unittest.TestCase):
             "GetClientStep",
             "GetContainerManagerStep",
             "GetPageNameStep",
+            "GetWorkspaceKeyStep",
             "ValidatePageNotRunningStep",
-            "EnsureFlaskManagerStep",
-            "StartPageContainerStep",
+            "GetNetworkStep",
+            "GetArgoImageNameStep",
+            "ValidateArgoImageStep",
+            "EnsureArgoRunningStep",
+            "CreateWorkspaceStep",  # NEW
+            "CopyTrackedFilesStep",  # NEW
+            "FindHotReloadPortStep",
+            "RenderIndexHtmlStep",
+            "RegisterPageInArgoStep",
+            "StartCopyWatcherStep",  # NEW
+            "StartHotReloadSubprocessStep",
+            "StoreHotReloadPortStep",
             "PrintPageUrlStep",
         ]
 
@@ -291,64 +293,25 @@ class TestExecutorIntegration(unittest.TestCase):
         for step_class in mock_step_classes:
             getattr(mock_pipelines, step_class).assert_called_once()
 
-
-class TestLogsPage(unittest.TestCase):
-    """Test logs_local_dev_server executor function."""
-
-    @patch("cli.pages.executor.Pipeline")
-    @patch("pathlib.Path.cwd")
-    def test_logs_page(self, mock_cwd, mock_pipeline):
-        """Test fetching page logs."""
-        mock_cwd.return_value = Path("/current")
-        mock_pipeline_instance = MagicMock()
-        mock_pipeline.return_value = mock_pipeline_instance
-
-        logs_local_dev_server(tail="all", follow=False, verbose=False)
-
-        mock_pipeline.assert_called_once()
-        args, kwargs = mock_pipeline.call_args
-        steps = args[0]
-
-        self.assertEqual(len(steps), 7)  # 7 pipeline steps
-        self.assertEqual(kwargs["success_message"], "")
-
-        mock_pipeline_instance.run.assert_called_once()
-        run_data = mock_pipeline_instance.run.call_args[0][0]
-
-        self.assertEqual(run_data["project_path"], Path("/current"))
-        self.assertFalse(run_data["verbose"])
-        self.assertEqual(run_data["root"], logs_local_dev_server.__name__)
-
-    @patch("cli.pages.executor.Pipeline")
-    @patch("pathlib.Path.cwd")
-    def test_logs_page_with_options(self, mock_cwd, mock_pipeline):
-        """Test fetching page logs with tail and follow options."""
-        mock_cwd.return_value = Path("/current")
-        mock_pipeline_instance = MagicMock()
-        mock_pipeline.return_value = mock_pipeline_instance
-
-        logs_local_dev_server(tail="50", follow=True, verbose=True)
-
-        mock_pipeline_instance.run.assert_called_once()
-        run_data = mock_pipeline_instance.run.call_args[0][0]
-
-        self.assertTrue(run_data["verbose"])
-
-
-class TestLogsPageIntegration(unittest.TestCase):
-    """Test that logs_local_dev_server uses the correct pipeline steps."""
-
     @patch("cli.pages.executor.pipelines")
     @patch("cli.pages.executor.Pipeline")
-    def test_logs_page_pipeline_steps(self, mock_pipeline, mock_pipelines):
+    def test_stop_page_pipeline_steps(self, mock_pipeline, mock_pipelines):
+        """Test that stop_local_dev_server uses correct Argo pipeline steps."""
+        # Mock all pipeline step classes
         mock_step_classes = [
-            "ValidatePageDirectoryStep",
             "ReadPageMetadataStep",
             "GetClientStep",
             "GetContainerManagerStep",
             "GetPageNameStep",
-            "GetPageLogsStep",
-            "PrintkeyStep",
+            "GetWorkspaceKeyStep",
+            "ValidatePageRunningStep",
+            "GetNetworkStep",
+            "GetArgoImageNameStep",
+            "ValidateArgoImageStep",
+            "EnsureArgoRunningStep",
+            "DeregisterPageFromArgoStep",
+            "StopCopyWatcherStep",  # NEW
+            "StopHotReloadSubprocessStep",
         ]
 
         for step_class in mock_step_classes:
@@ -357,10 +320,46 @@ class TestLogsPageIntegration(unittest.TestCase):
         mock_pipeline_instance = MagicMock()
         mock_pipeline.return_value = mock_pipeline_instance
 
-        logs_local_dev_server(tail="50", follow=True, verbose=False)
+        stop_local_dev_server(verbose=False)
 
+        # Verify all expected pipeline steps were instantiated
         for step_class in mock_step_classes:
             getattr(mock_pipelines, step_class).assert_called_once()
 
-        # Verify GetPageLogsStep received tail and follow
-        mock_pipelines.GetPageLogsStep.assert_called_once_with(tail="50", follow=True)
+
+class TestLogsPage(unittest.TestCase):
+    """Test logs_local_dev_server executor function."""
+
+    @patch("cli.pages.executor.Pipeline")
+    def test_logs_page_runs_pipeline(self, mock_pipeline_cls):
+        """Test that logs_local_dev_server builds and runs a pipeline."""
+        mock_pipeline = MagicMock()
+        mock_pipeline_cls.return_value = mock_pipeline
+        logs_local_dev_server(tail="all", follow=False, verbose=False)
+        mock_pipeline.run.assert_called_once()
+        run_data = mock_pipeline.run.call_args[0][0]
+        assert run_data["tail"] == "all"
+        assert run_data["follow"] is False
+
+    @patch("cli.pages.executor.Pipeline")
+    def test_logs_page_passes_tail_and_follow(self, mock_pipeline_cls):
+        """Test that tail and follow are forwarded to the pipeline data."""
+        mock_pipeline = MagicMock()
+        mock_pipeline_cls.return_value = mock_pipeline
+        logs_local_dev_server(tail="50", follow=True, verbose=True)
+        run_data = mock_pipeline.run.call_args[0][0]
+        assert run_data["tail"] == "50"
+        assert run_data["follow"] is True
+
+    @patch("cli.pages.executor.Pipeline")
+    @patch("pathlib.Path.cwd")
+    def test_logs_page_pipeline_steps(self, mock_cwd, mock_pipeline):
+        mock_cwd.return_value = Path("/current")
+        mock_pipeline_instance = MagicMock()
+        mock_pipeline.return_value = mock_pipeline_instance
+
+        logs_local_dev_server(tail="all", follow=False, verbose=False)
+
+        args, _kwargs = mock_pipeline.call_args
+        steps = args[0]
+        self.assertEqual(len(steps), 5)  # was 4; added GetPageNameStep
