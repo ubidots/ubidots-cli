@@ -1,0 +1,62 @@
+* {
+  box-sizing: border-box;
+  padding: 0;
+  margin: 0;
+}
+
+body {
+    overflow: hidden; /* Prevent body from scrolling */
+}
+
+/* Overall container for charts and descriptions */
+.container {
+    overflow-y: auto; /* Allow vertical scrolling only on the #app container */
+    height: 100vh; /* Ensure the container fills the entire viewport */
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Nunito', sans-serif;
+    font-size: 1rem;
+    color: rgb(94, 94, 94); /* Text color */
+}
+
+/* Styling for description blocks */
+.content {
+    width: 100%;
+    text-align: center; /* Center-align text */
+    padding: 0; /* Add padding for spacing */
+    background-color: white; /* Light background */
+    border-bottom: none; /* Remove the subtle line */
+}
+
+/* Heading styling */
+.content h2 {
+    font-size: 20px; /* Larger font size for headings */
+    font-weight: 700; /* Bold headings */
+    margin: 0; /* Space below the heading */
+    color: #2c3e50; /* Darker heading color */
+    padding-top: 20px; /* Add padding for spacing */
+}
+
+/* Paragraph styling */
+.content p {
+    font-size: 14px; /* Slightly smaller text */
+    font-weight: 400; /* Regular weight */
+    margin: 0;
+    line-height: 1.6; /* Improve readability */
+    color: rgb(148, 148, 148); /* Light gray text */
+    padding: 0; /* Add padding for spacing */
+}
+
+/* Styling for the chart containers */
+.report-div {
+    width: 100%; /* Full width */
+    height: 50vh; /* Half of the viewport height for each chart */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background-color: white; /* White background for charts */
+    border-bottom: none; /* Remove the subtle line */
+}

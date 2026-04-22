@@ -132,7 +132,7 @@ across all running local functions.
 
 | Property | Value |
 |---|---|
-| Image | `ubidots/functions-argo:2.0.1` |
+| Image | `ubidots/functions-argo:2.1.0` |
 | Container name | `argo` |
 | Container label key | `ubidots_cli_argo` |
 | Hostname inside network | `ubi.argo` |
@@ -224,10 +224,20 @@ commands.py  →  executor.py  →  pipelines.py  →  handlers.py
 
 ### Local Page Dev Engine
 
-Pages use a two-container stack: a Flask-based routing manager (`flask-pages-manager`,
-image `ubidots/pages-server:latest`, label key `ubidots_cli_pages_manager`, port `8044`)
-running on network `ubidots_cli_pages`, and per-page containers (label key `ubidots_cli_page`)
-that mount the page project directory and serve it with hot-reload support.
+Pages share the Argo reverse proxy container already used by Functions (`ubidots/functions-argo:2.1.0`,
+network `ubidots_cli_functions`). There are no per-page Docker containers.
+
+Each page gets a **workspace directory** at `~/.ubidots_cli/pages/<workspace-key>/` (workspace key is
+`sha256(page_name + absolute_source_path)[:8]`, prefixed with the page name). The workspace is
+volume-mounted into the Argo container at `/pages/<workspace-key>/`. Argo serves it as static files
+via a registered `local_file` route.
+
+Two long-running subprocesses run alongside Argo while `dev start` is active:
+
+- **`copy_watcher`** — watches the page source directory and copies changed tracked files into the workspace.
+- **`hot_reload_server`** — SSE server (port found dynamically, default `9000`) that pushes reload events to the browser when workspace files change.
+
+The `index.html` served to the browser is rendered from the page template and written directly to the workspace; it is not tracked as a user-editable source file.
 
 ### Data Models
 

@@ -1,6 +1,6 @@
+from cli.commons.exceptions import CurrentPlanDoesNotIncludeRuntimes
 from cli.commons.exceptions import EmptyTokenError
 from cli.commons.exceptions import InvalidOptionError
-from cli.commons.exceptions import CurrentPlanDoesNotIncludeRuntimes
 from cli.commons.exceptions import UnexistentProfileError
 from cli.commons.styles import custom_prompt
 from cli.commons.utils import exit_with_error_message

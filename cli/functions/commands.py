@@ -262,14 +262,6 @@ def logs_function_local(
         bool,
         typer.Option("--follow/", "-f/", help="Follow log output."),
     ] = False,
-    profile: Annotated[
-        str,
-        typer.Option(
-            "--profile/",
-            "-p/",
-            help="Profile to use.",
-        ),
-    ] = "",
     verbose: bool = False,
 ):
     """Display logs from the local function development server.
@@ -281,7 +273,7 @@ def logs_function_local(
         tail=tail,
         follow=follow,
         remote=False,
-        profile=profile,
+        profile="",
         verbose=verbose,
     )
 

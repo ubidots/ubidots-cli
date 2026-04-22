@@ -57,6 +57,7 @@ class FunctionSettings(BaseModel):
 
 class PagesSettings(BaseModel):
     DEFAULT_PAGE_NAME: str = "my_page"
+    WORKSPACE_DIR_NAME: str = "pages"
     PROJECT_MANIFEST_FILE: str = "manifest.toml"
     PROJECT_METADATA_FILE: str = ".manifest.yaml"
     PAGE_INDEX_HTML_FILE: str = ".page.html"
@@ -70,46 +71,20 @@ class PagesSettings(BaseModel):
     # Hot reload configuration
     HOT_RELOAD_ENABLED: bool = True
     HOT_RELOAD_ENDPOINT: str = "/__dev/reload"  # SSE endpoint path
-    HOT_RELOAD_WATCH_EXTENSIONS: list[str] = [
-        ".html",
-        ".css",
-        ".js",
-        ".json",
-        ".toml",
-        ".md",
-        ".txt",
-        ".py",
-    ]
-    HOT_RELOAD_IGNORE_PATTERNS: list[str] = [
-        "*.pyc",
-        "__pycache__",
-        ".git",
-        ".DS_Store",
-        "*.tmp",
-    ]
-    HOT_RELOAD_DEBOUNCE_MS: int = 1000  # Debounce in milliseconds
+    HOT_RELOAD_PORT_DEFAULT: int = 9000
+    HOT_RELOAD_PORT_FALLBACK_START: int = 9001
 
     TEMPLATES_DIR: Path = (
         Path(__file__).resolve().parent.parent / "cli" / "pages" / "templates"
     )
-    FLASK_MANAGER_TEMPLATE: Path = (
-        Path(__file__).resolve().parent.parent
-        / "cli"
-        / "pages"
-        / "engines"
-        / "templates"
-        / "flask_manager.py"
-    )
-    PAGE_SERVER_TEMPLATE: Path = (
-        Path(__file__).resolve().parent.parent
-        / "cli"
-        / "pages"
-        / "engines"
-        / "templates"
-        / "page_server.py"
-    )
     UBIDOTS_PAGE_LAYOUT_ZIP: dict[str, Path] = {
         "dashboard": TEMPLATES_DIR / "default-page.zip",
+    }
+    UBIDOTS_PAGE_HTML: dict[str, Path] = {
+        "dashboard": TEMPLATES_DIR / "ubidots-page.html.template",
+    }
+    INDEX_HTML: dict[str, Path] = {
+        "dashboard": TEMPLATES_DIR / "index.html.template",
     }
 
     API_ROUTES: dict[str, str] = {
