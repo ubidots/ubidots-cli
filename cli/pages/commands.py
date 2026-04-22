@@ -30,6 +30,7 @@ STOP_COMMAND_HELP_TEXT = "Stop the local development server for the Ubidots page
 
 RESTART_COMMAND_HELP_TEXT = (
     "Restart the local development server for the Ubidots page. "
+    "The page must already be running; use 'dev start' first if it is stopped."
 )
 
 STATUS_COMMAND_HELP_TEXT = (
