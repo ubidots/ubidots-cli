@@ -143,6 +143,18 @@ class _ChangeHandler(FileSystemEventHandler):
 
     on_created = on_modified
 
+    def on_deleted(self, event):
+        self.on_modified(event)
+
+    def on_moved(self, event):
+        if event.is_directory:
+            return
+        if (
+            Path(event.src_path).name not in _INTERNAL_FILES
+            or Path(event.dest_path).name not in _INTERNAL_FILES
+        ):
+            self._schedule()
+
     def _schedule(self):
         if self._timer:
             self._timer.cancel()

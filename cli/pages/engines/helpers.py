@@ -461,26 +461,21 @@ def get_tracked_files(source_dir: Path) -> list[Path]:
         logger.debug("Could not load manifest from %s: %s", source_dir, exc)
     else:
         assert isinstance(model, DashboardPageModel)
-        for entry in model.js_libraries:
-            src = entry.get("src", "")
-            if src and not src.startswith(("http://", "https://")):
-                local = _resolve_local(src)
-                if local:
-                    tracked.append(local)
-
-        for entry in model.css_libraries:
-            href = entry.get("href", "")
-            if href and not href.startswith(("http://", "https://")):
-                local = _resolve_local(href)
-                if local:
-                    tracked.append(local)
-
-        for entry in model.link_libraries:
-            href = entry.get("href", "")
-            if href and not href.startswith(("http://", "https://")):
-                local = _resolve_local(href)
-                if local:
-                    tracked.append(local)
+        library_fields = (
+            (model.js_libraries, "src"),
+            (model.js_thirdparty_libraries, "src"),
+            (model.css_libraries, "href"),
+            (model.css_thirdparty_libraries, "href"),
+            (model.link_libraries, "href"),
+            (model.link_thirdparty_libraries, "href"),
+        )
+        for entries, path_key in library_fields:
+            for entry in entries:
+                asset_path = entry.get(path_key, "")
+                if asset_path and not asset_path.startswith(("http://", "https://")):
+                    local = _resolve_local(asset_path)
+                    if local:
+                        tracked.append(local)
 
         for static_path in model.static_paths:
             static_abs = _resolve_local(static_path)
