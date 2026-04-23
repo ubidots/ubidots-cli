@@ -193,7 +193,6 @@ def logs_page(
     ] = False,
     verbose: bool = False,
 ):
-    """Shows dev server logs. Not yet implemented for the Argo-based engine."""
     executor.logs_local_dev_server(
         tail=tail,
         follow=follow,
