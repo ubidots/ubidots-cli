@@ -445,9 +445,7 @@ class TestExtractProjectStep:
     @patch("zipfile.ZipFile")
     @patch("pathlib.Path.exists", return_value=False)  # Metadata file doesn't exist
     @patch("pathlib.Path.mkdir")  # Mock the mkdir call
-    def test_execute_success(
-        self, mock_mkdir, mock_exists, mock_zip_class
-    ):
+    def test_execute_success(self, mock_mkdir, mock_exists, mock_zip_class):
         # Setup
         step = pipelines.ExtractProjectStep()
         mock_response = MagicMock()
@@ -471,7 +469,9 @@ class TestExtractProjectStep:
         assert result == data
         mock_zip_class.assert_called_once()
         # The test should expect the path that the implementation actually uses
-        mock_zip_instance.extractall.assert_called_once_with(Path("/path/to/project/my_function"))
+        mock_zip_instance.extractall.assert_called_once_with(
+            Path("/path/to/project/my_function")
+        )
 
     @patch("zipfile.ZipFile.__init__", side_effect=zipfile.BadZipFile("Bad zip file"))
     def test_execute_raises_bad_zip_file_error(self, mock_zip_init):
