@@ -32,9 +32,9 @@ class FunctionDockerContainerManager(BaseDockerContainerManager):
         )
         return status_model.containers
 
-    def get(self, label: str):
+    def get(self, label: str, label_key: str | None = None):
         try:
-            return super().get(label)
+            return super().get(label, label_key)
         except ContainerNotFoundError as err:
             raise ContainerNotFoundException(label) from err
 
