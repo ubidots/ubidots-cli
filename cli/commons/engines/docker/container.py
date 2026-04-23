@@ -22,10 +22,7 @@ class BaseDockerContainerManager(ABC):
         If label_key is provided, constructs filter as "{label_key}={label}".
         Otherwise, expects label to be in "{key}={value}" format already.
         """
-        if label_key:
-            filter_label = f"{label_key}={label}"
-        else:
-            filter_label = label
+        filter_label = f"{label_key}={label}" if label_key else label
         containers = self.list({"label": filter_label})
         container = next(iter(containers), None)
         if container is None:
