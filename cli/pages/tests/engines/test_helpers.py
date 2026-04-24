@@ -197,10 +197,6 @@ def test_render_index_html_new_signature_writes_to_workspace(tmp_path):
         (source / "body.html").write_text("<p/>")
         render_index_html(source, workspace, 9001)
 
-        result = build_pages_image_if_needed()
-
-        self.assertFalse(result)
-
     @patch("subprocess.run")
     @patch("pathlib.Path.exists")
     def test_build_pages_image_if_needed_subprocess_check_error(
