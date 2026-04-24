@@ -19,3 +19,22 @@ class NetworkNotFoundException(Exception):
     def __init__(self, network_id: str):
         self.network_id = network_id
         super().__init__(f"Network '{network_id}' not found")
+
+
+class EngineNotInstalledException(Exception):
+    def __init__(self, engine: str):
+        message = (
+            f"'{engine}' is not installed or not running. "
+            f"Please ensure '{engine}' is properly installed and running."
+        )
+        super().__init__(message)
+
+
+class ImageNotFoundException(Exception):
+    def __init__(self, image_name: str):
+        super().__init__(f"Image '{image_name}' does not exist on Hub.")
+
+
+class ImageFetchException(Exception):
+    def __init__(self, image_name: str):
+        super().__init__(f"Failed to fetch image '{image_name}' from Hub.")

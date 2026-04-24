@@ -78,3 +78,20 @@ class CurrentPlanDoesNotIncludeRuntimes(Exception):
 class EmptyTokenError(Exception):
     def __str__(self):
         return "Access token is empty. Please provide a valid access token."
+
+
+class ContainerNotFoundError(Exception):
+    """Raised by base Docker classes when a container cannot be found by label."""
+
+    def __init__(self, label: str):
+        super().__init__(f"Container '{label}' not found")
+
+
+class ContainerAlreadyRunningException(Exception):
+    def __init__(self, container_name: str):
+        super().__init__(f"Container '{container_name}' is already running")
+
+
+class ContainerExecutionException(Exception):
+    def __init__(self, message: str = "Container execution failed"):
+        super().__init__(message)
