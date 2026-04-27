@@ -48,9 +48,10 @@ def test_find_available_ports_falls_back_when_occupied():
         s.bind(("localhost", 0))
         occupied = s.getsockname()[1]
         # Use a safe range that doesn't exceed port limit
-        end_range = min(occupied + 50, 65535)
+        start_range = occupied + 1 if occupied < 65535 else 1024
+        end_range = min(start_range + 50, 65535)
         result = find_available_ports(
-            [occupied], start_range=occupied + 1, end_range=end_range
+            [occupied], start_range=start_range, end_range=end_range
         )
     assert len(result) == 1
     assert result[0] != occupied

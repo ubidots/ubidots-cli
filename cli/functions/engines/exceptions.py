@@ -80,7 +80,10 @@ class ContainerNotFoundException(ContainerException):
             ARGO_LABEL_KEY,
         ]
 
-        regex_pattern = "|".join(container_keys)
+        regex_pattern = "|".join(
+            re.escape(container_key)
+            for container_key in sorted(container_keys, key=len, reverse=True)
+        )
         if match := re.search(regex_pattern, label):
             extracted_label = label.rsplit(match.group(0), maxsplit=1)[-1]
             label = extracted_label.strip("=_")

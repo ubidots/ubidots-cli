@@ -193,6 +193,7 @@ def logs_page(
     ] = False,
     verbose: bool = False,
 ):
+    """Show dev server logs (hot-reload + copy-watcher) for the current page."""
     executor.logs_local_dev_server(
         tail=tail,
         follow=follow,

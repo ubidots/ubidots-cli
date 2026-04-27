@@ -14,7 +14,6 @@ import typer
 from cli.commons.enums import MessageColorEnum
 from cli.commons.pipelines import PipelineStep
 from cli.commons.settings import ARGO_IMAGE_NAME
-from cli.commons.settings import ARGO_INTERNAL_TARGET_PORT
 from cli.commons.settings import ARGO_LABEL_KEY
 from cli.commons.settings import HOST_BIND
 from cli.commons.settings import HUB_USERNAME
@@ -1009,7 +1008,7 @@ class GetFRIEContainerTargetStep(PipelineStep):
         timeout = project_metadata.function.serverless.timeout
         language = project_metadata.project.language
         label = project_metadata.function.label
-        argo_target_port = ARGO_INTERNAL_TARGET_PORT.split("/")[0]
+        argo_target_port = str(data["argo_target_port"]).split("/")[0]
         target_url = f"http://{HOST_BIND}:{argo_target_port}/{label}"
         frie_container_manager(
             container_manager=container_manager,

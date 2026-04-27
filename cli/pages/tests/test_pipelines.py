@@ -221,9 +221,9 @@ class TestPidBasedSteps(unittest.TestCase):
             workspace = Path(temp_dir)
             page_dir = workspace / "my-page-abc12345"
             page_dir.mkdir()
-            (page_dir / ".source_path").write_text(
-                "/home/user/my-page", encoding="utf-8"
-            )
+            source_dir = workspace / "source" / "my-page"
+            source_dir.mkdir(parents=True)
+            (page_dir / ".source_path").write_text(str(source_dir), encoding="utf-8")
 
             data = {"argo_adapter_port": 8040}
             step = ListAllPagesStep()
@@ -237,7 +237,8 @@ class TestPidBasedSteps(unittest.TestCase):
                 result = step.execute(data)
 
             self.assertEqual(len(result["pages_info"]), 1)
-            self.assertEqual(result["pages_info"][0]["path"], "/home/user/my-page")
+            self.assertEqual(result["pages_info"][0]["path"], str(source_dir))
+            self.assertNotEqual(result["pages_info"][0]["status"], "orphaned")
 
     def test_list_all_pages_step_path_fallback_when_missing(self):
         with TemporaryDirectory() as temp_dir:

@@ -183,6 +183,6 @@ cli/pages/engines/
 └── manager.py          Engine client factory
 ```
 
-Pages has no Podman implementation. Pages shares the same Argo container as functions — there are no
-per-page Docker containers. The engine layer manages the workspace directory and the two long-running
-subprocesses (`copy_watcher`, `hot_reload_server`) rather than containers.
+Pages has no Podman implementation because it shares the same Argo container as Functions — there are
+no per-page Docker containers. Instead, the engine layer manages the workspace directory and the two
+long-running subprocesses (`copy_watcher`, `hot_reload_server`).

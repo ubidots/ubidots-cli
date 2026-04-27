@@ -28,9 +28,6 @@ class ContainerSettings(BaseModel):
     NETWORK_NAME: str = "ubidots_cli_function_rie"
     NETWORK_DRIVER: ContainerNetworkModeEnum = ContainerNetworkModeEnum.BRIDGE
     DEFAULT_ENGINE: FunctionEngineTypeEnum = FunctionEngineTypeEnum.DOCKER
-    PORTS: list = [
-        FunctionRIEContainerSettings().INTERNAL_PORT,
-    ]
 
 
 class EngineSettings(BaseSettings):
