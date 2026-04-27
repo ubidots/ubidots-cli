@@ -11,11 +11,15 @@ from pathlib import Path
 import httpx
 import typer
 
+from cli.commons.helpers import ARGO_CONTAINER_NAME
+from cli.commons.helpers import ARGO_EXTERNAL_ADAPTER_PORT
+from cli.commons.helpers import ARGO_EXTERNAL_TARGET_PORT
+from cli.commons.helpers import ARGO_INTERNAL_ADAPTER_PORT
+from cli.commons.helpers import ARGO_INTERNAL_TARGET_PORT
 from cli.commons.helpers import argo_container_manager
 from cli.commons.helpers import find_available_ports
 from cli.commons.helpers import verify_and_fetch_images
 from cli.commons.pipelines import PipelineStep
-from cli.commons.settings import ARGO_EXTERNAL_TARGET_PORT
 from cli.commons.settings import ARGO_IMAGE_NAME
 from cli.commons.styles import print_colored_table
 from cli.pages.engines.helpers import compute_workspace_key
@@ -168,12 +172,6 @@ class TryGetArgoPortStep(PipelineStep):
     """Read Argo ports from the running container. Never starts Docker/Argo."""
 
     def execute(self, data):
-        from cli.commons.helpers import ARGO_CONTAINER_NAME
-        from cli.commons.helpers import ARGO_EXTERNAL_ADAPTER_PORT
-        from cli.commons.helpers import ARGO_EXTERNAL_TARGET_PORT
-        from cli.commons.helpers import ARGO_INTERNAL_ADAPTER_PORT
-        from cli.commons.helpers import ARGO_INTERNAL_TARGET_PORT
-
         try:
             client = data["client"]
             container = client.client.containers.get(ARGO_CONTAINER_NAME)
