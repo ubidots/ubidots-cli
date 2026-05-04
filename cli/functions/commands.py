@@ -330,7 +330,9 @@ def run_function(
 
     executor.run_function(
         function_key=function_key,
-        payload=payload,
+        # `is_valid_json_string` callback above transforms str → dict at parse time;
+        # mypy still sees the Annotated type (str) so we suppress here.
+        payload=payload,  # type: ignore[arg-type]
         profile=profile,
         verbose=verbose,
     )

@@ -1,0 +1,64 @@
+<!-- Vendored from ubidots/src/ubidots/common/xml/tree_menu_v2.dtd -->
+
+<!ELEMENT tree (asidepanel*, body)>
+
+<!ELEMENT asidepanel (section*)>
+<!ATTLIST asidepanel
+    id ID #REQUIRED
+    text CDATA #IMPLIED
+    source CDATA #IMPLIED
+    query CDATA #IMPLIED
+    path CDATA #IMPLIED
+    label CDATA #IMPLIED
+    permissions CDATA #IMPLIED
+    tags CDATA #IMPLIED>
+
+<!ELEMENT body (home*, section+)>
+
+<!ELEMENT home EMPTY>
+<!ATTLIST home
+    path CDATA #REQUIRED
+    permissions CDATA #IMPLIED
+    tags CDATA #IMPLIED>
+
+<!ELEMENT section (menu | divider | text | link)+>
+<!ATTLIST section
+    text CDATA #REQUIRED
+    permissions CDATA #IMPLIED
+    tags CDATA #IMPLIED>
+
+<!ELEMENT menu (item+)>
+<!ATTLIST menu
+    defaultShow (true|false) "false"
+    icon CDATA #IMPLIED
+    iconFaType (duotone|classic) #IMPLIED
+    iconFaStyle (solid|regular|light|thin) #IMPLIED
+    label CDATA #REQUIRED>
+
+<!ELEMENT link EMPTY>
+<!ATTLIST link
+    panelTarget IDREF #IMPLIED
+    icon CDATA #IMPLIED
+    iconFaType (duotone|classic) #IMPLIED
+    iconFaStyle (solid|regular|light|thin) #IMPLIED
+    label CDATA #REQUIRED
+    path CDATA #IMPLIED
+    permissions CDATA #IMPLIED
+    tags CDATA #IMPLIED
+    exact (true|false) "false"
+    open (tab|redirect) "redirect">
+
+<!ELEMENT item EMPTY>
+<!ATTLIST item
+    panelTarget IDREF #IMPLIED
+    path CDATA #IMPLIED
+    permissions CDATA #IMPLIED
+    tags CDATA #IMPLIED
+    label CDATA #REQUIRED
+    exact (true|false) "false"
+    open (tab|redirect) "redirect">
+
+<!ELEMENT text (#PCDATA)>
+<!ATTLIST text
+    type (h1|h2|h3|h4|normal|bold) #IMPLIED>
+<!ELEMENT divider EMPTY>
