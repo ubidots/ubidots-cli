@@ -1,3 +1,4 @@
+<!-- markdownlint-disable MD013 -->
 # Ubidots CLI
 
 Build IoT applications — from raw sensor data to production-ready dashboards — using your local AI coding assistant and the Ubidots platform.
@@ -15,7 +16,7 @@ The CLI caters to both types of IoT application developers:
 
 - **Full-stack IoT application** — Combine all of the above with Ubidots dashboards: use pre-built widgets, drop in custom HTML/JS widgets, or build entire UIs with Ubidots Pages (HTML/JS/CSS pages embedded directly in the platform). Go from sensor data to a production UI without deploying any servers.
 
-```
+```text
 Devices → Ubidots (data + events + APIs) → UbiFunctions (custom logic) → Pages (UI)
 ```
 
@@ -61,7 +62,7 @@ UbiFunctions are serverless Python or Node.js functions triggered by HTTP, MQTT,
 
 ### The development loop
 
-```
+```text
 dev add → dev start → (write code) → dev stop → push → run → logs
 ```
 
@@ -144,7 +145,7 @@ Pages are custom dashboard views embedded in the Ubidots platform. Each page is 
 
 ### The development loop
 
-```
+```text
 dev add → dev start → (write HTML/JS/CSS) → dev stop → push
 ```
 
@@ -311,7 +312,7 @@ ubidots functions push --profile prod
 
 ## Command reference
 
-```
+```text
 ubidots config                        Set up authentication profiles
 ubidots functions dev add             Create a local function project
 ubidots functions dev start           Start the local function server
