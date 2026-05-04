@@ -192,6 +192,20 @@ def _run_polling(
         except Exception:
             new_tracked = tracked
 
+        current_keys = {str(f) for f in new_tracked}
+        for old_key in set(mtimes) - current_keys:
+            old_path = Path(old_key)
+            try:
+                rel = old_path.relative_to(source_dir)
+            except ValueError:
+                mtimes.pop(old_key, None)
+                continue
+            dst = workspace_dir / rel
+            if dst.exists():
+                dst.unlink()
+                logging.info("Removed deleted file %s", rel)
+            mtimes.pop(old_key, None)
+
         changed: list[Path] = []
         new_keys = {str(f) for f in new_tracked}
         for key in list(mtimes):

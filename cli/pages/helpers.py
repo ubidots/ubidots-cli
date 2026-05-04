@@ -9,7 +9,6 @@ from typing import Any
 import yaml
 from jinja2 import Template
 
-from cli.pages.engines.settings import page_engine_settings
 from cli.pages.models import PageModel
 from cli.pages.models import PageProjectMetadata
 from cli.pages.models import PageProjectModel
@@ -161,30 +160,13 @@ def render_ubidots_page_index_html(
     return template.render(context)
 
 
-def render_index_html(ubidots_page_html: str, page_type: PageTypeEnum) -> str:
-
-    template_path = settings.PAGES.INDEX_HTML[page_type.value]
-
-    template_file = Path(template_path)
-    if not template_file.exists():
-        error_message = f"Template file not found: {template_path}"
-        raise FileNotFoundError(error_message)
-
-    template_content = template_file.read_text(encoding="utf-8")
-    template = Template(template_content)
-
-    context = {"ubidots_page_html": ubidots_page_html}
-
-    return template.render(context)
-
-
 # ============================================================================
 # Container Validation Utilities
 # ============================================================================
 
 
 def get_page_container(container_manager, page_name):
-    container_name = f"{page_engine_settings.CONTAINER.PAGE.PREFIX_NAME}-{page_name.replace(' ', '-')}"
+    container_name = f"page-{page_name.replace(' ', '-')}"
     try:
         return container_manager.get(container_name)
     except Exception:
@@ -211,11 +193,11 @@ def generate_page_url(page_name, routing_mode, container=None):
     sanitized = page_name.replace(" ", "-")
 
     if routing_mode == "subdomain":
-        flask_port = page_engine_settings.CONTAINER.FLASK_MANAGER.EXTERNAL_PORT
+        flask_port = 8044
         return f"http://{sanitized}.localhost:{flask_port}/"
 
     if routing_mode == "path":
-        flask_port = page_engine_settings.CONTAINER.FLASK_MANAGER.EXTERNAL_PORT
+        flask_port = 8044
         return f"http://localhost:{flask_port}/{sanitized}"
 
     if routing_mode == "port":

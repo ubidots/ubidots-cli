@@ -95,22 +95,6 @@ class PagesSettings(BaseModel):
     TEMPLATES_DIR: Path = (
         Path(__file__).resolve().parent.parent / "cli" / "pages" / "templates"
     )
-    FLASK_MANAGER_TEMPLATE: Path = (
-        Path(__file__).resolve().parent.parent
-        / "cli"
-        / "pages"
-        / "engines"
-        / "templates"
-        / "flask_manager.py"
-    )
-    PAGE_SERVER_TEMPLATE: Path = (
-        Path(__file__).resolve().parent.parent
-        / "cli"
-        / "pages"
-        / "engines"
-        / "templates"
-        / "page_server.py"
-    )
     UBIDOTS_PAGE_LAYOUT_ZIP: dict[str, Path] = {
         "dashboard": TEMPLATES_DIR / "default-page.zip",
     }

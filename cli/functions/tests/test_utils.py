@@ -6,10 +6,12 @@ import pytest
 import yaml
 from typer.testing import CliRunner
 
+from cli.commons.settings import ARGO_INTERNAL_ADAPTER_PORT
+from cli.commons.settings import ARGO_INTERNAL_TARGET_PORT
+from cli.commons.settings import HOST_BIND
 from cli.functions.constants import PYTHON_3_9_FULL_RUNTIME
 from cli.functions.engines.enums import ContainerStatusEnum
 from cli.functions.engines.enums import FunctionEngineTypeEnum
-from cli.functions.engines.settings import engine_settings
 from cli.functions.enums import FunctionLanguageEnum
 from cli.functions.helpers import argo_container_manager
 from cli.functions.helpers import compress_project_to_zip
@@ -172,9 +174,8 @@ class TestFunctionUtils:
         mock_container = MagicMock()
         mock_container.status = ContainerStatusEnum.RUNNING
         mock_container.ports = {
-            engine_settings.CONTAINER.ARGO.INTERNAL_ADAPTER_PORT: [
-                {"HostIp": "127.0.0.1", "HostPort": "8040"}
-            ]
+            ARGO_INTERNAL_ADAPTER_PORT: [{"HostIp": "127.0.0.1", "HostPort": "8040"}],
+            ARGO_INTERNAL_TARGET_PORT: [{"HostIp": "127.0.0.1", "HostPort": "8042"}],
         }
 
         mock_client = MagicMock()
@@ -187,13 +188,13 @@ class TestFunctionUtils:
 
         captured_urls = []
 
-        def fake_httpx_get(url):
+        def fake_httpx_get(url, **kwargs):
             captured_urls.append(url)
             response = MagicMock()
             response.status_code = 404
             return response
 
-        with patch("cli.functions.helpers.httpx.get", side_effect=fake_httpx_get):
+        with patch("cli.commons.helpers.httpx.get", side_effect=fake_httpx_get):
             argo_container_manager(
                 container_manager=mock_container_manager,
                 client=mock_client,
@@ -203,7 +204,7 @@ class TestFunctionUtils:
             )
 
         assert len(captured_urls) == 1
-        assert captured_urls[0].startswith(f"http://{engine_settings.HOST_BIND}:")
+        assert captured_urls[0].startswith(f"http://{HOST_BIND}:")
         assert "172." not in captured_urls[0]
 
     def test_compress_project_to_zip_includes_directories(self):

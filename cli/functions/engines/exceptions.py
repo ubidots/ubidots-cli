@@ -1,5 +1,6 @@
 import re
 
+from cli.commons.settings import ARGO_LABEL_KEY
 from cli.functions.engines.settings import engine_settings
 
 
@@ -76,10 +77,13 @@ class ContainerNotFoundException(ContainerException):
     def __init__(self, label: str):
         container_keys = [
             engine_settings.CONTAINER.FRIE.LABEL_KEY,
-            engine_settings.CONTAINER.ARGO.LABEL_KEY,
+            ARGO_LABEL_KEY,
         ]
 
-        regex_pattern = "|".join(container_keys)
+        regex_pattern = "|".join(
+            re.escape(container_key)
+            for container_key in sorted(container_keys, key=len, reverse=True)
+        )
         if match := re.search(regex_pattern, label):
             extracted_label = label.rsplit(match.group(0), maxsplit=1)[-1]
             label = extracted_label.strip("=_")

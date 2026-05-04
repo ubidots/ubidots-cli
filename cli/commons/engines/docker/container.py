@@ -16,9 +16,14 @@ from cli.commons.exceptions import ContainerNotFoundError
 class BaseDockerContainerManager(ABC):
     client: DockerClient
 
-    def get(self, label: str):
-        """Label-based container lookup. Raises ContainerNotFoundError if not found."""
-        containers = self.list({"label": label})
+    def get(self, label: str, label_key: str | None = None):
+        """Label-based container lookup. Raises ContainerNotFoundError if not found.
+
+        If label_key is provided, constructs filter as "{label_key}={label}".
+        Otherwise, expects label to be in "{key}={value}" format already.
+        """
+        filter_label = f"{label_key}={label}" if label_key else label
+        containers = self.list({"label": filter_label})
         container = next(iter(containers), None)
         if container is None:
             raise ContainerNotFoundError(label)
@@ -67,7 +72,7 @@ class BaseDockerContainerManager(ABC):
             existing = self.client.containers.get(container_name)
             if existing.status == "running":
                 raise ContainerAlreadyRunningException(container_name=container_name)
-            existing.remove()
+            existing.remove(force=True)
 
         try:
             return self.client.containers.run(**kwargs)

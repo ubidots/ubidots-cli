@@ -1,5 +1,5 @@
-import socket
 import logging
+import socket
 from contextlib import suppress
 from pathlib import Path
 from typing import Any
@@ -147,9 +147,32 @@ def argo_container_manager(
             hostname=ARGO_HOSTNAME,
         )
     else:
-        adapter_port = _get_external_port(container, ARGO_INTERNAL_ADAPTER_PORT)
-        target_port = _get_external_port(container, ARGO_INTERNAL_TARGET_PORT)
+        try:
+            adapter_port = _get_external_port(container, ARGO_INTERNAL_ADAPTER_PORT)
+            target_port = _get_external_port(container, ARGO_INTERNAL_TARGET_PORT)
+        except ValueError:
+            container.remove(force=True)
+            adapter_port, target_port = find_available_ports(
+                [ARGO_EXTERNAL_ADAPTER_PORT, ARGO_EXTERNAL_TARGET_PORT]
+            )
+            container = container_manager.start(
+                image_name=image_name,
+                container_name=ARGO_CONTAINER_NAME,
+                network_name=network.name,
+                labels={ARGO_LABEL_KEY: ARGO_CONTAINER_NAME},
+                ports={
+                    ARGO_INTERNAL_ADAPTER_PORT: (HOST_BIND, adapter_port),
+                    ARGO_INTERNAL_TARGET_PORT: (HOST_BIND, target_port),
+                },
+                volumes={
+                    str(pages_workspace): {"bind": "/pages", "mode": "ro"},
+                },
+                hostname=ARGO_HOSTNAME,
+            )
     return container, adapter_port, target_port
+
+
+# ── verify_and_fetch_images ────────────────────────────────────────────────────
 
 
 def verify_and_fetch_images(client: Any, image_names: list[str]) -> None:

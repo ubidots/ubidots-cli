@@ -34,16 +34,6 @@ class ValidateNotRunningFromPageDirectoryStep(PipelineStep):
         return data
 
 
-class ValidateCurrentPageExistsStep(PipelineStep):
-    def execute(self, data):
-        project_path = data["project_path"]
-        page_name = data["page_name"]
-        manifest_file = project_path / settings.PAGES.PROJECT_MANIFEST_FILE
-        if manifest_file.exists() or project_path.exists():
-            raise PageWithNameAlreadyExistsError(name=page_name, page_path=project_path)
-        return data
-
-
 class GetActiveConfigStep(PipelineStep):
     def execute(self, data):
         profile = data.get("profile", "")
@@ -86,9 +76,12 @@ class ValidateTemplateStep(PipelineStep):
 class CreateProjectFolderStep(PipelineStep):
     def execute(self, data):
         project_path = data["project_path"]
-
         try:
             project_path.mkdir(parents=True, exist_ok=False)
+        except FileExistsError:
+            raise PageWithNameAlreadyExistsError(
+                name=data["page_name"], page_path=project_path
+            ) from None
         except PermissionError as error:
             raise PermissionDeniedError(error=str(error)) from error
         return data

@@ -2,23 +2,23 @@ import io
 import os
 import re
 import shutil
-import socket
 import zipfile
 from contextlib import suppress
 from pathlib import Path
 from typing import IO
 from typing import Any
 
-import httpx
 import typer
 import yaml
-from docker.errors import APIError
-from docker.errors import NotFound
 from docker.models.containers import Container
 from docker.models.networks import Network
 from pydantic import ValidationError
 
 from cli.commons.enums import MessageColorEnum
+from cli.commons.helpers import argo_container_manager  # noqa: F401
+from cli.commons.helpers import find_available_ports
+from cli.commons.helpers import is_port_available
+from cli.commons.helpers import verify_and_fetch_images  # noqa: F401
 from cli.functions.engines.docker.client import FunctionDockerClient
 from cli.functions.engines.docker.container import FunctionDockerContainerManager
 from cli.functions.engines.enums import ArgoMethodEnum
@@ -26,13 +26,11 @@ from cli.functions.engines.enums import ContainerStatusEnum
 from cli.functions.engines.enums import FunctionEngineTypeEnum
 from cli.functions.engines.enums import TargetTypeEnum
 from cli.functions.engines.exceptions import ContainerNotFoundException
-from cli.functions.engines.exceptions import EngineNotInstalledException
-from cli.functions.engines.exceptions import ImageFetchException
-from cli.functions.engines.exceptions import ImageNotFoundException
 from cli.functions.engines.models import ArgoAdapterBaseModel
 from cli.functions.engines.models import ArgoAdapterMiddlewareAllowedMethodsBaseModel
 from cli.functions.engines.models import ArgoAdapterMiddlewareCorsBaseModel
 from cli.functions.engines.models import ArgoAdapterTargetBaseModel
+from cli.functions.engines.models import ArgoBridgeBaseModel
 from cli.functions.engines.podman.client import FunctionPodmanClient
 from cli.functions.engines.podman.container import FunctionPodmanContainerManager
 from cli.functions.engines.settings import engine_settings
@@ -200,22 +198,6 @@ def enumerate_project_files(project_path: Path) -> list[Path]:
     ]
 
 
-def verify_and_fetch_images(
-    client: FunctionDockerClient | FunctionPodmanClient, image_names: list[str]
-) -> None:
-    validator = client.get_validator()
-    for image_name in image_names:
-        try:
-            validator.validate_engine_installed()
-        except EngineNotInstalledException as error:
-            raise error
-        downloader = client.get_downloader()
-        try:
-            downloader.pull_image(image_name=image_name)
-        except (ImageNotFoundException, ImageFetchException) as error:
-            raise error
-
-
 def create_handler_file(project_path: Path, language: FunctionLanguageEnum):
     extension = FunctionLanguageEnum(language).handler_extension
     handler_file = f"{settings.FUNCTIONS.DEFAULT_HANDLER_FILE_NAME}.{extension}"
@@ -234,35 +216,6 @@ def get_or_create_network(
     if not network:
         network = network_manager.create()
     return network
-
-
-def is_port_available(port: int) -> bool:
-    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
-        return sock.connect_ex(("localhost", port)) != 0
-
-
-def find_available_ports(
-    ports: list[int],
-    start_range: int = engine_settings.DEFAULT_START_PORT_RANGE,
-    end_range: int = engine_settings.DEFAULT_END_PORT_RANGE,
-) -> list[int]:
-    available_ports = []
-    fallback_needed = len(ports)
-
-    for port in ports:
-        if is_port_available(port):
-            available_ports.append(port)
-            fallback_needed -= 1
-
-    # If not all requested ports are available, find fallback ports
-    if fallback_needed > 0:
-        for port in range(start_range, end_range + 1):
-            if len(available_ports) == len(ports):
-                break  # Stop when we have enough ports
-            if is_port_available(port):
-                available_ports.append(port)
-
-    return available_ports
 
 
 def get_external_container_port(container: Container, internal_port: int) -> int:
@@ -287,7 +240,10 @@ def frie_container_manager(
 
         container = None
         with suppress(ContainerNotFoundException):
-            container = container_manager.get(label=label)
+            container = container_manager.get(
+                label=label,
+                label_key=engine_settings.CONTAINER.FRIE.LABEL_KEY,
+            )
 
         if container is None:
             return None
@@ -331,77 +287,6 @@ def frie_container_manager(
         )
 
 
-def argo_container_manager(
-    container_manager: FunctionDockerContainerManager | FunctionPodmanContainerManager,
-    client: FunctionDockerClient | FunctionPodmanClient,
-    network: Network,
-    image_name: str,
-    frie_label: str,
-):
-    container_name = engine_settings.CONTAINER.ARGO.NAME
-
-    def check_container_status() -> object | None:
-        container = None
-        with suppress(NotFound):
-            container = client.client.containers.get(container_name)
-
-        if container is None:
-            return None
-
-        if container.status in [ContainerStatusEnum.PAUSED, ContainerStatusEnum.EXITED]:
-            try:
-                container.restart()
-            except APIError:
-                container.remove()
-                return None
-
-            return container
-
-        if container.status == ContainerStatusEnum.RUNNING:
-            argo_adapter_port = get_external_container_port(
-                container=container,
-                internal_port=engine_settings.CONTAINER.ARGO.INTERNAL_ADAPTER_PORT,
-            )
-            url = f"http://{engine_settings.HOST_BIND}:{argo_adapter_port}/{engine_settings.CONTAINER.ARGO.API_ADAPTER_BASE_PATH}/~{frie_label}"
-            response = httpx.get(url)
-            if response.status_code == httpx.codes.OK:
-                httpx.delete(url)
-
-        return container
-
-    container = check_container_status()
-    if container is None:
-        argo_adapter_port, argo_target_port = find_available_ports(
-            ports=[
-                engine_settings.CONTAINER.ARGO.EXTERNAL_ADAPTER_PORT,
-                engine_settings.CONTAINER.ARGO.EXTERNAL_TARGET_PORT,
-            ]
-        )
-        container = container_manager.start(
-            image_name=image_name,
-            container_name=container_name,
-            network_name=network.name,
-            labels={engine_settings.CONTAINER.ARGO.LABEL_KEY: container_name},
-            ports={
-                engine_settings.CONTAINER.ARGO.INTERNAL_ADAPTER_PORT: (
-                    engine_settings.HOST_BIND,
-                    argo_adapter_port,
-                ),
-                engine_settings.CONTAINER.ARGO.INTERNAL_TARGET_PORT: (
-                    engine_settings.HOST_BIND,
-                    argo_target_port,
-                ),
-            },
-            hostname=engine_settings.CONTAINER.ARGO.HOSTNAME,
-        )
-    else:
-        argo_adapter_port = get_external_container_port(
-            container=container,
-            internal_port=engine_settings.CONTAINER.ARGO.INTERNAL_ADAPTER_PORT,
-        )
-    return container, argo_adapter_port
-
-
 def get_argo_input_adapter(
     client: FunctionDockerClient | FunctionPodmanClient,
     network: Network,
@@ -415,8 +300,11 @@ def get_argo_input_adapter(
     network_manager = client.get_network_manager()
     network = network_manager.get(network.id)
 
+    from cli.commons.settings import ARGO_API_BASE_PATH
+    from cli.commons.settings import HOST_BIND
+
     frie_port = engine_settings.CONTAINER.FRIE.INTERNAL_PORT.split("/")[0]
-    url = f"http://{engine_settings.HOST_BIND}:{argo_adapter_port}/{engine_settings.CONTAINER.ARGO.API_ADAPTER_BASE_PATH}"
+    url = f"http://{HOST_BIND}:{argo_adapter_port}/{ARGO_API_BASE_PATH}/"
     argo_methods = [ArgoMethodEnum(method.value) for method in methods]
     if has_cors:
         argo_methods.append(ArgoMethodEnum.OPTIONS)
@@ -436,14 +324,17 @@ def get_argo_input_adapter(
         label=frie_label,
         path=frie_label,
         middlewares=middlewares,
-        target=ArgoAdapterTargetBaseModel(
-            type=(
-                TargetTypeEnum.RIE_FUNCTION_RAW
-                if is_raw
-                else TargetTypeEnum.RIE_FUNCTION
+        bridge=ArgoBridgeBaseModel(
+            label=frie_label,
+            target=ArgoAdapterTargetBaseModel(
+                type=(
+                    TargetTypeEnum.RIE_FUNCTION_RAW
+                    if is_raw
+                    else TargetTypeEnum.RIE_FUNCTION
+                ),
+                url=f"http://{frie_label}:{frie_port}{engine_settings.CONTAINER.FRIE.API_INVOKE_BASE_PATH}",
+                auth_token=token,
             ),
-            url=f"http://{frie_label}:{frie_port}{engine_settings.CONTAINER.FRIE.API_INVOKE_BASE_PATH}",
-            auth_token=token,
         ),
     )
     return url, data.model_dump()

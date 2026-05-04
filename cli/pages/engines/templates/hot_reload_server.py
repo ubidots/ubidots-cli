@@ -46,7 +46,7 @@ def _push_reload() -> None:
 
 
 class _Handler(BaseHTTPRequestHandler):
-    def log_message(self, format_, *args):
+    def log_message(self, fmt, *args):
         pass  # Suppress default request logging
 
     def do_OPTIONS(self):
