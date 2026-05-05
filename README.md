@@ -1,6 +1,6 @@
 # Ubidots CLI
 
-Build IoT applications — from raw sensor data to production-ready dashboards — using your local AI coding assistant and the Ubidots platform.
+Ubidots CLI is a command-line tool to build IoT applications — from raw sensor data to production-ready dashboards — using your local AI coding assistant and the Ubidots platform.
 
 ## What this is
 
