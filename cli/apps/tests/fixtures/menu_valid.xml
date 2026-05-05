@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<tree>
+  <body>
+    <home path="/dashboard"/>
+    <section text="Main">
+      <menu label="Devices">
+        <item label="All devices" path="/devices"/>
+        <item label="Groups" path="/devices/groups"/>
+      </menu>
+      <link label="Docs" path="https://docs.ubidots.com" open="tab"/>
+    </section>
+  </body>
+</tree>

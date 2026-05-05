@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<tree>
+  <body>
+    <home path="/dashboard"/>
+    <section text="Main">
+      <menu>
+        <item label="All devices" path="/devices"/>
+      </menu>
+    </section>
+  </body>
+</tree>
