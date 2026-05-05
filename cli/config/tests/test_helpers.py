@@ -206,6 +206,7 @@ class TestCLIHelperFunctions(TestCase):
             "access_token": "token",
             "runtimes": [],  # empty list is valid — STEM plan users have no runtimes
             "containerRepositoryBase": "",
+            "output_format": "machine",
         }
         with self.assertRaises(ProfileConfigEmptyFieldsError):
             validate_profile_config(profile_config, Path("test.yaml"))
@@ -217,6 +218,7 @@ class TestCLIHelperFunctions(TestCase):
             "access_token": "valid_token",
             "runtimes": [],
             "containerRepositoryBase": "registry.ubidots.com",
+            "output_format": "machine",
         }
         result = validate_profile_config(profile_config, Path("test.yaml"))
         self.assertEqual(result.runtimes, [])

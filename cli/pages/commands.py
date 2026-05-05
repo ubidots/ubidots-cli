@@ -10,6 +10,7 @@ from cli.commons.decorators import simple_lookup_key
 from cli.commons.enums import DefaultInstanceFieldEnum
 from cli.commons.enums import EntityNameEnum
 from cli.commons.enums import OutputFormatFieldsEnum
+from cli.commons.formatters import resolve_formatter
 from cli.commons.utils import get_instance_key
 from cli.commons.utils import sanitize_function_name
 from cli.pages import executor
@@ -72,13 +73,16 @@ def create_page(
             hidden=True,
         ),
     ] = PageTypeEnum.DASHBOARD,
+    format: OutputFormatFieldsEnum | None = None,
     verbose: bool = False,
 ):
+    formatter = resolve_formatter(flag=format, active_config=None, command="pages dev add")
     executor.create_local_page(
         name=name,
         verbose=verbose,
         profile=profile,
         type=type,
+        formatter=formatter,
     )
 
 
@@ -102,12 +106,14 @@ def create_page_deprecated(
             hidden=True,
         ),
     ] = PageTypeEnum.DASHBOARD,
+    format: OutputFormatFieldsEnum | None = None,
     verbose: bool = False,
 ):
     create_page(
         name=name,
         profile=profile,
         type=type,
+        format=format,
         verbose=verbose,
     )
 
@@ -115,50 +121,65 @@ def create_page_deprecated(
 @dev_app.command(name="start", help=START_COMMAND_HELP_TEXT)
 @add_verbose_option()
 def start_page(
+    format: OutputFormatFieldsEnum | None = None,
     verbose: bool = False,
 ):
+    formatter = resolve_formatter(flag=format, active_config=None, command="pages dev start")
     executor.start_local_dev_server(
         verbose=verbose,
+        formatter=formatter,
     )
 
 
 @dev_app.command(name="stop", help=STOP_COMMAND_HELP_TEXT)
 @add_verbose_option()
 def stop_page(
+    format: OutputFormatFieldsEnum | None = None,
     verbose: bool = False,
 ):
+    formatter = resolve_formatter(flag=format, active_config=None, command="pages dev stop")
     executor.stop_local_dev_server(
         verbose=verbose,
+        formatter=formatter,
     )
 
 
 @dev_app.command(name="restart", help=RESTART_COMMAND_HELP_TEXT)
 @add_verbose_option()
 def restart_page(
+    format: OutputFormatFieldsEnum | None = None,
     verbose: bool = False,
 ):
+    formatter = resolve_formatter(flag=format, active_config=None, command="pages dev restart")
     executor.restart_local_dev_server(
         verbose=verbose,
+        formatter=formatter,
     )
 
 
 @dev_app.command(name="status", help=STATUS_COMMAND_HELP_TEXT)
 @add_verbose_option()
 def status_page(
+    format: OutputFormatFieldsEnum | None = None,
     verbose: bool = False,
 ):
+    formatter = resolve_formatter(flag=format, active_config=None, command="pages dev status")
     executor.show_local_dev_server_status(
         verbose=verbose,
+        formatter=formatter,
     )
 
 
 @dev_app.command(name="list", help=LIST_COMMAND_HELP_TEXT)
 @add_verbose_option()
 def list_pages(
+    format: OutputFormatFieldsEnum | None = None,
     verbose: bool = False,
 ):
+    formatter = resolve_formatter(flag=format, active_config=None, command="pages dev list")
     executor.list_local_pages(
         verbose=verbose,
+        formatter=formatter,
     )
 
 
@@ -191,13 +212,16 @@ def logs_page(
         bool,
         typer.Option("--follow/", "-f/", help="Follow log output."),
     ] = False,
+    format: OutputFormatFieldsEnum | None = None,
     verbose: bool = False,
 ):
     """Show dev server logs (hot-reload + copy-watcher) for the current page."""
+    formatter = resolve_formatter(flag=format, active_config=None, command="pages dev logs")
     executor.logs_local_dev_server(
         tail=tail,
         follow=follow,
         verbose=verbose,
+        formatter=formatter,
     )
 
 
@@ -223,15 +247,16 @@ def list_pages_cloud(
     sort_by: str | None = None,
     page_size: int | None = None,
     page: int | None = None,
-    format: OutputFormatFieldsEnum = settings.CONFIG.DEFAULT_OUTPUT_FORMAT,
+    format: OutputFormatFieldsEnum | None = None,
 ):
+    formatter = resolve_formatter(flag=format, active_config=None, command="pages list")
     executor.list_pages_from_cloud_platform(
         profile=profile,
         fields=fields,
         sort_by=sort_by,
         page_size=page_size,
         page=page,
-        format=format,
+        formatter=formatter,
     )
 
 
@@ -255,15 +280,16 @@ def get_page(
         str,
         typer.Option(help=FIELDS_PAGE_HELP_TEXT),
     ] = DefaultInstanceFieldEnum.get_default_fields(),
-    format: OutputFormatFieldsEnum = settings.CONFIG.DEFAULT_OUTPUT_FORMAT,
+    format: OutputFormatFieldsEnum | None = None,
     verbose: bool = False,
 ):
     page_key = get_instance_key(id=id, label=label)
+    formatter = resolve_formatter(flag=format, active_config=None, command="pages get")
     executor.get_page_from_cloud_platform(
         page_key=page_key,
         profile=profile,
         verbose=verbose,
-        format=format,
+        formatter=formatter,
         fields=fields,
     )
 
@@ -284,12 +310,15 @@ def add_page(
         ),
     ] = "",
     label: Annotated[str, typer.Option(help="The label for the page.")] = "",
+    format: OutputFormatFieldsEnum | None = None,
 ):
     label = label or sanitize_function_name(name)
+    formatter = resolve_formatter(flag=format, active_config=None, command="pages add")
     executor.add_page_to_cloud_platform(
         profile=profile,
         name=name,
         label=label,
+        formatter=formatter,
     )
 
 
@@ -312,14 +341,17 @@ def delete_page(
         bool,
         typer.Option("--yes", "-y", help="Confirm deletion without prompt."),
     ] = False,
+    format: OutputFormatFieldsEnum | None = None,
     verbose: bool = False,
 ):
     page_key = get_instance_key(id=id, label=label)
+    formatter = resolve_formatter(flag=format, active_config=None, command="pages delete")
     executor.delete_page_from_cloud_platform(
         page_key=page_key,
         profile=profile,
         confirm=confirm,
         verbose=verbose,
+        formatter=formatter,
     )
 
 
@@ -346,6 +378,7 @@ def update_page(
         str,
         typer.Option("--new-label", help="New label for the page."),
     ] = "",
+    format: OutputFormatFieldsEnum | None = None,
     verbose: bool = False,
 ):
     if not new_name and not new_label:
@@ -354,12 +387,14 @@ def update_page(
         )
         raise typer.Exit(1)
     page_key = get_instance_key(id=id, label=label)
+    formatter = resolve_formatter(flag=format, active_config=None, command="pages update")
     executor.update_page_from_cloud_platform(
         page_key=page_key,
         new_name=new_name,
         new_label=new_label,
         profile=profile,
         verbose=verbose,
+        formatter=formatter,
     )
 
 
@@ -378,12 +413,15 @@ def push_page(
         str,
         typer.Option("--profile", "-p", help="Profile to use."),
     ] = "",
+    format: OutputFormatFieldsEnum | None = None,
     verbose: bool = False,
 ):
+    formatter = resolve_formatter(flag=format, active_config=None, command="pages push")
     executor.push_page_to_cloud_platform(
         confirm=confirm,
         profile=profile,
         verbose=verbose,
+        formatter=formatter,
     )
 
 
@@ -406,13 +444,16 @@ def pull_page(
         bool,
         typer.Option("--yes", "-y", help="Confirm file overwrite without prompt."),
     ] = False,
+    format: OutputFormatFieldsEnum | None = None,
     verbose: bool = False,
 ):
+    formatter = resolve_formatter(flag=format, active_config=None, command="pages pull")
     executor.pull_page_from_cloud_platform(
         remote_id=remote_id,
         profile=profile,
         verbose=verbose,
         confirm=confirm,
+        formatter=formatter,
     )
 
 

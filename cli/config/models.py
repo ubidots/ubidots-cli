@@ -1,3 +1,4 @@
+from cli.commons.enums import OutputFormatFieldsEnum
 from cli.commons.models import BaseYAMLDumpModel
 from cli.compat import StrEnum
 from cli.settings import settings
@@ -19,3 +20,4 @@ class ProfileConfigModel(BaseYAMLDumpModel):
     access_token: str = ""
     containerRepositoryBase: str = settings.CONFIG.DEFAULT_CONTAINER_REPOSITORY
     runtimes: list[str] = settings.CONFIG.DEFAULT_RUNTIMES
+    output_format: OutputFormatFieldsEnum = OutputFormatFieldsEnum.MACHINE

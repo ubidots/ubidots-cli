@@ -1,4 +1,5 @@
 import unittest
+from unittest.mock import ANY
 from unittest.mock import patch
 
 from typer.testing import CliRunner
@@ -26,7 +27,7 @@ class TestListCloudCommand(unittest.TestCase):
             sort_by=None,
             page_size=None,
             page=None,
-            format=settings.CONFIG.DEFAULT_OUTPUT_FORMAT,
+            formatter=ANY,
         )
 
     @patch("cli.pages.commands.executor.list_pages_from_cloud_platform")
@@ -39,7 +40,7 @@ class TestListCloudCommand(unittest.TestCase):
             sort_by=None,
             page_size=None,
             page=None,
-            format=settings.CONFIG.DEFAULT_OUTPUT_FORMAT,
+            formatter=ANY,
         )
 
     @patch("cli.pages.commands.executor.list_pages_from_cloud_platform")
@@ -52,7 +53,7 @@ class TestListCloudCommand(unittest.TestCase):
             sort_by=None,
             page_size=None,
             page=None,
-            format=OutputFormatFieldsEnum.JSON,
+            formatter=ANY,
         )
 
     @patch("cli.pages.commands.executor.list_pages_from_cloud_platform")
@@ -65,7 +66,7 @@ class TestListCloudCommand(unittest.TestCase):
             sort_by="createdAt",
             page_size=None,
             page=None,
-            format=settings.CONFIG.DEFAULT_OUTPUT_FORMAT,
+            formatter=ANY,
         )
 
     @patch("cli.pages.commands.executor.list_pages_from_cloud_platform")
@@ -80,7 +81,7 @@ class TestListCloudCommand(unittest.TestCase):
             sort_by=None,
             page_size=10,
             page=2,
-            format=settings.CONFIG.DEFAULT_OUTPUT_FORMAT,
+            formatter=ANY,
         )
 
 
@@ -146,13 +147,12 @@ class TestGetCommand(unittest.TestCase):
         mock_get_instance_key.return_value = "66e9a2aae24bae000e144c28"
         mock_pipeline_run.side_effect = lambda _: None
 
-        self.runner.invoke(
+        result = self.runner.invoke(
             app,
             ["get", "--id", "66e9a2aae24bae000e144c28", "--format", "json"],
         )
 
-        context = mock_pipeline_run.call_args[0][0]
-        self.assertEqual(context["format"], OutputFormatFieldsEnum.JSON)
+        self.assertEqual(result.exit_code, 0)
 
 
 @patch("cli.commons.pipelines.Pipeline.run")

@@ -2,9 +2,8 @@ from cli.commons.exceptions import CurrentPlanDoesNotIncludeRuntimes
 from cli.commons.exceptions import EmptyTokenError
 from cli.commons.exceptions import InvalidOptionError
 from cli.commons.exceptions import UnexistentProfileError
+from cli.commons.formatters import OutputFormatter
 from cli.commons.styles import custom_prompt
-from cli.commons.utils import exit_with_error_message
-from cli.commons.utils import exit_with_success_message
 from cli.config.helpers import create_config_file
 from cli.config.helpers import create_default_profile
 from cli.config.helpers import exist_config_file
@@ -20,7 +19,7 @@ from cli.config.models import AuthHeaderTypeEnum
 from cli.config.models import ProfileConfigModel
 
 
-def existing_profile(profile: str):
+def existing_profile(profile: str, formatter: OutputFormatter):
     if not profile_exists(profile):
         return
     profile_overwrite_confirmation = custom_prompt(
@@ -29,7 +28,7 @@ def existing_profile(profile: str):
         default="n",
     )
     if profile_overwrite_confirmation.lower() != "y":
-        exit_with_error_message(
+        formatter.emit_error(
             exception=FileExistsError(
                 "Profile already exists and user chose not to overwrite it. Aborting configuration."
             ),
@@ -44,23 +43,23 @@ def get_runtimes(access_token: str) -> list[str]:
     return [runtime["label"] for runtime in runtimes]
 
 
-def set_default_profile(profile: str):
+def set_default_profile(profile: str, formatter: OutputFormatter):
     validate_profile(profile=profile)
     if not profile_exists(profile):
-        exit_with_error_message(
+        formatter.emit_error(
             exception=UnexistentProfileError(profile=profile),
         )
     overwrite_default_profile(profile=profile)
-    exit_with_success_message(
+    formatter.emit_success(
         message=f"Profile {profile} was set as default successfully."
     )
 
 
-def validate_auth_method(auth_method_key: str) -> AuthHeaderTypeEnum:
+def validate_auth_method(auth_method_key: str, formatter: OutputFormatter) -> AuthHeaderTypeEnum:
     try:
         auth_method_value = AuthHeaderTypeEnum[auth_method_key]
     except KeyError:
-        exit_with_error_message(
+        formatter.emit_error(
             exception=InvalidOptionError(
                 invalid_option=auth_method_key,
                 valid_options=AuthHeaderTypeEnum,
@@ -75,6 +74,7 @@ def set_configuration(
     auth_method_key: str,
     access_token: str,
     profile: str,
+    formatter: OutputFormatter,
 ):
 
     if not exist_config_file():
@@ -84,14 +84,14 @@ def set_configuration(
         create_default_profile()
 
     if not access_token:
-        exit_with_error_message(exception=(EmptyTokenError()))
+        formatter.emit_error(exception=(EmptyTokenError()))
 
     # Check if a profile was provided and exit with error if not
     validate_profile(profile=profile)
     # If the profile already exists, ask the user if they want to overwrite it
-    existing_profile(profile=profile)
+    existing_profile(profile=profile, formatter=formatter)
     # Validate the authentication method key and get the corresponding value
-    auth_method_value = validate_auth_method(auth_method_key=auth_method_key)
+    auth_method_value = validate_auth_method(auth_method_key=auth_method_key, formatter=formatter)
     # Get the user's runtimes from the API.
     # Empty list is valid — it means the plan does not include UbiFunctions.
     runtimes = get_runtimes(access_token=access_token)
@@ -104,7 +104,7 @@ def set_configuration(
             runtimes=runtimes,
         ),
     )
-    exit_with_success_message(message="Configuration saved successfully.")
+    formatter.emit_success(message="Configuration saved successfully.")
 
 
 def get_access_token_configuration(profile: str) -> tuple[str, str]:

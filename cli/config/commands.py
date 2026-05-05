@@ -2,6 +2,8 @@ from typing import Annotated
 
 import typer
 
+from cli.commons.enums import OutputFormatFieldsEnum
+from cli.commons.formatters import resolve_formatter
 from cli.commons.styles import custom_prompt
 from cli.config import handlers
 from cli.config.models import AuthHeaderTypeEnum
@@ -98,6 +100,14 @@ def config(
         ),
     ] = AuthHeaderTypeEnum.TOKEN.name,
     verbose: bool = False,
+    format: Annotated[
+        OutputFormatFieldsEnum | None,
+        typer.Option(
+            "--format",
+            "-f",
+            help="Output format (machine, json, table).",
+        ),
+    ] = None,
 ):
     """
     1. `ubidots config --default <profile>` -> Marca el perfil indicado como default.
@@ -106,14 +116,15 @@ def config(
     3. `ubidots config --no-interactive --profile <profile> [--token <token> --api-domain <domain> --auth-method <method>]`
         -> Crea un perfil de configuracion en modo no interactivo con valores por defecto o vacios segun aplique.
     """
+    formatter = resolve_formatter(flag=format, active_config=None, command="config")
     # 1.
     if default:
-        handlers.set_default_profile(profile=default)
+        handlers.set_default_profile(profile=default, formatter=formatter)
     else:
         # 2.
         if interactive:
             config_details = get_interactive_configuration()
-            handlers.set_configuration(**config_details)
+            handlers.set_configuration(**config_details, formatter=formatter)
         # 3.
         else:
             handlers.set_configuration(
@@ -121,4 +132,5 @@ def config(
                 auth_method_key=auth_method,
                 access_token=token,
                 profile=profile,
+                formatter=formatter,
             )

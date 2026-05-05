@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from cli.commons.enums import OutputFormatFieldsEnum
+from cli.commons.formatters import OutputFormatter
 from cli.commons.pipelines import Pipeline
 from cli.commons.utils import sanitize_function_name
 from cli.pages import pipelines
@@ -13,6 +13,7 @@ def create_local_page(
     verbose: bool,
     profile: str,
     type: PageTypeEnum,
+    formatter: OutputFormatter,
 ):
     name_path = Path(name)
     if (
@@ -38,7 +39,7 @@ def create_local_page(
         pipelines.CreateWorkspaceStep(),
     ]
     pipeline = Pipeline(
-        steps, success_message=f"Page '{name}' created at {project_path}."
+        steps, success_message=f"Page '{name}' created at {project_path}.", formatter=formatter
     )
     pipeline.run(
         {
@@ -54,7 +55,7 @@ def create_local_page(
     )
 
 
-def start_local_dev_server(verbose: bool):
+def start_local_dev_server(verbose: bool, formatter: OutputFormatter):
     steps = [
         pipelines.ValidatePageDirectoryStep(),
         pipelines.ReadPageMetadataStep(),
@@ -79,7 +80,7 @@ def start_local_dev_server(verbose: bool):
         pipelines.StoreHotReloadPortStep(),
         pipelines.PrintPageUrlStep(),
     ]
-    pipeline = Pipeline(steps, success_message="Page started successfully.")
+    pipeline = Pipeline(steps, success_message="Page started successfully.", formatter=formatter)
     pipeline.run(
         {
             "project_path": Path.cwd(),
@@ -90,7 +91,7 @@ def start_local_dev_server(verbose: bool):
     )
 
 
-def stop_local_dev_server(verbose: bool):
+def stop_local_dev_server(verbose: bool, formatter: OutputFormatter):
     steps = [
         # NOTE: ValidatePageDirectoryStep intentionally omitted — spec requires that
         # dev stop works even on pages created with the old symlink layout.
@@ -108,7 +109,7 @@ def stop_local_dev_server(verbose: bool):
         pipelines.StopCopyWatcherStep(),
         pipelines.StopHotReloadSubprocessStep(),
     ]
-    pipeline = Pipeline(steps, success_message="Page stopped successfully.")
+    pipeline = Pipeline(steps, success_message="Page stopped successfully.", formatter=formatter)
     pipeline.run(
         {
             "project_path": Path.cwd(),
@@ -120,6 +121,7 @@ def stop_local_dev_server(verbose: bool):
 
 def show_local_dev_server_status(
     verbose: bool,
+    formatter: OutputFormatter,
 ):
     steps = [
         pipelines.ValidatePageDirectoryStep(),
@@ -131,7 +133,7 @@ def show_local_dev_server_status(
         pipelines.GetPageStatusTableStep(),
         pipelines.PrintPageStatusStep(),
     ]
-    pipeline = Pipeline(steps, success_message="")
+    pipeline = Pipeline(steps, success_message="", formatter=formatter)
     pipeline.run(
         {
             "project_path": Path.cwd(),
@@ -163,6 +165,7 @@ def clean_orphaned_pages(confirm: bool, verbose: bool):
 
 def list_local_pages(
     verbose: bool,
+    formatter: OutputFormatter,
 ):
     steps = [
         pipelines.GetClientStep(),
@@ -174,7 +177,7 @@ def list_local_pages(
         pipelines.ListAllPagesStep(),
         pipelines.PrintPagesListStep(),
     ]
-    pipeline = Pipeline(steps, success_message="")
+    pipeline = Pipeline(steps, success_message="", formatter=formatter)
     pipeline.run(
         {
             "verbose": verbose,
@@ -189,19 +192,18 @@ def list_pages_from_cloud_platform(
     sort_by: str,
     page_size: int,
     page: int,
-    format: OutputFormatFieldsEnum,
+    formatter: OutputFormatter,
 ):
     steps = [
         pipelines.GetActiveConfigStep(),
         pipelines.ListPagesFromRemoteServerStep(),
     ]
     pipeline = Pipeline(
-        steps, success_message="Pages retrieved from remote server successfully."
+        steps, success_message="", formatter=formatter
     )
     pipeline.run(
         {
             "profile": profile,
-            "format": format,
             "fields": fields,
             "sort_by": sort_by,
             "page_size": page_size,
@@ -215,19 +217,18 @@ def get_page_from_cloud_platform(
     page_key: str,
     profile: str,
     verbose: bool,
-    format: OutputFormatFieldsEnum,
+    formatter: OutputFormatter,
     fields: str,
 ):
     steps = [
         pipelines.GetActiveConfigStep(),
         pipelines.GetPageFromRemoteServerStep(),
     ]
-    pipeline = Pipeline(steps)
+    pipeline = Pipeline(steps, formatter=formatter)
     pipeline.run(
         {
             "profile": profile,
             "page_key": page_key,
-            "format": format,
             "fields": fields,
             "verbose": verbose,
             "root": get_page_from_cloud_platform.__name__,
@@ -239,6 +240,7 @@ def add_page_to_cloud_platform(
     profile: str,
     name: str,
     label: str,
+    formatter: OutputFormatter,
 ):
     steps = [
         pipelines.GetActiveConfigStep(),
@@ -248,7 +250,7 @@ def add_page_to_cloud_platform(
         pipelines.UploadPageCodeStep(),
         pipelines.CheckPageResponseStep("response"),
     ]
-    pipeline = Pipeline(steps)
+    pipeline = Pipeline(steps, formatter=formatter)
     pipeline.run(
         {
             "profile": profile,
@@ -264,13 +266,14 @@ def delete_page_from_cloud_platform(
     profile: str,
     confirm: bool,
     verbose: bool,
+    formatter: OutputFormatter,
 ):
     steps = [
         pipelines.GetActiveConfigStep(),
         pipelines.ConfirmOverwriteStep(),
         pipelines.DeletePageStep(),
     ]
-    pipeline = Pipeline(steps, success_message=f"Page {page_key} deleted successfully.")
+    pipeline = Pipeline(steps, success_message=f"Page {page_key} deleted successfully.", formatter=formatter)
     pipeline.run(
         {
             "overwrite": {
@@ -289,6 +292,7 @@ def push_page_to_cloud_platform(
     confirm: bool,
     profile: str,
     verbose: bool,
+    formatter: OutputFormatter,
 ):
     steps = [
         pipelines.GetActiveConfigStep(),
@@ -303,7 +307,7 @@ def push_page_to_cloud_platform(
         pipelines.UploadPageCodeStep(),
         pipelines.CheckPageResponseStep("response"),
     ]
-    pipeline = Pipeline(steps, success_message="Page uploaded successfully.")
+    pipeline = Pipeline(steps, success_message="Page uploaded successfully.", formatter=formatter)
     pipeline.run(
         {
             "project_path": Path.cwd(),
@@ -320,6 +324,7 @@ def pull_page_from_cloud_platform(
     profile: str,
     confirm: bool = False,
     verbose: bool = False,
+    formatter: OutputFormatter = None,
 ):
     steps = [
         pipelines.GetActiveConfigStep(),
@@ -337,7 +342,7 @@ def pull_page_from_cloud_platform(
         pipelines.SavePullPageManifestStep(),
         pipelines.PrintPagePathStep(),
     ]
-    pipeline = Pipeline(steps)
+    pipeline = Pipeline(steps, formatter=formatter)
     pipeline.run(
         {
             "project_path": Path.cwd(),
@@ -356,12 +361,13 @@ def update_page_from_cloud_platform(
     new_label: str,
     profile: str,
     verbose: bool,
+    formatter: OutputFormatter,
 ):
     steps = [
         pipelines.GetActiveConfigStep(),
         pipelines.UpdatePageStep(),
     ]
-    pipeline = Pipeline(steps, success_message=f"Page {page_key} updated successfully.")
+    pipeline = Pipeline(steps, success_message=f"Page {page_key} updated successfully.", formatter=formatter)
     pipeline.run(
         {
             "profile": profile,
@@ -374,7 +380,7 @@ def update_page_from_cloud_platform(
     )
 
 
-def restart_local_dev_server(verbose: bool):
+def restart_local_dev_server(verbose: bool, formatter: OutputFormatter):
     steps = [
         pipelines.ValidatePageDirectoryStep(),
         pipelines.ReadPageMetadataStep(),
@@ -401,7 +407,7 @@ def restart_local_dev_server(verbose: bool):
         pipelines.StoreHotReloadPortStep(),
         pipelines.PrintPageUrlStep(),
     ]
-    pipeline = Pipeline(steps, success_message="Page restarted successfully.")
+    pipeline = Pipeline(steps, success_message="Page restarted successfully.", formatter=formatter)
     pipeline.run(
         {
             "project_path": Path.cwd(),
@@ -411,7 +417,7 @@ def restart_local_dev_server(verbose: bool):
     )
 
 
-def logs_local_dev_server(tail: str, follow: bool, verbose: bool):
+def logs_local_dev_server(tail: str, follow: bool, verbose: bool, formatter: OutputFormatter):
     steps = [
         pipelines.ValidatePageDirectoryStep(),
         pipelines.ReadPageMetadataStep(),
@@ -419,7 +425,7 @@ def logs_local_dev_server(tail: str, follow: bool, verbose: bool):
         pipelines.GetWorkspaceKeyStep(),
         pipelines.ShowPageLogsStep(),
     ]
-    pipeline = Pipeline(steps, success_message="")
+    pipeline = Pipeline(steps, success_message="", formatter=formatter)
     pipeline.run(
         {
             "project_path": Path.cwd(),

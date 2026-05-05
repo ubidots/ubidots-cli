@@ -1,5 +1,6 @@
 from pathlib import Path
 from unittest import TestCase
+from unittest.mock import ANY
 from unittest.mock import MagicMock
 from unittest.mock import patch
 
@@ -71,6 +72,7 @@ class TestCreateFunction(TestCase):
             timeout=timeout,
             created_at=fixed_created_at,
             profile=profile,
+            formatter=ANY,
         )
 
         expected_steps = [
@@ -85,6 +87,7 @@ class TestCreateFunction(TestCase):
         MockPipeline.assert_called_once_with(
             expected_steps,
             success_message=f"Project '{name}' created in '{Path.cwd() / name}'.",
+            formatter=ANY,
         )
         expected_context = {
             "project_path": Path.cwd() / name,
@@ -146,6 +149,7 @@ class TestCreateFunction(TestCase):
                 timeout=settings.FUNCTIONS.DEFAULT_TIMEOUT_SECONDS,
                 created_at="2025-02-18T15:00:00",
                 profile="",
+                formatter=ANY,
             )
 
         self.assertIn("Cannot run 'functions init'", str(context.exception))
@@ -195,7 +199,7 @@ class TestStartFunction(TestCase):
         verbose = True
 
         # Action
-        start_function(verbose=verbose)
+        start_function(verbose=verbose, formatter=ANY)
 
         # Expected
         MockPipeline.assert_called_once_with(
@@ -217,6 +221,8 @@ class TestStartFunction(TestCase):
                 MockPrintkeyStep.return_value,
             ],
             success_message="Function started successfully.",
+            formatter=ANY,
+            result_keys=["target_url"],
         )
         mock_pipeline_instance.run.assert_called_once_with(
             {
@@ -257,7 +263,7 @@ class TestStopFunction(TestCase):
         verbose = True
 
         # Action
-        stop_function(verbose=verbose)
+        stop_function(verbose=verbose, formatter=MagicMock())
 
         # Expected
         MockPipeline.assert_called_once_with(
@@ -271,6 +277,7 @@ class TestStopFunction(TestCase):
                 MockPrintkeyStep.return_value,
             ],
             success_message="Function stoped successfully.",
+            formatter=ANY,
         )
 
         mock_pipeline_instance.run.assert_called_once_with(
@@ -304,7 +311,7 @@ class TestRestartFunction(TestCase):
         verbose = True
 
         # Action
-        restart_function(verbose=verbose)
+        restart_function(verbose=verbose, formatter=MagicMock())
 
         # Expected
         MockPipeline.assert_called_once_with(
@@ -316,6 +323,7 @@ class TestRestartFunction(TestCase):
                 MockRestartFunctionStep.return_value,
             ],
             success_message="Function restarted successfully.",
+            formatter=ANY,
         )
 
         mock_pipeline_instance.run.assert_called_once_with(
@@ -349,7 +357,7 @@ class TestStatusFunction(TestCase):
         verbose = True
 
         # Action
-        status_function(verbose=verbose)
+        status_function(verbose=verbose, formatter=MagicMock())
 
         # Expected
         MockPipeline.assert_called_once_with(
@@ -359,7 +367,8 @@ class TestStatusFunction(TestCase):
                 MockGetContainerManagerStep.return_value,
                 MockGetFunctionStatusStep.return_value,
                 MockPrintColoredTableStep.return_value,
-            ]
+            ],
+            formatter=ANY,
         )
         mock_pipeline_instance.run.assert_called_once_with(
             {
@@ -392,6 +401,7 @@ class TestRunFunction(TestCase):
             payload={"temp": 25},
             profile="test_profile",
             verbose=False,
+            formatter=MagicMock(),
         )
 
         # Expected: 3-step pipeline via /invoke/ — synchronous logs + result
@@ -400,7 +410,8 @@ class TestRunFunction(TestCase):
                 MockGetActiveConfigStep.return_value,
                 MockInvokeFunctionStep.return_value,
                 MockPrintInvokeResponseStep.return_value,
-            ]
+            ],
+            formatter=ANY,
         )
         mock_pipeline_instance.run.assert_called_once_with(
             {
@@ -437,6 +448,7 @@ class TestLogsFunction(TestCase):
             remote=True,
             verbose=True,
             function_key="~my-func",
+            formatter=MagicMock(),
         )
 
         # Expected: 3-step pipeline — always detailed, no summary table
@@ -445,7 +457,8 @@ class TestLogsFunction(TestCase):
                 MockGetActiveConfigStep.return_value,
                 MockWaitAndFetchLatestLogsStep.return_value,
                 MockPrintActivationLogsStep.return_value,
-            ]
+            ],
+            formatter=ANY,
         )
         MockWaitAndFetchLatestLogsStep.assert_called_once_with(count=5, wait_seconds=0)
         mock_pipeline_instance.run.assert_called_once_with(
@@ -489,6 +502,7 @@ class TestLogsFunction(TestCase):
             profile="",  # No profile needed for local
             remote=remote,
             verbose=verbose,
+            formatter=MagicMock(),
         )
 
         # Expected
@@ -500,7 +514,8 @@ class TestLogsFunction(TestCase):
                 MockGetContainerKeyStep.return_value,
                 MockGetFunctionLogsStep.return_value,
                 MockPrintkeyStep.return_value,
-            ]
+            ],
+            formatter=ANY,
         )
         mock_pipeline_instance.run.assert_called_once_with(
             {
@@ -551,7 +566,7 @@ class TestPushFunction(TestCase):
         profile = "test_profile"
 
         # Action
-        push_function(confirm=confirm, profile=profile, verbose=verbose)
+        push_function(confirm=confirm, profile=profile, verbose=verbose, formatter=MagicMock())
 
         # Expected
         MockPipeline.assert_called_once_with(
@@ -573,6 +588,7 @@ class TestPushFunction(TestCase):
                 MockCheckResponseStep.return_value,
             ],
             success_message="Function uploaded successfully.",
+            formatter=ANY,
         )
 
         mock_pipeline_instance.run.assert_called_once_with(
@@ -645,7 +661,7 @@ class TestPullFunction(TestCase):
 
         # Action
         pull_function(
-            remote_id=remote_id, profile=profile, confirm=confirm, verbose=verbose
+            remote_id=remote_id, profile=profile, confirm=confirm, verbose=verbose, formatter=MagicMock()
         )
 
         # Expected
@@ -669,7 +685,8 @@ class TestPullFunction(TestCase):
                 MockGetProjectFilesStep.return_value,
                 MockValidateProjectStep.return_value,
                 MockPrintFunctionPath.return_value,
-            ]
+            ],
+            formatter=ANY,
         )
 
         mock_pipeline_instance.run.assert_called_once_with(
@@ -711,7 +728,7 @@ class TestCleanFunctions(TestCase):
         verbose = True
 
         # Action
-        clean_functions(confirm=confirm, verbose=verbose)
+        clean_functions(confirm=confirm, verbose=verbose, formatter=MagicMock())
 
         # Expected
         MockPipeline.assert_called_once_with(
@@ -721,7 +738,8 @@ class TestCleanFunctions(TestCase):
                 MockGetClientStep.return_value,
                 MockGetContainerManagerStep.return_value,
                 MockCleanFunctionsStep.return_value,
-            ]
+            ],
+            formatter=ANY,
         )
 
         mock_pipeline_instance.run.assert_called_once_with(

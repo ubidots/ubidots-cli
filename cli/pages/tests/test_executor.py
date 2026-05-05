@@ -2,6 +2,7 @@
 
 import unittest
 from pathlib import Path
+from unittest.mock import ANY
 from unittest.mock import MagicMock
 from unittest.mock import patch
 
@@ -31,6 +32,7 @@ class TestCreatePage(unittest.TestCase):
             verbose=True,
             profile="default",
             type=PageTypeEnum.DASHBOARD,
+            formatter=MagicMock(),
         )
 
         mock_pipeline.assert_called_once()
@@ -64,6 +66,7 @@ class TestCreatePage(unittest.TestCase):
             verbose=False,
             profile="prod",
             type=PageTypeEnum.DASHBOARD,
+            formatter=MagicMock(),
         )
 
         mock_pipeline_instance.run.assert_called_once()
@@ -87,7 +90,7 @@ class TestStartPage(unittest.TestCase):
         mock_pipeline_instance = MagicMock()
         mock_pipeline.return_value = mock_pipeline_instance
 
-        start_local_dev_server(verbose=True)
+        start_local_dev_server(verbose=True, formatter=MagicMock())
 
         # Verify pipeline was created with correct steps and message
         mock_pipeline.assert_called_once()
@@ -117,7 +120,7 @@ class TestStopPage(unittest.TestCase):
         mock_pipeline_instance = MagicMock()
         mock_pipeline.return_value = mock_pipeline_instance
 
-        stop_local_dev_server(verbose=False)
+        stop_local_dev_server(verbose=False, formatter=MagicMock())
 
         # Verify pipeline was created with correct steps and message
         mock_pipeline.assert_called_once()
@@ -148,7 +151,7 @@ class TestRestartPage(unittest.TestCase):
 
         from cli.pages.executor import restart_local_dev_server
 
-        restart_local_dev_server(verbose=False)
+        restart_local_dev_server(verbose=False, formatter=MagicMock())
 
         args, kwargs = mock_pipeline.call_args
         steps = args[0]
@@ -169,7 +172,7 @@ class TestStatusPage(unittest.TestCase):
         mock_pipeline_instance = MagicMock()
         mock_pipeline.return_value = mock_pipeline_instance
 
-        show_local_dev_server_status(verbose=False)
+        show_local_dev_server_status(verbose=False, formatter=MagicMock())
 
         # Verify pipeline was created with correct steps and message
         mock_pipeline.assert_called_once()
@@ -199,7 +202,7 @@ class TestListPages(unittest.TestCase):
         mock_pipeline_instance = MagicMock()
         mock_pipeline.return_value = mock_pipeline_instance
 
-        list_local_pages(verbose=True)
+        list_local_pages(verbose=True, formatter=MagicMock())
 
         # Verify pipeline was created with correct steps and message
         mock_pipeline.assert_called_once()
@@ -246,7 +249,7 @@ class TestExecutorIntegration(unittest.TestCase):
         mock_pipeline_instance = MagicMock()
         mock_pipeline.return_value = mock_pipeline_instance
 
-        create_local_page("test", False, "default", PageTypeEnum.DASHBOARD)
+        create_local_page("test", False, "default", PageTypeEnum.DASHBOARD, formatter=MagicMock())
 
         # Verify all expected pipeline steps were instantiated
         for step_class in mock_step_classes:
@@ -287,7 +290,7 @@ class TestExecutorIntegration(unittest.TestCase):
         mock_pipeline_instance = MagicMock()
         mock_pipeline.return_value = mock_pipeline_instance
 
-        start_local_dev_server(False)
+        start_local_dev_server(False, formatter=MagicMock())
 
         # Verify all expected pipeline steps were instantiated
         for step_class in mock_step_classes:
@@ -320,7 +323,7 @@ class TestExecutorIntegration(unittest.TestCase):
         mock_pipeline_instance = MagicMock()
         mock_pipeline.return_value = mock_pipeline_instance
 
-        stop_local_dev_server(verbose=False)
+        stop_local_dev_server(verbose=False, formatter=MagicMock())
 
         # Verify all expected pipeline steps were instantiated
         for step_class in mock_step_classes:
@@ -335,7 +338,7 @@ class TestLogsPage(unittest.TestCase):
         """Test that logs_local_dev_server builds and runs a pipeline."""
         mock_pipeline = MagicMock()
         mock_pipeline_cls.return_value = mock_pipeline
-        logs_local_dev_server(tail="all", follow=False, verbose=False)
+        logs_local_dev_server(tail="all", follow=False, verbose=False, formatter=MagicMock())
         mock_pipeline.run.assert_called_once()
         run_data = mock_pipeline.run.call_args[0][0]
         assert run_data["tail"] == "all"
@@ -346,7 +349,7 @@ class TestLogsPage(unittest.TestCase):
         """Test that tail and follow are forwarded to the pipeline data."""
         mock_pipeline = MagicMock()
         mock_pipeline_cls.return_value = mock_pipeline
-        logs_local_dev_server(tail="50", follow=True, verbose=True)
+        logs_local_dev_server(tail="50", follow=True, verbose=True, formatter=MagicMock())
         run_data = mock_pipeline.run.call_args[0][0]
         assert run_data["tail"] == "50"
         assert run_data["follow"] is True
@@ -358,7 +361,7 @@ class TestLogsPage(unittest.TestCase):
         mock_pipeline_instance = MagicMock()
         mock_pipeline.return_value = mock_pipeline_instance
 
-        logs_local_dev_server(tail="all", follow=False, verbose=False)
+        logs_local_dev_server(tail="all", follow=False, verbose=False, formatter=MagicMock())
 
         args, _kwargs = mock_pipeline.call_args
         steps = args[0]
