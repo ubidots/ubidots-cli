@@ -218,6 +218,7 @@ class TestCLIHelperFunctions(TestCase):
             "access_token": "valid_token",
             "runtimes": [],
             "containerRepositoryBase": "registry.ubidots.com",
+            "output_format": "machine",
         }
         result = validate_profile_config(profile_config, Path("test.yaml"))
         self.assertEqual(result.runtimes, [])

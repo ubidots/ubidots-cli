@@ -2,6 +2,50 @@
 
 ## [Unreleased]
 
+## [2.0.0] - 2026-05-04
+
+### 🔄 Breaking Changes
+
+- **Default output is now machine-readable JSON.** Every command emits a single JSON envelope on
+  stdout instead of human-styled text. Scripts that parsed colored output (`> [DONE]:` /
+  `> [ERROR]:` lines, ANSI tables) will need updates. Pass `--format table` to restore the
+  human-friendly Rich table output, or `--format json` for raw JSON results.
+- Default value of `output_format` in new profile YAML files is `machine`.
+- **Existing profile YAMLs need a one-line migration.** Profiles created by 1.x do not have an
+  `output_format` field and will fail validation on first 2.0 run with
+  `ProfileConfigMissingFieldsError`. Two ways to fix:
+  - Re-run `ubidots config --no-interactive --profile <name> --token <existing-token>` to
+    rewrite the profile file with the new field, or
+  - Open `~/.ubidots_cli/profiles/<name>.yaml` and add `output_format: machine` (or `table`
+    / `json`).
+
+### ✨ New Features
+
+#### **Output formatting (SC-2300)**
+
+- Added `--format machine` (new default) which emits a single JSON envelope per command:
+  ```json
+  {
+    "status": "success",
+    "command": "<subcommand path>",
+    "data": {...} | [...] | null,
+    "error": null,
+    "meta": {"exit_code": 0, "timestamp": "<ISO 8601>"}
+  }
+  ```
+  Errors emit `status: "error"` with `error.type` and `error.message`. No ANSI codes.
+- Existing `--format json` and `--format table` continue to work unchanged.
+- Format is resolved with priority: `--format` flag > `UBIDOTS_OUTPUT_FORMAT` env var
+  > profile-level `output_format` setting > built-in default (`machine`).
+- `Pipeline` now accepts `formatter` and `result_keys`; success/error messages from local dev
+  commands (e.g. `functions dev start`, `pages dev logs`) flow through the formatter.
+
+#### **Architecture**
+
+- New `cli/commons/formatters.py` with an `OutputFormatter` ABC, `HumanOutputFormatter`,
+  `MachineOutputFormatter`, and `resolve_formatter(flag, active_config, command)`.
+- `ProfileConfigModel` gained an `output_format` field (default `machine`).
+
 ## [1.0.0] - 2026-03-18
 
 ### 🔄 Breaking Changes

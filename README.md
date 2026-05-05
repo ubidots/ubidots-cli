@@ -279,6 +279,73 @@ ubidots functions push --yes --profile prod
 
 ---
 
+## Output formats
+
+Every command emits a single JSON envelope on stdout by default — designed for LLM agents and scripts. Pass `--format` to switch.
+
+```bash
+ubidots devices list                      # default: machine-readable JSON envelope
+ubidots devices list --format json        # raw API JSON (no envelope)
+ubidots devices list --format table       # human-friendly Rich table
+```
+
+### The `machine` envelope
+
+Every command (read, mutate, local dev) prints exactly one JSON object:
+
+```json
+{
+  "status": "success",
+  "command": "devices list",
+  "data": [...] | {...} | null,
+  "error": null,
+  "meta": {"exit_code": 0, "timestamp": "2026-05-04T18:00:00Z"}
+}
+```
+
+Errors look like:
+
+```json
+{
+  "status": "error",
+  "command": "devices get",
+  "data": null,
+  "error": {"type": "HTTPStatusError", "message": "404 Not Found", "hint": null},
+  "meta": {"exit_code": 1, "timestamp": "2026-05-04T18:00:00Z"}
+}
+```
+
+No ANSI codes. Always one line on stdout. Exit codes match `meta.exit_code` (`0` success, `1` error).
+
+### Resolution priority
+
+The format used for a command is resolved in this order (first match wins):
+
+1. `--format <machine|json|table>` flag on the command
+2. `UBIDOTS_OUTPUT_FORMAT` environment variable
+3. `output_format` field in the active profile YAML
+4. Built-in default: `machine`
+
+```bash
+# Per-command
+ubidots devices list --format table
+
+# Per-shell session
+export UBIDOTS_OUTPUT_FORMAT=table
+ubidots devices list
+
+# Per-profile (edit ~/.ubidots_cli/profiles/<profile>.yaml and set output_format: table)
+```
+
+### Migrating from human output
+
+Until v1.x, the default was a colorized Rich table with `> [DONE]:` / `> [ERROR]:` styled messages. v2.0 flips that default to `machine`. Two ways to keep the old behavior:
+
+- Add `--format table` to every command, or
+- Set `output_format: table` once in your profile YAML.
+
+---
+
 ## Profiles and multi-environment workflows
 
 Every cloud command uses your default profile (set by `ubidots config --default <name>`). The `--profile` flag lets you override that for a single command — useful when managing multiple environments (e.g. `staging`, `prod`) without changing your default.
