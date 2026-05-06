@@ -3,6 +3,7 @@ import typer
 from cli.config.commands import config
 from cli.devices.commands import app as device_app
 from cli.functions.commands import app as function_app
+from cli.global_properties.commands import app as global_properties_app
 from cli.pages.commands import app as page_app
 from cli.variables.commands import app as variable_app
 
@@ -13,6 +14,7 @@ app.add_typer(function_app, name="functions")
 app.add_typer(device_app, name="devices")
 app.add_typer(variable_app, name="variables")
 app.add_typer(page_app, name="pages")
+app.add_typer(global_properties_app, name="global-properties")
 
 if __name__ == "__main__":
     app()

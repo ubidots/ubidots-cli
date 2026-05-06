@@ -194,7 +194,7 @@ def run_function(
 
 
 def logs_function(
-    tail: int,
+    tail: int | str,
     follow: bool,
     profile: str,
     remote: bool,
@@ -202,9 +202,15 @@ def logs_function(
     function_key: str = "",
 ):
     if remote:
+        # Remote logs require a positive integer count; --tail default is "all"
+        # which only applies to the local Docker path. Coerce + clamp to >= 1.
+        try:
+            remote_count = max(1, int(tail))
+        except (TypeError, ValueError):
+            remote_count = 1
         steps = [
             pipelines.GetActiveConfigStep(),
-            pipelines.WaitAndFetchLatestLogsStep(count=tail, wait_seconds=0),
+            pipelines.WaitAndFetchLatestLogsStep(count=remote_count, wait_seconds=0),
             pipelines.PrintActivationLogsStep(),
         ]
         pipeline = Pipeline(steps)
