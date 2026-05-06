@@ -218,10 +218,14 @@ class TestPidBasedSteps(unittest.TestCase):
 
     def test_list_all_pages_step_includes_source_path(self):
         with TemporaryDirectory() as temp_dir:
-            workspace = Path(temp_dir)
+            base = Path(temp_dir)
+            workspace = base / "workspace"
+            workspace.mkdir()
             page_dir = workspace / "my-page-abc12345"
             page_dir.mkdir()
-            source_dir = workspace / "source" / "my-page"
+            # source dir lives outside the workspace so iterdir() only sees the
+            # page; otherwise the step counts the unrelated "source/" subdir.
+            source_dir = base / "source" / "my-page"
             source_dir.mkdir(parents=True)
             (page_dir / ".source_path").write_text(str(source_dir), encoding="utf-8")
 
