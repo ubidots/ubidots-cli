@@ -1,0 +1,26 @@
+<!DOCTYPE tree PUBLIC '-//UBIDOTS//DTD Menu App XML V2.0//EN' "-">
+<tree>
+  <body>
+    <section text="">
+      <menu defaultShow="true" icon="microchip" label="Devices">
+        <item path="/app/devices" permissions="ubi_datasource.view_device" label="Devices" />
+        <item path="/app/device-groups/" permissions="ubi_datasource.view_devicegroup" label="Groups" />
+      </menu>
+
+      <menu icon="objects-column" label="Data">
+        <item path="/app/dashboards/" permissions="ubi_dashboards.view_dashboardpg" label="Dashboards" />
+        <item path="/app/events/" permissions="ubi_events.view_eventpg" label="Events" />
+        <item path="/app/data-analysis/" permissions="ubi_data_analysis.view_report" label="Reports" />
+      </menu>
+
+      <menu icon="user" label="Users">
+        <item path="/app/organizations/users" exact="true" permissions="customuser.view_user" label="Users" />
+        <item path="/app/organizations/" exact="true" permissions="customuser.view_organization" label="Organizations" />
+      </menu>
+
+      <menu icon="code" label="Dev Center">
+        <item path="/app/functions/" permissions="ubi_parsers.view_function" label="Functions" />
+      </menu>
+    </section>
+  </body>
+</tree>

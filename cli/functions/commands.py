@@ -322,7 +322,7 @@ def run_function(
 
     executor.run_function(
         function_key=function_key,
-        payload=payload,
+        payload=payload,  # type: ignore[arg-type]  # callback parses str → dict
         profile=profile,
         verbose=verbose,
     )
