@@ -9,7 +9,6 @@ import typer
 from cli.commons.enums import OutputFormatFieldsEnum
 from cli.commons.formatters import HumanOutputFormatter
 from cli.commons.formatters import MachineOutputFormatter
-from cli.commons.formatters import OutputFormatter
 from cli.commons.formatters import resolve_formatter
 
 
@@ -54,7 +53,9 @@ def test_machine_emit_success_message_only(capsys):
 def test_machine_emit_success_with_data(capsys):
     fmt = MachineOutputFormatter(command="functions dev start")
     with pytest.raises(typer.Exit):
-        fmt.emit_success("Started.", data={"label": "my_fn", "url": "http://localhost:5678"})
+        fmt.emit_success(
+            "Started.", data={"label": "my_fn", "url": "http://localhost:5678"}
+        )
     out = json.loads(capsys.readouterr().out)
     assert out["data"]["label"] == "my_fn"
     assert out["data"]["url"] == "http://localhost:5678"
@@ -133,7 +134,11 @@ def test_resolve_formatter_flag_takes_priority(monkeypatch):
     monkeypatch.setenv("UBIDOTS_OUTPUT_FORMAT", "table")
     mock_config = MagicMock()
     mock_config.output_format = OutputFormatFieldsEnum.TABLE
-    result = resolve_formatter(flag=OutputFormatFieldsEnum.MACHINE, active_config=mock_config, command="devices list")
+    result = resolve_formatter(
+        flag=OutputFormatFieldsEnum.MACHINE,
+        active_config=mock_config,
+        command="devices list",
+    )
     assert isinstance(result, MachineOutputFormatter)
 
 
@@ -141,7 +146,9 @@ def test_resolve_formatter_env_var_beats_profile(monkeypatch):
     monkeypatch.setenv("UBIDOTS_OUTPUT_FORMAT", "machine")
     mock_config = MagicMock()
     mock_config.output_format = OutputFormatFieldsEnum.TABLE
-    result = resolve_formatter(flag=None, active_config=mock_config, command="devices list")
+    result = resolve_formatter(
+        flag=None, active_config=mock_config, command="devices list"
+    )
     assert isinstance(result, MachineOutputFormatter)
 
 
@@ -149,7 +156,9 @@ def test_resolve_formatter_profile_used_when_no_flag_no_env(monkeypatch):
     monkeypatch.delenv("UBIDOTS_OUTPUT_FORMAT", raising=False)
     mock_config = MagicMock()
     mock_config.output_format = OutputFormatFieldsEnum.TABLE
-    result = resolve_formatter(flag=None, active_config=mock_config, command="devices list")
+    result = resolve_formatter(
+        flag=None, active_config=mock_config, command="devices list"
+    )
     assert isinstance(result, HumanOutputFormatter)
     assert result.raw_json is False
 
@@ -158,7 +167,9 @@ def test_resolve_formatter_json_flag_gives_human_raw(monkeypatch):
     monkeypatch.delenv("UBIDOTS_OUTPUT_FORMAT", raising=False)
     mock_config = MagicMock()
     mock_config.output_format = OutputFormatFieldsEnum.TABLE
-    result = resolve_formatter(flag=OutputFormatFieldsEnum.JSON, active_config=mock_config, command="x")
+    result = resolve_formatter(
+        flag=OutputFormatFieldsEnum.JSON, active_config=mock_config, command="x"
+    )
     assert isinstance(result, HumanOutputFormatter)
     assert result.raw_json is True
 
@@ -172,6 +183,7 @@ def test_resolve_formatter_none_active_config_falls_to_default(monkeypatch):
 def test_resolve_formatter_invalid_env_var_falls_to_profile(monkeypatch):
     monkeypatch.setenv("UBIDOTS_OUTPUT_FORMAT", "invalid_value")
     mock_config = MagicMock()
-    mock_config.output_format = OutputFormatFieldsEnum.MACHINE
+    mock_config.output_format = OutputFormatFieldsEnum.TABLE
     result = resolve_formatter(flag=None, active_config=mock_config, command="x")
-    assert isinstance(result, MachineOutputFormatter)
+    assert isinstance(result, HumanOutputFormatter)
+    assert result.raw_json is False

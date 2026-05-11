@@ -1,9 +1,10 @@
+import contextlib
 import json
 import os
 from abc import ABC
 from abc import abstractmethod
+from datetime import UTC
 from datetime import datetime
-from datetime import timezone
 from typing import Any
 from typing import NoReturn
 
@@ -32,51 +33,61 @@ class OutputFormatter(ABC):
         """
 
     @abstractmethod
-    def emit_error(self, exception: Exception, message: str = "", hint: str | None = None) -> NoReturn:
+    def emit_error(
+        self, exception: Exception, message: str = "", hint: str | None = None
+    ) -> NoReturn:
         """Signal failure. Always raises typer.Exit(1)."""
 
 
 class MachineOutputFormatter(OutputFormatter):
     def _now(self) -> str:
-        return datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+        return datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
 
     def _dump(self, envelope: dict) -> None:
         typer.echo(json.dumps(envelope))
 
     def emit_results(self, results: list[dict] | dict, **table_kwargs: Any) -> None:
-        self._dump({
-            "status": "success",
-            "command": self.command,
-            "data": results,
-            "error": None,
-            "meta": {"exit_code": 0, "timestamp": self._now()},
-        })
+        self._dump(
+            {
+                "status": "success",
+                "command": self.command,
+                "data": results,
+                "error": None,
+                "meta": {"exit_code": 0, "timestamp": self._now()},
+            }
+        )
 
     def emit_success(self, message: str, data: dict | None = None) -> NoReturn:
         payload: dict = {"message": message}
         if data is not None:
             payload.update(data)
-        self._dump({
-            "status": "success",
-            "command": self.command,
-            "data": payload,
-            "error": None,
-            "meta": {"exit_code": 0, "timestamp": self._now()},
-        })
+        self._dump(
+            {
+                "status": "success",
+                "command": self.command,
+                "data": payload,
+                "error": None,
+                "meta": {"exit_code": 0, "timestamp": self._now()},
+            }
+        )
         raise typer.Exit(0)
 
-    def emit_error(self, exception: Exception, message: str = "", hint: str | None = None) -> NoReturn:
-        self._dump({
-            "status": "error",
-            "command": self.command,
-            "data": None,
-            "error": {
-                "type": type(exception).__name__,
-                "message": message or str(exception),
-                "hint": hint or None,
-            },
-            "meta": {"exit_code": 1, "timestamp": self._now()},
-        })
+    def emit_error(
+        self, exception: Exception, message: str = "", hint: str | None = None
+    ) -> NoReturn:
+        self._dump(
+            {
+                "status": "error",
+                "command": self.command,
+                "data": None,
+                "error": {
+                    "type": type(exception).__name__,
+                    "message": message or str(exception),
+                    "hint": hint or None,
+                },
+                "meta": {"exit_code": 1, "timestamp": self._now()},
+            }
+        )
         raise typer.Exit(1)
 
 
@@ -97,7 +108,9 @@ class HumanOutputFormatter(OutputFormatter):
         # data is intentionally not used in human mode — it carries machine-readable result keys only
         exit_with_success_message(message)
 
-    def emit_error(self, exception: Exception, message: str = "", hint: str | None = None) -> NoReturn:
+    def emit_error(
+        self, exception: Exception, message: str = "", hint: str | None = None
+    ) -> NoReturn:
         exit_with_error_message(exception=exception, message=message, hint=hint or "")
 
 
@@ -112,10 +125,8 @@ def resolve_formatter(
     if effective is None:
         env_val = os.environ.get("UBIDOTS_OUTPUT_FORMAT", "")
         if env_val:
-            try:
+            with contextlib.suppress(ValueError):
                 effective = OutputFormatFieldsEnum(env_val)
-            except ValueError:
-                pass  # invalid env var — fall through
 
     if effective is None and active_config is not None:
         effective = active_config.output_format

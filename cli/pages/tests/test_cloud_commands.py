@@ -1,13 +1,12 @@
 import unittest
 from unittest.mock import ANY
+from unittest.mock import MagicMock
 from unittest.mock import patch
 
 from typer.testing import CliRunner
 
 from cli.commons.enums import DefaultInstanceFieldEnum
-from cli.commons.enums import OutputFormatFieldsEnum
 from cli.pages.commands import app
-from cli.settings import settings
 
 
 class TestListCloudCommand(unittest.TestCase):
@@ -141,7 +140,7 @@ class TestGetCommand(unittest.TestCase):
         context = mock_pipeline_run.call_args[0][0]
         self.assertEqual(context["fields"], "id,label,url")
 
-    def test_get_page_forwards_json_format_to_executor(
+    def test_get_page_exits_successfully_with_json_format(
         self, mock_get_instance_key, mock_pipeline_run
     ):
         mock_get_instance_key.return_value = "66e9a2aae24bae000e144c28"
@@ -155,13 +154,16 @@ class TestGetCommand(unittest.TestCase):
         self.assertEqual(result.exit_code, 0)
 
 
+@patch("cli.pages.commands.get_configuration", return_value=MagicMock())
 @patch("cli.commons.pipelines.Pipeline.run")
 class TestAddCommand(unittest.TestCase):
 
     def setUp(self):
         self.runner = CliRunner()
 
-    def test_add_page_auto_generates_label_from_name(self, mock_pipeline_run):
+    def test_add_page_auto_generates_label_from_name(
+        self, mock_pipeline_run, mock_get_configuration
+    ):
         mock_pipeline_run.return_value = None
 
         self.runner.invoke(app, ["add", "My Dashboard"])
@@ -175,7 +177,9 @@ class TestAddCommand(unittest.TestCase):
             }
         )
 
-    def test_add_page_uses_provided_label_over_auto_generated(self, mock_pipeline_run):
+    def test_add_page_uses_provided_label_over_auto_generated(
+        self, mock_pipeline_run, mock_get_configuration
+    ):
         mock_pipeline_run.return_value = None
 
         self.runner.invoke(app, ["add", "My Dashboard", "--label", "custom-dash"])
@@ -189,7 +193,9 @@ class TestAddCommand(unittest.TestCase):
             }
         )
 
-    def test_add_page_forwards_profile_to_executor(self, mock_pipeline_run):
+    def test_add_page_forwards_profile_to_executor(
+        self, mock_pipeline_run, mock_get_configuration
+    ):
         mock_pipeline_run.return_value = None
 
         self.runner.invoke(app, ["add", "My Dashboard", "--profile", "production"])

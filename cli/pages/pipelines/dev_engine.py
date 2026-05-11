@@ -283,23 +283,35 @@ class StopHotReloadSubprocessStep(PipelineStep):
 
 class ShowPageLogsStep(PipelineStep):
     def execute(self, data):
+        formatter = data.get("formatter")
         workspace = data["workspace_path"]
         copy_log = workspace / ".copy_watcher.log"
         hr_log = workspace / ".hot_reload.log"
 
-        log_files = [str(f) for f in (copy_log, hr_log) if f.exists()]
+        log_files = [f for f in (copy_log, hr_log) if f.exists()]
         if not log_files:
-            typer.echo("No log file found. Has the page been started?")
+            msg = "No log file found. Has the page been started?"
+            if formatter:
+                formatter.emit_results({"error": msg})
+            else:
+                typer.echo(msg)
             return data
 
-        tail = data.get("tail", "all")
-        follow = data.get("follow", False)
-        cmd = ["tail"]
-        cmd += ["-n", tail if tail != "all" else "+1"]
-        if follow:
-            cmd.append("-f")
-        cmd.extend(log_files)
-        subprocess.run(cmd)
+        if formatter:
+            logs_data = {}
+            for log_file in log_files:
+                content = log_file.read_text()
+                logs_data[log_file.name] = content
+            formatter.emit_results(logs_data)
+        else:
+            tail = data.get("tail", "all")
+            follow = data.get("follow", False)
+            cmd = ["tail"]
+            cmd += ["-n", tail if tail != "all" else "+1"]
+            if follow:
+                cmd.append("-f")
+            cmd.extend([str(f) for f in log_files])
+            subprocess.run(cmd)
         return data
 
 
@@ -608,11 +620,21 @@ class PrintPageStatusStep(PipelineStep):
         status = page_status["status"]
         url = page_status.get("url", "")
 
-        print(f"📄 Page: {page_name}")
-        print(f"🔄 Status: {status}")
+        formatter = data.get("formatter")
+        if formatter is not None:
+            result = {
+                "page": page_name,
+                "status": status,
+            }
+            if status == "running" and url and url != "-":
+                result["url"] = url
+            formatter.emit_results(result)
+        else:
+            print(f"📄 Page: {page_name}")
+            print(f"🔄 Status: {status}")
 
-        if status == "running" and url and url != "-":
-            print(f"🌐 URL: {url}")
+            if status == "running" and url and url != "-":
+                print(f"🌐 URL: {url}")
 
         return data
 
@@ -622,12 +644,20 @@ class PrintPagesListStep(PipelineStep):
         pages_info = data.get("pages_info", [])
 
         if not pages_info:
-            print("No pages found.")
+            formatter = data.get("formatter")
+            if formatter is not None:
+                formatter.emit_results([])
+            else:
+                print("No pages found.")
             return data
 
-        print_colored_table(
-            results=pages_info, column_order=["name", "path", "status", "url"]
-        )
+        formatter = data.get("formatter")
+        if formatter is not None:
+            formatter.emit_results(pages_info)
+        else:
+            print_colored_table(
+                results=pages_info, column_order=["name", "path", "status", "url"]
+            )
 
         return data
 
@@ -689,12 +719,15 @@ class PrintColoredTableStep(PipelineStep):
 
 class PrintPageUrlStep(PipelineStep):
     def execute(self, data):
+        formatter = data.get("formatter")
         workspace_key = data.get("workspace_key", "")
         argo_target_port = data.get("argo_target_port", ARGO_EXTERNAL_TARGET_PORT)
         if workspace_key:
-            typer.echo(
-                f"\n🌐 Page URL: http://localhost:{argo_target_port}/{workspace_key}/\n"
-            )
+            url = f"http://localhost:{argo_target_port}/{workspace_key}/"
+            if formatter:
+                formatter.emit_results({"url": url})
+            else:
+                typer.echo(f"\n🌐 Page URL: {url}\n")
         return data
 
 

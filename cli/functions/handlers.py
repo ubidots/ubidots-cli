@@ -16,12 +16,30 @@ def list_functions(
     formatter: OutputFormatter,
 ):
     response = httpx.get(url, headers=headers)
-    formatter.emit_results(response.json()["results"])
+    if response.status_code == httpx.codes.OK:
+        formatter.emit_results(response.json()["results"])
+    else:
+        formatter.emit_error(
+            httpx.HTTPStatusError(
+                message=response._content.decode("utf-8"),
+                request=response.request,
+                response=response,
+            )
+        )
 
 
 def retrieve_function(url: str, headers: dict, formatter: OutputFormatter):
     response = httpx.get(url, headers=headers)
-    formatter.emit_results(response.json())
+    if response.status_code == httpx.codes.OK:
+        formatter.emit_results(response.json())
+    else:
+        formatter.emit_error(
+            httpx.HTTPStatusError(
+                message=response._content.decode("utf-8"),
+                request=response.request,
+                response=response,
+            )
+        )
     return response
 
 

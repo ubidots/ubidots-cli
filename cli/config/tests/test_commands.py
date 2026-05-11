@@ -108,6 +108,7 @@ class TestConfigCommand(TestCase):
         )
 
         # Run CLI command with an invalid auth method
+        # Patching exit_with_error_message to suppress error output during testing
         result = runner.invoke(
             app,
             [
@@ -129,8 +130,6 @@ class TestConfigCommand(TestCase):
     @patch("cli.config.handlers.get_runtimes")
     def test_config_non_interactive_missing_token(self, mock_get_runtimes):
         """Test that non-interactive mode fails when --token is missing."""
-
-        mock_get_runtimes.return_value = []
         result = runner.invoke(
             app,
             [

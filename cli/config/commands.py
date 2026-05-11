@@ -100,7 +100,7 @@ def config(
         ),
     ] = AuthHeaderTypeEnum.TOKEN.name,
     verbose: bool = False,
-    format: Annotated[
+    output_format: Annotated[
         OutputFormatFieldsEnum | None,
         typer.Option(
             "--format",
@@ -116,7 +116,9 @@ def config(
     3. `ubidots config --no-interactive --profile <profile> [--token <token> --api-domain <domain> --auth-method <method>]`
         -> Crea un perfil de configuracion en modo no interactivo con valores por defecto o vacios segun aplique.
     """
-    formatter = resolve_formatter(flag=format, active_config=None, command="config")
+    formatter = resolve_formatter(
+        flag=output_format, active_config=None, command="config"
+    )
     # 1.
     if default:
         handlers.set_default_profile(profile=default, formatter=formatter)

@@ -1,6 +1,8 @@
 from builtins import list as BuiltinList
 from datetime import datetime
 from typing import Annotated
+from typing import Any
+from typing import cast
 from typing import no_type_check
 
 import typer
@@ -17,6 +19,7 @@ from cli.commons.formatters import resolve_formatter
 from cli.commons.utils import get_instance_key
 from cli.commons.utils import sanitize_function_name
 from cli.commons.validators import is_valid_json_string
+from cli.config.helpers import get_configuration
 from cli.functions import executor
 from cli.functions.enums import FunctionLanguageEnum
 from cli.functions.enums import FunctionMethodEnum
@@ -103,10 +106,15 @@ def create_function(
             help="Profile to use.",
         ),
     ] = "",
-    format: OutputFormatFieldsEnum | None = None,
+    output_format: Annotated[
+        OutputFormatFieldsEnum | None,
+        typer.Option("--format"),
+    ] = None,
     verbose: bool = False,
 ):
-    formatter = resolve_formatter(flag=format, active_config=None, command="functions dev add")
+    formatter = resolve_formatter(
+        flag=output_format, active_config=None, command="functions dev add"
+    )
     executor.create_function(
         name=name,
         language=language,
@@ -188,10 +196,15 @@ def create_function_deprecated(
             help="Profile to use.",
         ),
     ] = "",
-    format: OutputFormatFieldsEnum | None = None,
+    output_format: Annotated[
+        OutputFormatFieldsEnum | None,
+        typer.Option("--format"),
+    ] = None,
     verbose: bool = False,
 ):
-    formatter = resolve_formatter(flag=format, active_config=None, command="functions dev init")
+    formatter = resolve_formatter(
+        flag=output_format, active_config=None, command="functions dev init"
+    )
     executor.create_function(
         name=name,
         language=language,
@@ -213,10 +226,15 @@ def create_function_deprecated(
 @dev_app.command(name="start", help="Start the local functions development server.")
 @add_verbose_option()
 def start_function(
-    format: OutputFormatFieldsEnum | None = None,
+    output_format: Annotated[
+        OutputFormatFieldsEnum | None,
+        typer.Option("--format"),
+    ] = None,
     verbose: bool = False,
 ):
-    formatter = resolve_formatter(flag=format, active_config=None, command="functions dev start")
+    formatter = resolve_formatter(
+        flag=output_format, active_config=None, command="functions dev start"
+    )
     executor.start_function(
         verbose=verbose,
         formatter=formatter,
@@ -226,10 +244,15 @@ def start_function(
 @dev_app.command(name="stop", help="Stop the local functions development server.")
 @add_verbose_option()
 def stop_function(
-    format: OutputFormatFieldsEnum | None = None,
+    output_format: Annotated[
+        OutputFormatFieldsEnum | None,
+        typer.Option("--format"),
+    ] = None,
     verbose: bool = False,
 ):
-    formatter = resolve_formatter(flag=format, active_config=None, command="functions dev stop")
+    formatter = resolve_formatter(
+        flag=output_format, active_config=None, command="functions dev stop"
+    )
     executor.stop_function(
         verbose=verbose,
         formatter=formatter,
@@ -239,10 +262,15 @@ def stop_function(
 @dev_app.command(name="restart", help="Restart the local functions development server.")
 @add_verbose_option()
 def restart_function(
-    format: OutputFormatFieldsEnum | None = None,
+    output_format: Annotated[
+        OutputFormatFieldsEnum | None,
+        typer.Option("--format"),
+    ] = None,
     verbose: bool = False,
 ):
-    formatter = resolve_formatter(flag=format, active_config=None, command="functions dev restart")
+    formatter = resolve_formatter(
+        flag=output_format, active_config=None, command="functions dev restart"
+    )
     executor.restart_function(
         verbose=verbose,
         formatter=formatter,
@@ -254,10 +282,15 @@ def restart_function(
 )
 @add_verbose_option()
 def status_function(
-    format: OutputFormatFieldsEnum | None = None,
+    output_format: Annotated[
+        OutputFormatFieldsEnum | None,
+        typer.Option("--format"),
+    ] = None,
     verbose: bool = False,
 ):
-    formatter = resolve_formatter(flag=format, active_config=None, command="functions dev status")
+    formatter = resolve_formatter(
+        flag=output_format, active_config=None, command="functions dev status"
+    )
     executor.status_function(
         verbose=verbose,
         formatter=formatter,
@@ -281,7 +314,10 @@ def logs_function_local(
         bool,
         typer.Option("--follow/", "-f/", help="Follow log output."),
     ] = False,
-    format: OutputFormatFieldsEnum | None = None,
+    output_format: Annotated[
+        OutputFormatFieldsEnum | None,
+        typer.Option("--format"),
+    ] = None,
     verbose: bool = False,
 ):
     """Display logs from the local function development server.
@@ -289,9 +325,12 @@ def logs_function_local(
     This command shows logs from your local Docker/Podman container.
     For cloud function logs, use 'ubidots functions logs <function-id>'.
     """
-    formatter = resolve_formatter(flag=format, active_config=None, command="functions dev logs")
+    formatter = resolve_formatter(
+        flag=output_format, active_config=None, command="functions dev logs"
+    )
+    tail_count = int(tail) if tail != "all" else 0
     executor.logs_function(
-        tail=tail,
+        tail=tail_count,
         follow=follow,
         remote=False,
         profile="",
@@ -307,10 +346,15 @@ def clean_functions(
         bool,
         typer.Option("--yes", "-y", help="Confirm cleanup without prompt."),
     ] = False,
-    format: OutputFormatFieldsEnum | None = None,
+    output_format: Annotated[
+        OutputFormatFieldsEnum | None,
+        typer.Option("--format"),
+    ] = None,
     verbose: bool = False,
 ):
-    formatter = resolve_formatter(flag=format, active_config=None, command="functions dev clean")
+    formatter = resolve_formatter(
+        flag=output_format, active_config=None, command="functions dev clean"
+    )
     executor.clean_functions(
         confirm=confirm,
         verbose=verbose,
@@ -341,14 +385,20 @@ def run_function(
             help="Name of the profile to use for remote server communication."
         ),
     ] = "",
-    format: OutputFormatFieldsEnum | None = None,
+    output_format: Annotated[
+        OutputFormatFieldsEnum | None,
+        typer.Option("--format"),
+    ] = None,
     verbose: bool = False,
 ):
     function_key = get_instance_key(id=id, label=label)
-    formatter = resolve_formatter(flag=format, active_config=None, command="functions run")
+    active_config = get_configuration(profile=profile)
+    formatter = resolve_formatter(
+        flag=output_format, active_config=active_config, command="functions run"
+    )
     executor.run_function(
         function_key=function_key,
-        payload=payload,
+        payload=cast("dict[Any, Any]", payload),
         profile=profile,
         verbose=verbose,
         formatter=formatter,
@@ -381,11 +431,17 @@ def logs_function_remote(
             help="Profile to use for remote server communication.",
         ),
     ] = "",
-    format: OutputFormatFieldsEnum | None = None,
+    output_format: Annotated[
+        OutputFormatFieldsEnum | None,
+        typer.Option("--format"),
+    ] = None,
     verbose: bool = False,
 ):
     function_key = get_instance_key(id=id, label=label)
-    formatter = resolve_formatter(flag=format, active_config=None, command="functions logs")
+    active_config = get_configuration(profile=profile)
+    formatter = resolve_formatter(
+        flag=output_format, active_config=active_config, command="functions logs"
+    )
     executor.logs_function(
         tail=tail,
         follow=False,
@@ -421,9 +477,15 @@ def list_functions(
     sort_by: str | None = None,
     page_size: int | None = None,
     page: int | None = None,
-    format: OutputFormatFieldsEnum | None = None,
+    output_format: Annotated[
+        OutputFormatFieldsEnum | None,
+        typer.Option("--format"),
+    ] = None,
 ):
-    formatter = resolve_formatter(flag=format, active_config=None, command="functions list")
+    active_config = get_configuration(profile=profile)
+    formatter = resolve_formatter(
+        flag=output_format, active_config=active_config, command="functions list"
+    )
     executor.list_functions(
         profile=profile,
         fields=fields,
@@ -491,10 +553,16 @@ def add_function(
         str,
         typer.Option(help="environment in JSON format.", callback=is_valid_json_string),
     ] = "[]",
-    format: OutputFormatFieldsEnum | None = None,
+    output_format: Annotated[
+        OutputFormatFieldsEnum | None,
+        typer.Option("--format"),
+    ] = None,
 ):
     label = label or sanitize_function_name(name)
-    formatter = resolve_formatter(flag=format, active_config=None, command="functions add")
+    active_config = get_configuration(profile=profile)
+    formatter = resolve_formatter(
+        flag=output_format, active_config=active_config, command="functions add"
+    )
     executor.add_function(
         profile=profile,
         name=name,
@@ -531,11 +599,17 @@ def get_function(
         str,
         typer.Option(help=FIELDS_FUNCTION_HELP_TEXT),
     ] = DefaultInstanceFieldEnum.get_default_fields(),
-    format: OutputFormatFieldsEnum | None = None,
+    output_format: Annotated[
+        OutputFormatFieldsEnum | None,
+        typer.Option("--format"),
+    ] = None,
     verbose: bool = False,
 ):
     function_key = get_instance_key(id=id, label=label)
-    formatter = resolve_formatter(flag=format, active_config=None, command="functions get")
+    active_config = get_configuration(profile=profile)
+    formatter = resolve_formatter(
+        flag=output_format, active_config=active_config, command="functions get"
+    )
     executor.get_function(
         function_key=function_key,
         fields=fields,
@@ -599,10 +673,16 @@ def update_function(
             help="The HTTP methods the function will respond to.",
         ),
     ] = None,
-    format: OutputFormatFieldsEnum | None = None,
+    output_format: Annotated[
+        OutputFormatFieldsEnum | None,
+        typer.Option("--format"),
+    ] = None,
 ):
     function_key = get_instance_key(id=id, label=label)
-    formatter = resolve_formatter(flag=format, active_config=None, command="functions update")
+    active_config = get_configuration(profile=profile)
+    formatter = resolve_formatter(
+        flag=output_format, active_config=active_config, command="functions update"
+    )
     executor.update_function(
         function_key=function_key,
         profile=profile,
@@ -639,11 +719,17 @@ def delete_function(
         bool,
         typer.Option("--yes", "-y", help="Confirm file overwrite without prompt."),
     ] = False,
-    format: OutputFormatFieldsEnum | None = None,
+    output_format: Annotated[
+        OutputFormatFieldsEnum | None,
+        typer.Option("--format"),
+    ] = None,
     verbose: bool = False,
 ):
     function_key = get_instance_key(id=id, label=label)
-    formatter = resolve_formatter(flag=format, active_config=None, command="functions delete")
+    active_config = get_configuration(profile=profile)
+    formatter = resolve_formatter(
+        flag=output_format, active_config=active_config, command="functions delete"
+    )
     executor.delete_function(
         function_key=function_key,
         profile=profile,
@@ -668,10 +754,16 @@ def push_function(
         str,
         typer.Option("--profile", "-p", help="Profile to use."),
     ] = "",
-    format: OutputFormatFieldsEnum | None = None,
+    output_format: Annotated[
+        OutputFormatFieldsEnum | None,
+        typer.Option("--format"),
+    ] = None,
     verbose: bool = False,
 ):
-    formatter = resolve_formatter(flag=format, active_config=None, command="functions push")
+    active_config = get_configuration(profile=profile)
+    formatter = resolve_formatter(
+        flag=output_format, active_config=active_config, command="functions push"
+    )
     executor.push_function(
         confirm=confirm,
         profile=profile,
@@ -699,10 +791,16 @@ def pull_function(
         bool,
         typer.Option("--yes", "-y", help="Confirm file overwrite without prompt."),
     ] = False,
-    format: OutputFormatFieldsEnum | None = None,
+    output_format: Annotated[
+        OutputFormatFieldsEnum | None,
+        typer.Option("--format"),
+    ] = None,
     verbose: bool = False,
 ):
-    formatter = resolve_formatter(flag=format, active_config=None, command="functions pull")
+    active_config = get_configuration(profile=profile)
+    formatter = resolve_formatter(
+        flag=output_format, active_config=active_config, command="functions pull"
+    )
     executor.pull_function(
         remote_id=remote_id,
         profile=profile,

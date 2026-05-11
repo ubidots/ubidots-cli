@@ -55,7 +55,9 @@ def set_default_profile(profile: str, formatter: OutputFormatter):
     )
 
 
-def validate_auth_method(auth_method_key: str, formatter: OutputFormatter) -> AuthHeaderTypeEnum:
+def validate_auth_method(
+    auth_method_key: str, formatter: OutputFormatter
+) -> AuthHeaderTypeEnum:
     try:
         auth_method_value = AuthHeaderTypeEnum[auth_method_key]
     except KeyError:
@@ -91,7 +93,9 @@ def set_configuration(
     # If the profile already exists, ask the user if they want to overwrite it
     existing_profile(profile=profile, formatter=formatter)
     # Validate the authentication method key and get the corresponding value
-    auth_method_value = validate_auth_method(auth_method_key=auth_method_key, formatter=formatter)
+    auth_method_value = validate_auth_method(
+        auth_method_key=auth_method_key, formatter=formatter
+    )
     # Get the user's runtimes from the API.
     # Empty list is valid — it means the plan does not include UbiFunctions.
     runtimes = get_runtimes(access_token=access_token)

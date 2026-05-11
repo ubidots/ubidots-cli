@@ -56,6 +56,7 @@ respx = "^0.22.0"
 [tool.isort]
 force_single_line = true
 line_length = 123
+skip_glob = [".venv*"]
 
 [tool.ruff]
 target-version = "py313"

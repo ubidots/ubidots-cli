@@ -27,7 +27,16 @@ def list_variable(
         active_config=active_config,
     )
     response = httpx.get(url, headers=headers)
-    formatter.emit_results(response.json()["results"])
+    if response.status_code == httpx.codes.OK:
+        formatter.emit_results(response.json()["results"])
+    else:
+        formatter.emit_error(
+            httpx.HTTPStatusError(
+                message=response._content.decode("utf-8"),
+                request=response.request,
+                response=response,
+            )
+        )
 
 
 def retrieve_variable(
@@ -43,10 +52,21 @@ def retrieve_variable(
         active_config=active_config,
     )
     response = httpx.get(url, headers=headers)
-    formatter.emit_results(response.json())
+    if response.status_code == httpx.codes.OK:
+        formatter.emit_results(response.json())
+    else:
+        formatter.emit_error(
+            httpx.HTTPStatusError(
+                message=response._content.decode("utf-8"),
+                request=response.request,
+                response=response,
+            )
+        )
 
 
-def add_variable(active_config: ProfileConfigModel, formatter: OutputFormatter, **kwargs):
+def add_variable(
+    active_config: ProfileConfigModel, formatter: OutputFormatter, **kwargs
+):
     data = build_variables_payload(**kwargs)
     url, headers = build_endpoint(
         route="/api/v2.0/variables/",
@@ -70,7 +90,12 @@ def add_variable(active_config: ProfileConfigModel, formatter: OutputFormatter, 
         )
 
 
-def update_variable(variable_key: str, active_config: ProfileConfigModel, formatter: OutputFormatter, **kwargs):
+def update_variable(
+    variable_key: str,
+    active_config: ProfileConfigModel,
+    formatter: OutputFormatter,
+    **kwargs,
+):
     data = build_variables_payload(**kwargs)
     url, headers = build_endpoint(
         route="/api/v2.0/variables/{variable_key}/",
@@ -93,11 +118,24 @@ def update_variable(variable_key: str, active_config: ProfileConfigModel, format
         )
 
 
-def delete_variable(variable_key: str, active_config: ProfileConfigModel, formatter: OutputFormatter):
+def delete_variable(
+    variable_key: str, active_config: ProfileConfigModel, formatter: OutputFormatter
+):
     url, headers = build_endpoint(
         route="/api/v2.0/variables/{variable_key}/",
         variable_key=variable_key,
         active_config=active_config,
     )
-    httpx.delete(url, headers=headers)
-    formatter.emit_success(f"The variable '{variable_key}' was removed successfully.")
+    response = httpx.delete(url, headers=headers)
+    if response.status_code == httpx.codes.NO_CONTENT:
+        formatter.emit_success(
+            f"The variable '{variable_key}' was removed successfully."
+        )
+    else:
+        formatter.emit_error(
+            httpx.HTTPStatusError(
+                message=response._content.decode("utf-8"),
+                request=response.request,
+                response=response,
+            )
+        )

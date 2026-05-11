@@ -39,7 +39,9 @@ def create_local_page(
         pipelines.CreateWorkspaceStep(),
     ]
     pipeline = Pipeline(
-        steps, success_message=f"Page '{name}' created at {project_path}.", formatter=formatter
+        steps,
+        success_message=f"Page '{name}' created at {project_path}.",
+        formatter=formatter,
     )
     pipeline.run(
         {
@@ -80,7 +82,9 @@ def start_local_dev_server(verbose: bool, formatter: OutputFormatter):
         pipelines.StoreHotReloadPortStep(),
         pipelines.PrintPageUrlStep(),
     ]
-    pipeline = Pipeline(steps, success_message="Page started successfully.", formatter=formatter)
+    pipeline = Pipeline(
+        steps, success_message="Page started successfully.", formatter=formatter
+    )
     pipeline.run(
         {
             "project_path": Path.cwd(),
@@ -109,7 +113,9 @@ def stop_local_dev_server(verbose: bool, formatter: OutputFormatter):
         pipelines.StopCopyWatcherStep(),
         pipelines.StopHotReloadSubprocessStep(),
     ]
-    pipeline = Pipeline(steps, success_message="Page stopped successfully.", formatter=formatter)
+    pipeline = Pipeline(
+        steps, success_message="Page stopped successfully.", formatter=formatter
+    )
     pipeline.run(
         {
             "project_path": Path.cwd(),
@@ -143,7 +149,7 @@ def show_local_dev_server_status(
     )
 
 
-def clean_orphaned_pages(confirm: bool, verbose: bool):
+def clean_orphaned_pages(confirm: bool, verbose: bool, formatter: OutputFormatter):
     steps = [
         pipelines.GetClientStep(),
         pipelines.GetContainerManagerStep(),
@@ -153,7 +159,7 @@ def clean_orphaned_pages(confirm: bool, verbose: bool):
         pipelines.EnsureArgoRunningStep(),
         pipelines.CleanOrphanedPagesStep(),
     ]
-    pipeline = Pipeline(steps, success_message="")
+    pipeline = Pipeline(steps, success_message="", formatter=formatter)
     pipeline.run(
         {
             "confirm": confirm,
@@ -198,9 +204,7 @@ def list_pages_from_cloud_platform(
         pipelines.GetActiveConfigStep(),
         pipelines.ListPagesFromRemoteServerStep(),
     ]
-    pipeline = Pipeline(
-        steps, success_message="", formatter=formatter
-    )
+    pipeline = Pipeline(steps, success_message="", formatter=formatter)
     pipeline.run(
         {
             "profile": profile,
@@ -273,7 +277,11 @@ def delete_page_from_cloud_platform(
         pipelines.ConfirmOverwriteStep(),
         pipelines.DeletePageStep(),
     ]
-    pipeline = Pipeline(steps, success_message=f"Page {page_key} deleted successfully.", formatter=formatter)
+    pipeline = Pipeline(
+        steps,
+        success_message=f"Page {page_key} deleted successfully.",
+        formatter=formatter,
+    )
     pipeline.run(
         {
             "overwrite": {
@@ -307,7 +315,9 @@ def push_page_to_cloud_platform(
         pipelines.UploadPageCodeStep(),
         pipelines.CheckPageResponseStep("response"),
     ]
-    pipeline = Pipeline(steps, success_message="Page uploaded successfully.", formatter=formatter)
+    pipeline = Pipeline(
+        steps, success_message="Page uploaded successfully.", formatter=formatter
+    )
     pipeline.run(
         {
             "project_path": Path.cwd(),
@@ -324,7 +334,7 @@ def pull_page_from_cloud_platform(
     profile: str,
     confirm: bool = False,
     verbose: bool = False,
-    formatter: OutputFormatter = None,
+    formatter: OutputFormatter | None = None,
 ):
     steps = [
         pipelines.GetActiveConfigStep(),
@@ -367,7 +377,11 @@ def update_page_from_cloud_platform(
         pipelines.GetActiveConfigStep(),
         pipelines.UpdatePageStep(),
     ]
-    pipeline = Pipeline(steps, success_message=f"Page {page_key} updated successfully.", formatter=formatter)
+    pipeline = Pipeline(
+        steps,
+        success_message=f"Page {page_key} updated successfully.",
+        formatter=formatter,
+    )
     pipeline.run(
         {
             "profile": profile,
@@ -407,7 +421,9 @@ def restart_local_dev_server(verbose: bool, formatter: OutputFormatter):
         pipelines.StoreHotReloadPortStep(),
         pipelines.PrintPageUrlStep(),
     ]
-    pipeline = Pipeline(steps, success_message="Page restarted successfully.", formatter=formatter)
+    pipeline = Pipeline(
+        steps, success_message="Page restarted successfully.", formatter=formatter
+    )
     pipeline.run(
         {
             "project_path": Path.cwd(),
@@ -417,7 +433,9 @@ def restart_local_dev_server(verbose: bool, formatter: OutputFormatter):
     )
 
 
-def logs_local_dev_server(tail: str, follow: bool, verbose: bool, formatter: OutputFormatter):
+def logs_local_dev_server(
+    tail: str, follow: bool, verbose: bool, formatter: OutputFormatter
+):
     steps = [
         pipelines.ValidatePageDirectoryStep(),
         pipelines.ReadPageMetadataStep(),

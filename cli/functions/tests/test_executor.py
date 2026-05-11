@@ -276,7 +276,7 @@ class TestStopFunction(TestCase):
                 MockStopFunctionStep.return_value,
                 MockPrintkeyStep.return_value,
             ],
-            success_message="Function stoped successfully.",
+            success_message="Function stopped successfully.",
             formatter=ANY,
         )
 
@@ -566,7 +566,9 @@ class TestPushFunction(TestCase):
         profile = "test_profile"
 
         # Action
-        push_function(confirm=confirm, profile=profile, verbose=verbose, formatter=MagicMock())
+        push_function(
+            confirm=confirm, profile=profile, verbose=verbose, formatter=MagicMock()
+        )
 
         # Expected
         MockPipeline.assert_called_once_with(
@@ -661,7 +663,11 @@ class TestPullFunction(TestCase):
 
         # Action
         pull_function(
-            remote_id=remote_id, profile=profile, confirm=confirm, verbose=verbose, formatter=MagicMock()
+            remote_id=remote_id,
+            profile=profile,
+            confirm=confirm,
+            verbose=verbose,
+            formatter=MagicMock(),
         )
 
         # Expected

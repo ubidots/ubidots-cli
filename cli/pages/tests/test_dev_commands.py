@@ -32,7 +32,11 @@ class TestDevAddCommand(unittest.TestCase):
 
         self.assertEqual(result.exit_code, 0)
         mock_create_page.assert_called_once_with(
-            name="test_page", verbose=False, profile="", type=PageTypeEnum.DASHBOARD, formatter=ANY
+            name="test_page",
+            verbose=False,
+            profile="",
+            type=PageTypeEnum.DASHBOARD,
+            formatter=ANY,
         )
 
     @patch("cli.pages.commands.executor.create_local_page")
@@ -41,7 +45,11 @@ class TestDevAddCommand(unittest.TestCase):
 
         self.assertEqual(result.exit_code, 0)
         mock_create_page.assert_called_once_with(
-            name="my_page", verbose=False, profile="prod", type=PageTypeEnum.DASHBOARD, formatter=ANY
+            name="my_page",
+            verbose=False,
+            profile="prod",
+            type=PageTypeEnum.DASHBOARD,
+            formatter=ANY,
         )
 
     @patch("cli.pages.commands.executor.create_local_page")
@@ -50,7 +58,11 @@ class TestDevAddCommand(unittest.TestCase):
 
         self.assertEqual(result.exit_code, 0)
         mock_create_page.assert_called_once_with(
-            name="my_page", verbose=False, profile="", type=PageTypeEnum.DASHBOARD, formatter=ANY
+            name="my_page",
+            verbose=False,
+            profile="",
+            type=PageTypeEnum.DASHBOARD,
+            formatter=ANY,
         )
 
     @patch("cli.pages.commands.executor.create_local_page")
@@ -59,7 +71,11 @@ class TestDevAddCommand(unittest.TestCase):
 
         self.assertEqual(result.exit_code, 0)
         mock_create_page.assert_called_once_with(
-            name="my_page", verbose=True, profile="", type=PageTypeEnum.DASHBOARD, formatter=ANY
+            name="my_page",
+            verbose=True,
+            profile="",
+            type=PageTypeEnum.DASHBOARD,
+            formatter=ANY,
         )
 
     @patch("cli.pages.commands.executor.create_local_page")
@@ -252,28 +268,36 @@ class TestLogsCommand(unittest.TestCase):
         result = self.runner.invoke(app, ["dev", "logs"])
 
         self.assertEqual(result.exit_code, 0)
-        mock_logs.assert_called_once_with(tail="all", follow=False, verbose=False, formatter=ANY)
+        mock_logs.assert_called_once_with(
+            tail="all", follow=False, verbose=False, formatter=ANY
+        )
 
     @patch("cli.pages.commands.executor.logs_local_dev_server")
     def test_logs_command_with_tail(self, mock_logs):
         result = self.runner.invoke(app, ["dev", "logs", "--tail", "50"])
 
         self.assertEqual(result.exit_code, 0)
-        mock_logs.assert_called_once_with(tail="50", follow=False, verbose=False, formatter=ANY)
+        mock_logs.assert_called_once_with(
+            tail="50", follow=False, verbose=False, formatter=ANY
+        )
 
     @patch("cli.pages.commands.executor.logs_local_dev_server")
     def test_logs_command_with_follow(self, mock_logs):
         result = self.runner.invoke(app, ["dev", "logs", "--follow"])
 
         self.assertEqual(result.exit_code, 0)
-        mock_logs.assert_called_once_with(tail="all", follow=True, verbose=False, formatter=ANY)
+        mock_logs.assert_called_once_with(
+            tail="all", follow=True, verbose=False, formatter=ANY
+        )
 
     @patch("cli.pages.commands.executor.logs_local_dev_server")
     def test_logs_command_with_verbose(self, mock_logs):
         result = self.runner.invoke(app, ["dev", "logs", "--verbose"])
 
         self.assertEqual(result.exit_code, 0)
-        mock_logs.assert_called_once_with(tail="all", follow=False, verbose=True, formatter=ANY)
+        mock_logs.assert_called_once_with(
+            tail="all", follow=False, verbose=True, formatter=ANY
+        )
 
     @patch("cli.pages.commands.executor.logs_local_dev_server")
     def test_logs_command_all_options(self, mock_logs):
@@ -282,7 +306,9 @@ class TestLogsCommand(unittest.TestCase):
         )
 
         self.assertEqual(result.exit_code, 0)
-        mock_logs.assert_called_once_with(tail="100", follow=True, verbose=True, formatter=ANY)
+        mock_logs.assert_called_once_with(
+            tail="100", follow=True, verbose=True, formatter=ANY
+        )
 
 
 class TestLogsCommandHelp(unittest.TestCase):

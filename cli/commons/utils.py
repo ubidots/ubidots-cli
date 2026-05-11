@@ -78,7 +78,9 @@ def exit_with_error_message(
     raise typer.Exit(1) from exception
 
 
-def exit_with_success_message(message: str = "Operation completed successfully."):
+def exit_with_success_message(
+    message: str = "Operation completed successfully.",
+) -> NoReturn:
     typer.echo(
         typer.style(
             text=f"\n> [DONE]: {message}\n",

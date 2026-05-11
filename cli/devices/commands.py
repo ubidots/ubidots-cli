@@ -38,12 +38,19 @@ def delete(
             help="Name of the profile to use for remote server communication."
         ),
     ] = "",
-    format: OutputFormatFieldsEnum | None = None,
+    output_format: Annotated[
+        OutputFormatFieldsEnum | None,
+        typer.Option("--format"),
+    ] = None,
 ):
     active_config = get_configuration(profile=profile)
     device_key = get_instance_key(id=id, label=label)
-    formatter = resolve_formatter(flag=format, active_config=active_config, command="devices delete")
-    handlers.delete_device(device_key=device_key, active_config=active_config, formatter=formatter)
+    formatter = resolve_formatter(
+        flag=output_format, active_config=active_config, command="devices delete"
+    )
+    handlers.delete_device(
+        device_key=device_key, active_config=active_config, formatter=formatter
+    )
 
 
 @app.command(short_help="Retrieves a specific device using its id or label.")
@@ -62,13 +69,21 @@ def get(
         str,
         typer.Option(help=FIELDS_DEVICE_HELP_TEXT),
     ] = DefaultInstanceFieldEnum.get_default_fields(),
-    format: OutputFormatFieldsEnum | None = None,
+    output_format: Annotated[
+        OutputFormatFieldsEnum | None,
+        typer.Option("--format"),
+    ] = None,
 ):
     active_config = get_configuration(profile=profile)
     device_key = get_instance_key(id=id, label=label)
-    formatter = resolve_formatter(flag=format, active_config=active_config, command="devices get")
+    formatter = resolve_formatter(
+        flag=output_format, active_config=active_config, command="devices get"
+    )
     handlers.retrieve_device(
-        device_key=device_key, fields=fields, formatter=formatter, active_config=active_config
+        device_key=device_key,
+        fields=fields,
+        formatter=formatter,
+        active_config=active_config,
     )
 
 
@@ -86,7 +101,10 @@ def list(
     sort_by: str | None = None,
     page_size: int | None = None,
     page: int | None = None,
-    format: OutputFormatFieldsEnum | None = None,
+    output_format: Annotated[
+        OutputFormatFieldsEnum | None,
+        typer.Option("--format"),
+    ] = None,
     profile: Annotated[
         str,
         typer.Option(
@@ -95,7 +113,9 @@ def list(
     ] = "",
 ):
     active_config = get_configuration(profile=profile)
-    formatter = resolve_formatter(flag=format, active_config=active_config, command="devices list")
+    formatter = resolve_formatter(
+        flag=output_format, active_config=active_config, command="devices list"
+    )
     handlers.list_devices(
         fields=fields,
         filter=filter,
@@ -138,10 +158,15 @@ def add(
             help="Name of the profile to use for remote server communication."
         ),
     ] = "",
-    format: OutputFormatFieldsEnum | None = None,
+    output_format: Annotated[
+        OutputFormatFieldsEnum | None,
+        typer.Option("--format"),
+    ] = None,
 ):
     active_config = get_configuration(profile=profile)
-    formatter = resolve_formatter(flag=format, active_config=active_config, command="devices add")
+    formatter = resolve_formatter(
+        flag=output_format, active_config=active_config, command="devices add"
+    )
     handlers.add_device(
         active_config=active_config,
         formatter=formatter,
@@ -186,11 +211,16 @@ def update(
             help="Name of the profile to use for remote server communication."
         ),
     ] = "",
-    format: OutputFormatFieldsEnum | None = None,
+    output_format: Annotated[
+        OutputFormatFieldsEnum | None,
+        typer.Option("--format"),
+    ] = None,
 ):
     active_config = get_configuration(profile=profile)
     device_key = get_instance_key(id=id, label=label)
-    formatter = resolve_formatter(flag=format, active_config=active_config, command="devices update")
+    formatter = resolve_formatter(
+        flag=output_format, active_config=active_config, command="devices update"
+    )
     handlers.update_device(
         active_config=active_config,
         device_key=device_key,

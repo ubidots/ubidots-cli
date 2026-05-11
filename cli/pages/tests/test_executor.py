@@ -2,7 +2,6 @@
 
 import unittest
 from pathlib import Path
-from unittest.mock import ANY
 from unittest.mock import MagicMock
 from unittest.mock import patch
 
@@ -249,7 +248,9 @@ class TestExecutorIntegration(unittest.TestCase):
         mock_pipeline_instance = MagicMock()
         mock_pipeline.return_value = mock_pipeline_instance
 
-        create_local_page("test", False, "default", PageTypeEnum.DASHBOARD, formatter=MagicMock())
+        create_local_page(
+            "test", False, "default", PageTypeEnum.DASHBOARD, formatter=MagicMock()
+        )
 
         # Verify all expected pipeline steps were instantiated
         for step_class in mock_step_classes:
@@ -338,7 +339,9 @@ class TestLogsPage(unittest.TestCase):
         """Test that logs_local_dev_server builds and runs a pipeline."""
         mock_pipeline = MagicMock()
         mock_pipeline_cls.return_value = mock_pipeline
-        logs_local_dev_server(tail="all", follow=False, verbose=False, formatter=MagicMock())
+        logs_local_dev_server(
+            tail="all", follow=False, verbose=False, formatter=MagicMock()
+        )
         mock_pipeline.run.assert_called_once()
         run_data = mock_pipeline.run.call_args[0][0]
         assert run_data["tail"] == "all"
@@ -349,7 +352,9 @@ class TestLogsPage(unittest.TestCase):
         """Test that tail and follow are forwarded to the pipeline data."""
         mock_pipeline = MagicMock()
         mock_pipeline_cls.return_value = mock_pipeline
-        logs_local_dev_server(tail="50", follow=True, verbose=True, formatter=MagicMock())
+        logs_local_dev_server(
+            tail="50", follow=True, verbose=True, formatter=MagicMock()
+        )
         run_data = mock_pipeline.run.call_args[0][0]
         assert run_data["tail"] == "50"
         assert run_data["follow"] is True
@@ -361,7 +366,9 @@ class TestLogsPage(unittest.TestCase):
         mock_pipeline_instance = MagicMock()
         mock_pipeline.return_value = mock_pipeline_instance
 
-        logs_local_dev_server(tail="all", follow=False, verbose=False, formatter=MagicMock())
+        logs_local_dev_server(
+            tail="all", follow=False, verbose=False, formatter=MagicMock()
+        )
 
         args, _kwargs = mock_pipeline.call_args
         steps = args[0]
