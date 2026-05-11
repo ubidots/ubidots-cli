@@ -25,8 +25,9 @@ Devices → Ubidots (data + events + APIs) → UbiFunctions (custom logic) → P
 ## Requirements
 
 - Python 3.9+
-- Docker (for local development only — not needed for cloud-only operations)
 - An Ubidots account with Industrial license or above
+
+> *Docker is only needed if you use `ubidots functions dev` or `ubidots pages dev` (the local development environments — an optional, advanced workflow). Cloud-only workflows do not need Docker.*
 
 ## Installation
 
@@ -63,43 +64,34 @@ UbiFunctions are serverless Python or Node.js functions triggered by HTTP, MQTT,
 ### The development loop
 
 ```text
-dev add → dev start → (write code) → dev stop → push → run → logs
+write code → push → run → logs → (iterate)
 ```
 
-#### 1. Create a local function project
+#### 1. Create a function and write your code
+
+Create a remote function and pull it down to edit locally:
 
 ```bash
-ubidots functions dev add --name my-function --language python --runtime python3.11:lite
+ubidots functions add my-function --runtime python3.11:lite
+ubidots functions pull --remote-id <function-id>
 cd my-function
+# Write your logic in main.py (or main.js)
 ```
 
-This creates a project folder with starter code, a `manifest.yaml`, and a Docker-based local runtime.
-
-#### 2. Start the local server
+Or, if the function already exists in Ubidots:
 
 ```bash
-ubidots functions dev start
+ubidots functions pull --remote-id <function-id>
+cd <function-name>
 ```
 
-Prints a local URL (e.g. `http://localhost:32768`). Send HTTP requests to it while you develop.
-
-```bash
-curl -X POST http://localhost:32768 -H "Content-Type: application/json" -d '{"value": 42}'
-```
-
-Watch logs in real time:
-
-```bash
-ubidots functions dev logs --follow
-```
-
-#### 3. Push to production
+#### 2. Push to Ubidots
 
 ```bash
 ubidots functions push
 ```
 
-#### 4. Trigger and inspect logs
+#### 3. Trigger and inspect logs
 
 ```bash
 # Trigger with a payload and immediately print execution logs
@@ -128,13 +120,27 @@ ubidots functions update --label my-function --runtime python3.11:base --timeout
 ubidots functions delete --label my-function --yes
 ```
 
-### Pull an existing remote function to edit locally
+### Optional: local runtime with Docker
+
+For most workflows, pushing to Ubidots and using `functions run --logs` is the fastest feedback loop. The CLI also ships a Docker-based local runtime for the cases where you need to run against the **exact production runtime libraries** before deploying — for example, when the function depends on a specific library version and you cannot use a separate staging function in Ubidots.
+
+This is an advanced workflow; most users will not need it.
 
 ```bash
-# Run from the parent directory where you want the function folder created
-ubidots functions pull --remote-id <function-id>
-cd <function-name>
+# Scaffold a local project with a Docker-based runtime
+ubidots functions dev add --name my-function --language python --runtime python3.11:lite
+cd my-function
+
+# Start the local server (requires Docker running)
 ubidots functions dev start
+# Prints a local URL — send HTTP requests while you develop
+curl -X POST http://localhost:32768 -H "Content-Type: application/json" -d '{"value": 42}'
+
+# Tail local logs
+ubidots functions dev logs --follow
+
+# Stop when done
+ubidots functions dev stop
 ```
 
 ---
@@ -146,33 +152,32 @@ Pages are custom dashboard views embedded in the Ubidots platform. Each page is 
 ### The development loop
 
 ```text
-dev add → dev start → (write HTML/JS/CSS) → dev stop → push
+write HTML/JS/CSS → push → preview in Ubidots
 ```
 
-#### 1. Create a local page project
+#### 1. Create a page and write your code
 
 ```bash
-ubidots pages dev add --name "Fleet Monitor" --type dashboard
+ubidots pages add "Fleet Monitor"
+ubidots pages pull --remote-id <page-id>
 cd fleet-monitor
+# Edit body.html, script.js, style.css using the Ubidots JS SDK
 ```
 
-Creates a project with `body.html`, `script.js`, `style.css`, `static/`, and a manifest.
-
-#### 2. Start the local preview server
+Or pull an existing remote page:
 
 ```bash
-ubidots pages dev start
+ubidots pages pull --remote-id <page-id>
+cd <page-name>
 ```
 
-Prints a local URL. Open it in a browser. Edits to your files are reflected immediately — no container restart needed.
-
-#### 3. Push to Ubidots
+#### 2. Push to Ubidots
 
 ```bash
 ubidots pages push
 ```
 
-The page is now live inside the Ubidots platform.
+The page is now live inside the Ubidots platform — open it from the Ubidots UI to preview.
 
 ### Managing pages in the cloud
 
@@ -190,13 +195,19 @@ ubidots pages update --label fleet-monitor --new-name "Fleet Monitor v2"
 ubidots pages delete --label fleet-monitor --yes
 ```
 
-### Pull an existing remote page to edit locally
+### Optional: local preview server
+
+For rapid iteration, you can run a local preview server with hot reload (requires Docker running):
 
 ```bash
-ubidots pages pull --remote-id <page-id>
-cd <page-name>
+ubidots pages dev add --name "Fleet Monitor" --type dashboard
+cd fleet-monitor
 ubidots pages dev start
+# Preview at http://localhost:8080/fleet-monitor — edits are reflected immediately
+ubidots pages dev stop
 ```
+
+This is convenient but not required — pushing and previewing inside Ubidots is always an option.
 
 ---
 
@@ -231,18 +242,14 @@ Below is the sequence an AI assistant would follow to build a complete IoT appli
 ubidots config --no-interactive --profile prod --token BBFF-your-token
 ```
 
-### Step 2 — Scaffold the backend function
+### Step 2 — Build the backend function
 
 ```bash
-ubidots functions dev add --name data-processor --language python --runtime python3.11:lite
+# Create the function in Ubidots, then pull it down to edit
+ubidots functions add data-processor --runtime python3.11:lite --profile prod
+ubidots functions pull --remote-id <id> --profile prod
 cd data-processor
 # Write your logic in main.py
-ubidots functions dev start
-# Test locally
-curl -X POST http://localhost:<port> -d '{"deviceLabel": "sensor-1", "value": 22.5}'
-ubidots functions dev logs --follow
-# Push when ready
-ubidots functions dev stop
 ubidots functions push --yes --profile prod
 ```
 
@@ -256,27 +263,29 @@ ubidots functions run --label data-processor --payload '{"deviceLabel": "sensor-
 
 ```bash
 cd ..
-ubidots pages dev add --name "Sensor Dashboard" --type dashboard
+ubidots pages add "Sensor Dashboard" --profile prod
+ubidots pages pull --remote-id <id> --profile prod
 cd sensor-dashboard
 # Edit body.html, script.js, style.css using the Ubidots JS SDK
-ubidots pages dev start
-# Preview at the printed URL
 ubidots pages push --yes --profile prod
+# Preview inside Ubidots
 ```
 
 ### Step 5 — Iterate
 
 ```bash
 # Check what's running in production
-ubidots functions logs --label data-processor --tail 5 --profile prod  # target prod explicitly
+ubidots functions logs --label data-processor --tail 5 --profile prod
 
-# Pull a function down to fix a bug
+# Pull a function down to fix a bug, edit, push
 ubidots functions pull --remote-id <id> --profile prod
 cd data-processor
-ubidots functions dev start
-# Fix, test, push
+# Fix the code
 ubidots functions push --yes --profile prod
+ubidots functions run --label data-processor --payload '{...}' --logs --profile prod
 ```
+
+> *Need to test against the exact production runtime before pushing? See the [optional Docker local runtime](#optional-local-runtime-with-docker) under UbiFunctions.*
 
 ---
 
