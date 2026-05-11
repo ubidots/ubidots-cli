@@ -7,6 +7,10 @@ readme = "README.md"
 packages = [
     { include = "cli"}
 ]
+include = [
+    { path = "cli/apps/schemas/*.dtd", format = ["sdist", "wheel"] },
+    { path = "cli/apps/schemas/*.xml", format = ["sdist", "wheel"] }
+]
 
 [tool.poetry.scripts]
 ubidots = "cli.main:app"
@@ -30,6 +34,7 @@ tomli-w = "^1.2.0"
 jinja2 = "^3.1.6"
 psutil = "^5.9.0"
 watchdog = "^6.0.0"
+lxml = "^5.0"
 
 [build-system]
 requires = ["poetry-core"]
