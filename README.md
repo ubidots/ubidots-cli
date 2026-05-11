@@ -133,8 +133,8 @@ cd my-function
 
 # Start the local server (requires Docker running)
 ubidots functions dev start
-# Prints a local URL — send HTTP requests while you develop
-curl -X POST http://localhost:32768 -H "Content-Type: application/json" -d '{"value": 42}'
+# Prints a local URL with a dynamically assigned port — use the printed URL
+curl -X POST http://localhost:<PORT> -H "Content-Type: application/json" -d '{"value": 42}'
 
 # Tail local logs
 ubidots functions dev logs --follow
@@ -201,9 +201,9 @@ For rapid iteration, you can run a local preview server with hot reload (require
 
 ```bash
 ubidots pages dev add --name "Fleet Monitor" --type dashboard
-cd fleet-monitor
+cd "Fleet Monitor"
 ubidots pages dev start
-# Preview at http://localhost:8080/fleet-monitor — edits are reflected immediately
+# Prints the local URL — edits to your files are reflected immediately
 ubidots pages dev stop
 ```
 
