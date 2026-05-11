@@ -6,7 +6,6 @@ from unittest.mock import patch
 from typer.testing import CliRunner
 
 from cli.commons.enums import DefaultInstanceFieldEnum
-from cli.settings import settings
 from cli.variables.commands import app as variable_app
 from cli.variables.enums import VariableTypeEnum
 
@@ -25,6 +24,7 @@ class TestDeleteCommand(TestCase):
         mock_delete_variable.assert_called_once_with(
             active_config=ANY,
             variable_key="variable_id",
+            formatter=ANY,
         )
 
 
@@ -41,7 +41,7 @@ class TestGetCommand(TestCase):
             active_config=ANY,
             variable_key="variable_id",
             fields=DefaultInstanceFieldEnum.get_default_fields(),
-            format=settings.CONFIG.DEFAULT_OUTPUT_FORMAT,
+            formatter=ANY,
         )
 
     def test_get_variable_with_custom_fields(
@@ -58,7 +58,7 @@ class TestGetCommand(TestCase):
             active_config=ANY,
             variable_key="variable_id",
             fields=custom_fields,
-            format=settings.CONFIG.DEFAULT_OUTPUT_FORMAT,
+            formatter=ANY,
         )
 
 
@@ -75,7 +75,7 @@ class TestListCommand(TestCase):
             sort_by=None,
             page_size=None,
             page=None,
-            format=settings.CONFIG.DEFAULT_OUTPUT_FORMAT,
+            formatter=ANY,
         )
 
     def test_list_variables_with_custom_fields(self, mock_list_variables, _):
@@ -89,7 +89,7 @@ class TestListCommand(TestCase):
             sort_by=None,
             page_size=None,
             page=None,
-            format=settings.CONFIG.DEFAULT_OUTPUT_FORMAT,
+            formatter=ANY,
         )
 
 
@@ -101,6 +101,7 @@ class TestAddCommand(TestCase):
         self.assertEqual(result.exit_code, 0)
         mock_add_variable.assert_called_once_with(
             active_config=ANY,
+            formatter=ANY,
             label="variableLabel",
             name="",
             description="",
@@ -143,6 +144,7 @@ class TestAddCommand(TestCase):
         self.assertEqual(result.exit_code, 0)
         mock_add_variable.assert_called_once_with(
             active_config=ANY,
+            formatter=ANY,
             label="variableLabel",
             name="VariableName",
             description="Test variable description",
@@ -171,6 +173,7 @@ class TestUpdateCommand(TestCase):
         mock_update_variable.assert_called_once_with(
             active_config=ANY,
             variable_key="variable_key",
+            formatter=ANY,
             label="",
             name="",
             description="",
@@ -220,6 +223,7 @@ class TestUpdateCommand(TestCase):
         mock_update_variable.assert_called_once_with(
             active_config=ANY,
             variable_key="variable_key",
+            formatter=ANY,
             label="newVariableLabel",
             name="UpdatedVariableName",
             description="Updated description",

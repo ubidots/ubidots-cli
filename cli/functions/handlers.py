@@ -1,10 +1,6 @@
-import json
-
 import httpx
-import typer
 
-from cli.commons.enums import OutputFormatFieldsEnum
-from cli.commons.styles import print_colored_table
+from cli.commons.formatters import OutputFormatter
 from cli.commons.utils import build_endpoint
 from cli.config.models import ProfileConfigModel
 from cli.functions import FUNCTION_API_ROUTES
@@ -17,21 +13,33 @@ from cli.settings import settings
 def list_functions(
     url: str,
     headers: dict,
-    format: OutputFormatFieldsEnum,
+    formatter: OutputFormatter,
 ):
     response = httpx.get(url, headers=headers)
-    if format == OutputFormatFieldsEnum.JSON:
-        typer.echo(json.dumps(response.json()["results"]))
+    if response.status_code == httpx.codes.OK:
+        formatter.emit_results(response.json()["results"])
     else:
-        print_colored_table(results=response.json()["results"])
+        formatter.emit_error(
+            httpx.HTTPStatusError(
+                message=response._content.decode("utf-8"),
+                request=response.request,
+                response=response,
+            )
+        )
 
 
-def retrieve_function(url: str, headers: dict, format: OutputFormatFieldsEnum):
+def retrieve_function(url: str, headers: dict, formatter: OutputFormatter):
     response = httpx.get(url, headers=headers)
-    if format == OutputFormatFieldsEnum.JSON:
-        typer.echo(json.dumps(response.json()))
+    if response.status_code == httpx.codes.OK:
+        formatter.emit_results(response.json())
     else:
-        print_colored_table(results=[response.json()])
+        formatter.emit_error(
+            httpx.HTTPStatusError(
+                message=response._content.decode("utf-8"),
+                request=response.request,
+                response=response,
+            )
+        )
     return response
 
 

@@ -1,4 +1,5 @@
 from unittest import TestCase
+from unittest.mock import ANY
 from unittest.mock import patch
 
 import typer
@@ -21,7 +22,7 @@ class TestConfigCommand(TestCase):
         """Test setting a profile as default."""
         result = runner.invoke(app, ["--default", "test_profile"])
         self.assertEqual(result.exit_code, 0)
-        mock_set_default.assert_called_once_with(profile="test_profile")
+        mock_set_default.assert_called_once_with(profile="test_profile", formatter=ANY)
 
     @patch("cli.config.handlers.set_configuration")
     @patch("cli.config.handlers.get_access_token_configuration")
@@ -44,6 +45,7 @@ class TestConfigCommand(TestCase):
             api_domain="https://example.com",
             auth_method_key="TOKEN",
             access_token="original_token_value",
+            formatter=ANY,
         )
 
     @patch("cli.config.handlers.set_configuration")
@@ -69,6 +71,7 @@ class TestConfigCommand(TestCase):
             api_domain="https://example.com",
             auth_method_key="TOKEN",
             access_token="my_access_token",
+            formatter=ANY,
         )
 
     @patch("cli.config.handlers.validate_profile")  # Mock this instead
@@ -105,6 +108,7 @@ class TestConfigCommand(TestCase):
         )
 
         # Run CLI command with an invalid auth method
+        # Patching exit_with_error_message to suppress error output during testing
         result = runner.invoke(
             app,
             [
@@ -126,8 +130,6 @@ class TestConfigCommand(TestCase):
     @patch("cli.config.handlers.get_runtimes")
     def test_config_non_interactive_missing_token(self, mock_get_runtimes):
         """Test that non-interactive mode fails when --token is missing."""
-
-        mock_get_runtimes.return_value = []
         result = runner.invoke(
             app,
             [

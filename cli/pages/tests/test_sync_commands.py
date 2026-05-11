@@ -1,4 +1,6 @@
 import unittest
+from unittest.mock import ANY
+from unittest.mock import MagicMock
 from unittest.mock import patch
 
 from typer.testing import CliRunner
@@ -6,13 +8,14 @@ from typer.testing import CliRunner
 from cli.pages.commands import app
 
 
+@patch("cli.pages.commands.get_configuration", return_value=MagicMock())
 @patch("cli.pages.commands.executor.push_page_to_cloud_platform")
 class TestPushCommand(unittest.TestCase):
 
     def setUp(self):
         self.runner = CliRunner()
 
-    def test_push_default(self, mock_push_page):
+    def test_push_default(self, mock_push_page, mock_get_configuration):
         result = self.runner.invoke(app, ["push"])
 
         self.assertEqual(result.exit_code, 0)
@@ -20,9 +23,10 @@ class TestPushCommand(unittest.TestCase):
             confirm=False,
             profile="",
             verbose=False,
+            formatter=ANY,
         )
 
-    def test_push_with_yes_flag(self, mock_push_page):
+    def test_push_with_yes_flag(self, mock_push_page, mock_get_configuration):
         result = self.runner.invoke(app, ["push", "--yes"])
 
         self.assertEqual(result.exit_code, 0)
@@ -30,9 +34,10 @@ class TestPushCommand(unittest.TestCase):
             confirm=True,
             profile="",
             verbose=False,
+            formatter=ANY,
         )
 
-    def test_push_with_profile(self, mock_push_page):
+    def test_push_with_profile(self, mock_push_page, mock_get_configuration):
         result = self.runner.invoke(app, ["push", "--profile", "production"])
 
         self.assertEqual(result.exit_code, 0)
@@ -40,16 +45,18 @@ class TestPushCommand(unittest.TestCase):
             confirm=False,
             profile="production",
             verbose=False,
+            formatter=ANY,
         )
 
 
+@patch("cli.pages.commands.get_configuration", return_value=MagicMock())
 @patch("cli.pages.commands.executor.pull_page_from_cloud_platform")
 class TestPullCommand(unittest.TestCase):
 
     def setUp(self):
         self.runner = CliRunner()
 
-    def test_pull_with_remote_id(self, mock_pull_page_cloud):
+    def test_pull_with_remote_id(self, mock_pull_page_cloud, mock_get_configuration):
         result = self.runner.invoke(
             app, ["pull", "--remote-id", "abc123def456789012345678"]
         )
@@ -60,9 +67,10 @@ class TestPullCommand(unittest.TestCase):
             profile="",
             verbose=False,
             confirm=False,
+            formatter=ANY,
         )
 
-    def test_pull_without_remote_id(self, mock_pull_page_cloud):
+    def test_pull_without_remote_id(self, mock_pull_page_cloud, mock_get_configuration):
         result = self.runner.invoke(app, ["pull"])
 
         self.assertEqual(result.exit_code, 0)
@@ -71,9 +79,10 @@ class TestPullCommand(unittest.TestCase):
             profile="",
             verbose=False,
             confirm=False,
+            formatter=ANY,
         )
 
-    def test_pull_with_yes_flag(self, mock_pull_page_cloud):
+    def test_pull_with_yes_flag(self, mock_pull_page_cloud, mock_get_configuration):
         result = self.runner.invoke(app, ["pull", "--yes"])
 
         self.assertEqual(result.exit_code, 0)
@@ -82,9 +91,10 @@ class TestPullCommand(unittest.TestCase):
             profile="",
             verbose=False,
             confirm=True,
+            formatter=ANY,
         )
 
-    def test_pull_with_profile(self, mock_pull_page_cloud):
+    def test_pull_with_profile(self, mock_pull_page_cloud, mock_get_configuration):
         result = self.runner.invoke(app, ["pull", "--profile", "staging"])
 
         self.assertEqual(result.exit_code, 0)
@@ -93,6 +103,7 @@ class TestPullCommand(unittest.TestCase):
             profile="staging",
             verbose=False,
             confirm=False,
+            formatter=ANY,
         )
 
 

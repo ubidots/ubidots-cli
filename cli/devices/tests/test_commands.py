@@ -7,8 +7,8 @@ from unittest.mock import patch
 from typer.testing import CliRunner
 
 from cli.commons.enums import DefaultInstanceFieldEnum
+from cli.commons.formatters import MachineOutputFormatter
 from cli.devices.commands import app as device_app
-from cli.settings import settings
 
 runner = CliRunner()
 
@@ -23,7 +23,7 @@ class TestDeleteCommand(TestCase):
         self.assertEqual(result.exit_code, 0)
         mock_get_instance_key.assert_called_once_with(id="device123", label=None)
         mock_delete_device.assert_called_once_with(
-            active_config=ANY, device_key="device_key_from_id"
+            active_config=ANY, device_key="device_key_from_id", formatter=ANY
         )
 
     def test_delete_device_by_label(self, mock_delete_device, mock_get_instance_key, _):
@@ -32,7 +32,7 @@ class TestDeleteCommand(TestCase):
         self.assertEqual(result.exit_code, 0)
         mock_get_instance_key.assert_called_once_with(id=None, label="myDeviceLabel")
         mock_delete_device.assert_called_once_with(
-            active_config=ANY, device_key="device_key_from_label"
+            active_config=ANY, device_key="device_key_from_label", formatter=ANY
         )
 
     def test_delete_device_both_id_and_label(
@@ -47,8 +47,16 @@ class TestDeleteCommand(TestCase):
             id="device123", label="myDeviceLabel"
         )
         mock_delete_device.assert_called_once_with(
-            active_config=ANY, device_key="device_key_from_id"
+            active_config=ANY, device_key="device_key_from_id", formatter=ANY
         )
+
+    def test_delete_format_machine_passes_machine_formatter(
+        self, mock_delete_device, mock_get_instance_key, _
+    ):
+        mock_get_instance_key.return_value = "k"
+        runner.invoke(device_app, ["delete", "--id", "d1", "--format", "machine"])
+        _, kwargs = mock_delete_device.call_args
+        self.assertIsInstance(kwargs["formatter"], MachineOutputFormatter)
 
 
 @patch("cli.devices.commands.get_configuration", return_value=MagicMock())
@@ -64,7 +72,7 @@ class TestGetCommand(TestCase):
             active_config=ANY,
             device_key="device_key_from_id",
             fields=DefaultInstanceFieldEnum.get_default_fields(),
-            format=settings.CONFIG.DEFAULT_OUTPUT_FORMAT,
+            formatter=ANY,
         )
 
     def test_get_device_by_label(self, mock_retrieve_device, mock_get_instance_key, _):
@@ -76,7 +84,7 @@ class TestGetCommand(TestCase):
             active_config=ANY,
             device_key="device_key_from_label",
             fields=DefaultInstanceFieldEnum.get_default_fields(),
-            format=settings.CONFIG.DEFAULT_OUTPUT_FORMAT,
+            formatter=ANY,
         )
 
     def test_get_device_both_id_and_label(
@@ -94,7 +102,7 @@ class TestGetCommand(TestCase):
             active_config=ANY,
             device_key="device_key_from_id",
             fields=DefaultInstanceFieldEnum.get_default_fields(),
-            format=settings.CONFIG.DEFAULT_OUTPUT_FORMAT,
+            formatter=ANY,
         )
 
     def test_get_device_with_custom_fields(
@@ -111,8 +119,16 @@ class TestGetCommand(TestCase):
             active_config=ANY,
             device_key="device_key_from_id",
             fields=custom_fields,
-            format=settings.CONFIG.DEFAULT_OUTPUT_FORMAT,
+            formatter=ANY,
         )
+
+    def test_get_format_machine_passes_machine_formatter(
+        self, mock_retrieve_device, mock_get_instance_key, _
+    ):
+        mock_get_instance_key.return_value = "k"
+        runner.invoke(device_app, ["get", "--id", "d1", "--format", "machine"])
+        _, kwargs = mock_retrieve_device.call_args
+        self.assertIsInstance(kwargs["formatter"], MachineOutputFormatter)
 
 
 @patch("cli.devices.commands.get_configuration", return_value=MagicMock())
@@ -128,7 +144,7 @@ class TestListCommand(TestCase):
             sort_by=None,
             page_size=None,
             page=None,
-            format=settings.CONFIG.DEFAULT_OUTPUT_FORMAT,
+            formatter=ANY,
         )
 
     def test_list_devices_with_custom_fields(self, mock_list_devices, _):
@@ -142,7 +158,7 @@ class TestListCommand(TestCase):
             sort_by=None,
             page_size=None,
             page=None,
-            format=settings.CONFIG.DEFAULT_OUTPUT_FORMAT,
+            formatter=ANY,
         )
 
     def test_list_devices_with_filter(self, mock_list_devices, _):
@@ -156,7 +172,7 @@ class TestListCommand(TestCase):
             sort_by=None,
             page_size=None,
             page=None,
-            format=settings.CONFIG.DEFAULT_OUTPUT_FORMAT,
+            formatter=ANY,
         )
 
     def test_list_devices_with_sort(self, mock_list_devices, _):
@@ -170,7 +186,7 @@ class TestListCommand(TestCase):
             sort_by=sort_by_value,
             page_size=None,
             page=None,
-            format=settings.CONFIG.DEFAULT_OUTPUT_FORMAT,
+            formatter=ANY,
         )
 
     def test_list_devices_with_pagination(self, mock_list_devices, _):
@@ -183,7 +199,7 @@ class TestListCommand(TestCase):
             sort_by=None,
             page_size=10,
             page=2,
-            format=settings.CONFIG.DEFAULT_OUTPUT_FORMAT,
+            formatter=ANY,
         )
 
     def test_list_devices_with_all_options(self, mock_list_devices, _):
@@ -211,8 +227,13 @@ class TestListCommand(TestCase):
             sort_by="created_at",
             page_size=20,
             page=1,
-            format=settings.CONFIG.DEFAULT_OUTPUT_FORMAT,
+            formatter=ANY,
         )
+
+    def test_list_format_machine_passes_machine_formatter(self, mock_list_devices, _):
+        runner.invoke(device_app, ["list", "--format", "machine"])
+        _, kwargs = mock_list_devices.call_args
+        self.assertIsInstance(kwargs["formatter"], MachineOutputFormatter)
 
 
 @patch("cli.devices.commands.get_configuration", return_value=MagicMock())
@@ -223,6 +244,7 @@ class TestAddCommand(TestCase):
         self.assertEqual(result.exit_code, 0)
         mock_add_device.assert_called_once_with(
             active_config=ANY,
+            formatter=ANY,
             label="deviceLabel",
             name="",
             description="",
@@ -253,6 +275,7 @@ class TestAddCommand(TestCase):
         self.assertEqual(result.exit_code, 0)
         mock_add_device.assert_called_once_with(
             active_config=ANY,
+            formatter=ANY,
             label="deviceLabel",
             name="DeviceName",
             description="Test device description",
@@ -283,6 +306,7 @@ class TestUpdateCommand(TestCase):
         mock_update_device.assert_called_once_with(
             active_config=ANY,
             device_key="device_key_from_id",
+            formatter=ANY,
             label="",
             name="",
             description="",
@@ -320,6 +344,7 @@ class TestUpdateCommand(TestCase):
         mock_update_device.assert_called_once_with(
             active_config=ANY,
             device_key="device_key_from_label",
+            formatter=ANY,
             label="newDeviceLabel",
             name="UpdatedDeviceName",
             description="Updated description",
@@ -351,6 +376,7 @@ class TestUpdateCommand(TestCase):
         mock_update_device.assert_called_once_with(
             active_config=ANY,
             device_key="device_key_from_id",
+            formatter=ANY,
             label="",
             name="",
             description="",

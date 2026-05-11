@@ -1,6 +1,8 @@
 from builtins import list as BuiltinList
 from datetime import datetime
 from typing import Annotated
+from typing import Any
+from typing import cast
 from typing import no_type_check
 
 import typer
@@ -13,9 +15,11 @@ from cli.commons.decorators import simple_lookup_key
 from cli.commons.enums import DefaultInstanceFieldEnum
 from cli.commons.enums import EntityNameEnum
 from cli.commons.enums import OutputFormatFieldsEnum
+from cli.commons.formatters import resolve_formatter
 from cli.commons.utils import get_instance_key
 from cli.commons.utils import sanitize_function_name
 from cli.commons.validators import is_valid_json_string
+from cli.config.helpers import get_configuration
 from cli.functions import executor
 from cli.functions.enums import FunctionLanguageEnum
 from cli.functions.enums import FunctionMethodEnum
@@ -102,8 +106,15 @@ def create_function(
             help="Profile to use.",
         ),
     ] = "",
+    output_format: Annotated[
+        OutputFormatFieldsEnum | None,
+        typer.Option("--format"),
+    ] = None,
     verbose: bool = False,
 ):
+    formatter = resolve_formatter(
+        flag=output_format, active_config=None, command="functions dev add"
+    )
     executor.create_function(
         name=name,
         language=language,
@@ -118,6 +129,7 @@ def create_function(
         engine=settings.CONFIG.DEFAULT_CONTAINER_ENGINE,
         token=token,
         profile=profile,
+        formatter=formatter,
     )
 
 
@@ -184,8 +196,15 @@ def create_function_deprecated(
             help="Profile to use.",
         ),
     ] = "",
+    output_format: Annotated[
+        OutputFormatFieldsEnum | None,
+        typer.Option("--format"),
+    ] = None,
     verbose: bool = False,
 ):
+    formatter = resolve_formatter(
+        flag=output_format, active_config=None, command="functions dev init"
+    )
     executor.create_function(
         name=name,
         language=language,
@@ -200,36 +219,61 @@ def create_function_deprecated(
         engine=settings.CONFIG.DEFAULT_CONTAINER_ENGINE,
         token=token,
         profile=profile,
+        formatter=formatter,
     )
 
 
 @dev_app.command(name="start", help="Start the local functions development server.")
 @add_verbose_option()
 def start_function(
+    output_format: Annotated[
+        OutputFormatFieldsEnum | None,
+        typer.Option("--format"),
+    ] = None,
     verbose: bool = False,
 ):
+    formatter = resolve_formatter(
+        flag=output_format, active_config=None, command="functions dev start"
+    )
     executor.start_function(
         verbose=verbose,
+        formatter=formatter,
     )
 
 
 @dev_app.command(name="stop", help="Stop the local functions development server.")
 @add_verbose_option()
 def stop_function(
+    output_format: Annotated[
+        OutputFormatFieldsEnum | None,
+        typer.Option("--format"),
+    ] = None,
     verbose: bool = False,
 ):
+    formatter = resolve_formatter(
+        flag=output_format, active_config=None, command="functions dev stop"
+    )
     executor.stop_function(
         verbose=verbose,
+        formatter=formatter,
     )
 
 
 @dev_app.command(name="restart", help="Restart the local functions development server.")
 @add_verbose_option()
 def restart_function(
+    output_format: Annotated[
+        OutputFormatFieldsEnum | None,
+        typer.Option("--format"),
+    ] = None,
     verbose: bool = False,
 ):
+    formatter = resolve_formatter(
+        flag=output_format, active_config=None, command="functions dev restart"
+    )
     executor.restart_function(
         verbose=verbose,
+        formatter=formatter,
     )
 
 
@@ -238,10 +282,18 @@ def restart_function(
 )
 @add_verbose_option()
 def status_function(
+    output_format: Annotated[
+        OutputFormatFieldsEnum | None,
+        typer.Option("--format"),
+    ] = None,
     verbose: bool = False,
 ):
+    formatter = resolve_formatter(
+        flag=output_format, active_config=None, command="functions dev status"
+    )
     executor.status_function(
         verbose=verbose,
+        formatter=formatter,
     )
 
 
@@ -262,6 +314,10 @@ def logs_function_local(
         bool,
         typer.Option("--follow/", "-f/", help="Follow log output."),
     ] = False,
+    output_format: Annotated[
+        OutputFormatFieldsEnum | None,
+        typer.Option("--format"),
+    ] = None,
     verbose: bool = False,
 ):
     """Display logs from the local function development server.
@@ -269,12 +325,17 @@ def logs_function_local(
     This command shows logs from your local Docker/Podman container.
     For cloud function logs, use 'ubidots functions logs <function-id>'.
     """
+    formatter = resolve_formatter(
+        flag=output_format, active_config=None, command="functions dev logs"
+    )
+    tail_count = int(tail) if tail != "all" else 0
     executor.logs_function(
-        tail=tail,
+        tail=tail_count,
         follow=follow,
         remote=False,
         profile="",
         verbose=verbose,
+        formatter=formatter,
     )
 
 
@@ -285,11 +346,19 @@ def clean_functions(
         bool,
         typer.Option("--yes", "-y", help="Confirm cleanup without prompt."),
     ] = False,
+    output_format: Annotated[
+        OutputFormatFieldsEnum | None,
+        typer.Option("--format"),
+    ] = None,
     verbose: bool = False,
 ):
+    formatter = resolve_formatter(
+        flag=output_format, active_config=None, command="functions dev clean"
+    )
     executor.clean_functions(
         confirm=confirm,
         verbose=verbose,
+        formatter=formatter,
     )
 
 
@@ -316,15 +385,23 @@ def run_function(
             help="Name of the profile to use for remote server communication."
         ),
     ] = "",
+    output_format: Annotated[
+        OutputFormatFieldsEnum | None,
+        typer.Option("--format"),
+    ] = None,
     verbose: bool = False,
 ):
     function_key = get_instance_key(id=id, label=label)
-
+    active_config = get_configuration(profile=profile)
+    formatter = resolve_formatter(
+        flag=output_format, active_config=active_config, command="functions run"
+    )
     executor.run_function(
         function_key=function_key,
-        payload=payload,  # type: ignore[arg-type]  # callback parses str → dict
+        payload=cast("dict[Any, Any]", payload),
         profile=profile,
         verbose=verbose,
+        formatter=formatter,
     )
 
 
@@ -354,10 +431,17 @@ def logs_function_remote(
             help="Profile to use for remote server communication.",
         ),
     ] = "",
+    output_format: Annotated[
+        OutputFormatFieldsEnum | None,
+        typer.Option("--format"),
+    ] = None,
     verbose: bool = False,
 ):
     function_key = get_instance_key(id=id, label=label)
-
+    active_config = get_configuration(profile=profile)
+    formatter = resolve_formatter(
+        flag=output_format, active_config=active_config, command="functions logs"
+    )
     executor.logs_function(
         tail=tail,
         follow=False,
@@ -365,6 +449,7 @@ def logs_function_remote(
         function_key=function_key,
         profile=profile,
         verbose=verbose,
+        formatter=formatter,
     )
 
 
@@ -392,8 +477,15 @@ def list_functions(
     sort_by: str | None = None,
     page_size: int | None = None,
     page: int | None = None,
-    format: OutputFormatFieldsEnum = settings.CONFIG.DEFAULT_OUTPUT_FORMAT,
+    output_format: Annotated[
+        OutputFormatFieldsEnum | None,
+        typer.Option("--format"),
+    ] = None,
 ):
+    active_config = get_configuration(profile=profile)
+    formatter = resolve_formatter(
+        flag=output_format, active_config=active_config, command="functions list"
+    )
     executor.list_functions(
         profile=profile,
         fields=fields,
@@ -401,7 +493,7 @@ def list_functions(
         sort_by=sort_by,
         page_size=page_size,
         page=page,
-        format=format,
+        formatter=formatter,
     )
 
 
@@ -461,8 +553,16 @@ def add_function(
         str,
         typer.Option(help="environment in JSON format.", callback=is_valid_json_string),
     ] = "[]",
+    output_format: Annotated[
+        OutputFormatFieldsEnum | None,
+        typer.Option("--format"),
+    ] = None,
 ):
     label = label or sanitize_function_name(name)
+    active_config = get_configuration(profile=profile)
+    formatter = resolve_formatter(
+        flag=output_format, active_config=active_config, command="functions add"
+    )
     executor.add_function(
         profile=profile,
         name=name,
@@ -474,6 +574,7 @@ def add_function(
         scheduler_cron=cron,
         timeout=timeout,
         environment=environment,
+        formatter=formatter,
     )
 
 
@@ -498,15 +599,21 @@ def get_function(
         str,
         typer.Option(help=FIELDS_FUNCTION_HELP_TEXT),
     ] = DefaultInstanceFieldEnum.get_default_fields(),
-    format: OutputFormatFieldsEnum = settings.CONFIG.DEFAULT_OUTPUT_FORMAT,
+    output_format: Annotated[
+        OutputFormatFieldsEnum | None,
+        typer.Option("--format"),
+    ] = None,
     verbose: bool = False,
 ):
     function_key = get_instance_key(id=id, label=label)
-
+    active_config = get_configuration(profile=profile)
+    formatter = resolve_formatter(
+        flag=output_format, active_config=active_config, command="functions get"
+    )
     executor.get_function(
         function_key=function_key,
         fields=fields,
-        format=format,
+        formatter=formatter,
         profile=profile,
         verbose=verbose,
     )
@@ -566,9 +673,16 @@ def update_function(
             help="The HTTP methods the function will respond to.",
         ),
     ] = None,
+    output_format: Annotated[
+        OutputFormatFieldsEnum | None,
+        typer.Option("--format"),
+    ] = None,
 ):
     function_key = get_instance_key(id=id, label=label)
-
+    active_config = get_configuration(profile=profile)
+    formatter = resolve_formatter(
+        flag=output_format, active_config=active_config, command="functions update"
+    )
     executor.update_function(
         function_key=function_key,
         profile=profile,
@@ -581,6 +695,7 @@ def update_function(
         is_raw=raw,
         timeout=timeout,
         environment=environment,
+        formatter=formatter,
     )
 
 
@@ -604,15 +719,23 @@ def delete_function(
         bool,
         typer.Option("--yes", "-y", help="Confirm file overwrite without prompt."),
     ] = False,
+    output_format: Annotated[
+        OutputFormatFieldsEnum | None,
+        typer.Option("--format"),
+    ] = None,
     verbose: bool = False,
 ):
     function_key = get_instance_key(id=id, label=label)
-
+    active_config = get_configuration(profile=profile)
+    formatter = resolve_formatter(
+        flag=output_format, active_config=active_config, command="functions delete"
+    )
     executor.delete_function(
         function_key=function_key,
         profile=profile,
         confirm=confirm,
         verbose=verbose,
+        formatter=formatter,
     )
 
 
@@ -631,12 +754,21 @@ def push_function(
         str,
         typer.Option("--profile", "-p", help="Profile to use."),
     ] = "",
+    output_format: Annotated[
+        OutputFormatFieldsEnum | None,
+        typer.Option("--format"),
+    ] = None,
     verbose: bool = False,
 ):
+    active_config = get_configuration(profile=profile)
+    formatter = resolve_formatter(
+        flag=output_format, active_config=active_config, command="functions push"
+    )
     executor.push_function(
         confirm=confirm,
         profile=profile,
         verbose=verbose,
+        formatter=formatter,
     )
 
 
@@ -659,13 +791,22 @@ def pull_function(
         bool,
         typer.Option("--yes", "-y", help="Confirm file overwrite without prompt."),
     ] = False,
+    output_format: Annotated[
+        OutputFormatFieldsEnum | None,
+        typer.Option("--format"),
+    ] = None,
     verbose: bool = False,
 ):
+    active_config = get_configuration(profile=profile)
+    formatter = resolve_formatter(
+        flag=output_format, active_config=active_config, command="functions pull"
+    )
     executor.pull_function(
         remote_id=remote_id,
         profile=profile,
         verbose=verbose,
         confirm=confirm,
+        formatter=formatter,
     )
 
 

@@ -1,3 +1,5 @@
+<!-- markdownlint-disable MD013 -->
+
 # Module Reference
 
 Per-module breakdown of responsibilities, key files, data models, and API routes.

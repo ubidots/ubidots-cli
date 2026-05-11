@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "ubidots-cli"
-version = "1.0.2"
+version = "2.0.0"
 description = "A powerful CLI tool for efficient management and automation of cloud-based resources."
 authors = ["Ubidots <devel@ubidots.com>", "crubio <cristian.rubio@ubidots.com>", "Juan David <juan.david@ubidots.com>"]
 readme = "README.md"
@@ -61,6 +61,7 @@ respx = "^0.22.0"
 [tool.isort]
 force_single_line = true
 line_length = 123
+skip_glob = [".venv*"]
 
 [tool.ruff]
 target-version = "py313"

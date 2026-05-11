@@ -1,4 +1,5 @@
 from unittest import TestCase
+from unittest.mock import MagicMock
 from unittest.mock import patch
 
 from cli.commons.exceptions import CurrentPlanDoesNotIncludeRuntimes
@@ -22,7 +23,6 @@ class TestGetRuntimes(TestCase):
 
 
 class TestSetConfiguration(TestCase):
-    @patch("cli.config.handlers.exit_with_success_message")
     @patch("cli.config.handlers.save_profile_configuration")
     @patch("cli.config.handlers.get_runtimes")
     @patch("cli.config.handlers.validate_auth_method")
@@ -39,22 +39,23 @@ class TestSetConfiguration(TestCase):
         mock_validate_auth,
         mock_get_runtimes,
         mock_save_config,
-        mock_exit_success,
     ):
         """STEM plan users (empty runtimes) must be able to save their profile."""
         mock_exist_config.return_value = True
         mock_exists_default.return_value = True
         mock_validate_auth.return_value = AuthHeaderTypeEnum.TOKEN
         mock_get_runtimes.return_value = []
+        formatter = MagicMock()
 
         set_configuration(
             api_domain="https://industrial.api.ubidots.com",
             auth_method_key="TOKEN",
             access_token="stem_token",
             profile="stem-profile",
+            formatter=formatter,
         )
 
         mock_save_config.assert_called_once()
         saved_model = mock_save_config.call_args[1]["config_model"]
         self.assertEqual(saved_model.runtimes, [])
-        mock_exit_success.assert_called_once()
+        formatter.emit_success.assert_called_once()

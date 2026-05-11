@@ -1,5 +1,6 @@
 from unittest import TestCase
 from unittest.mock import ANY
+from unittest.mock import MagicMock
 from unittest.mock import patch
 
 from typer.testing import CliRunner
@@ -41,6 +42,7 @@ class TestDevAddFunctionCommand(TestCase):
             token="",
             verbose=False,
             profile=ANY,
+            formatter=ANY,
         )
 
     @patch("cli.functions.commands.executor.create_function")
@@ -91,6 +93,7 @@ class TestDevAddFunctionCommand(TestCase):
             timeout=timeout,
             verbose=True,
             profile=ANY,
+            formatter=ANY,
         )
 
     def test_dev_add_rejects_remote_id_option(self):
@@ -116,9 +119,14 @@ class TestDevAddFunctionCommand(TestCase):
 @patch("cli.functions.commands.get_instance_key")
 @patch("cli.functions.executor.Pipeline.run")  # Mock the pipeline execution
 @patch("typer.confirm", return_value=True)  # Mock user confirmation
+@patch("cli.functions.commands.get_configuration", return_value=MagicMock())
 class TestDeleteFunctionCommand(TestCase):
     def test_delete_function_by_id(
-        self, mock_confirm, mock_pipeline_run, mock_get_instance_key
+        self,
+        mock_get_configuration,
+        mock_confirm,
+        mock_pipeline_run,
+        mock_get_instance_key,
     ):
         mock_get_instance_key.return_value = "valid_function_key"
         mock_pipeline_run.return_value = None
@@ -139,7 +147,11 @@ class TestDeleteFunctionCommand(TestCase):
         )
 
     def test_delete_function_by_label(
-        self, mock_confirm, mock_pipeline_run, mock_get_instance_key
+        self,
+        mock_get_configuration,
+        mock_confirm,
+        mock_pipeline_run,
+        mock_get_instance_key,
     ):
         mock_get_instance_key.return_value = "valid_function_key"
         mock_pipeline_run.return_value = None
@@ -162,7 +174,11 @@ class TestDeleteFunctionCommand(TestCase):
         )
 
     def test_delete_function_both_id_and_label(
-        self, mock_confirm, mock_pipeline_run, mock_get_instance_key
+        self,
+        mock_get_configuration,
+        mock_confirm,
+        mock_pipeline_run,
+        mock_get_instance_key,
     ):
         mock_get_instance_key.return_value = "valid_function_key"
         mock_pipeline_run.return_value = None
@@ -190,8 +206,11 @@ class TestDeleteFunctionCommand(TestCase):
 
 @patch("cli.commons.pipelines.Pipeline.run")
 @patch("cli.functions.commands.get_instance_key")
+@patch("cli.functions.commands.get_configuration", return_value=MagicMock())
 class TestGetFunctionCommand(TestCase):
-    def test_get_function_by_id(self, mock_get_instance_key, mock_pipeline_run):
+    def test_get_function_by_id(
+        self, mock_get_configuration, mock_get_instance_key, mock_pipeline_run
+    ):
         mock_get_instance_key.return_value = "function_key_from_id"
         mock_pipeline_run.side_effect = lambda _: None  # Ensure no errors
 
@@ -200,7 +219,7 @@ class TestGetFunctionCommand(TestCase):
         self.assertEqual(result.exit_code, 0)
 
     def test_get_function_with_custom_fields(
-        self, mock_get_instance_key, mock_pipeline_run
+        self, mock_get_configuration, mock_get_instance_key, mock_pipeline_run
     ):
         mock_get_instance_key.return_value = "function_key_from_id"
         custom_fields = "runtime,cron"
@@ -213,7 +232,7 @@ class TestGetFunctionCommand(TestCase):
         self.assertEqual(result.exit_code, 0)
 
     def test_get_function_both_id_and_label(
-        self, mock_get_instance_key, mock_pipeline_run
+        self, mock_get_configuration, mock_get_instance_key, mock_pipeline_run
     ):
         mock_get_instance_key.return_value = "function_key_from_id"
         mock_pipeline_run.side_effect = lambda _: None  # Ensure no errors
@@ -226,8 +245,11 @@ class TestGetFunctionCommand(TestCase):
 
 
 @patch("cli.commons.pipelines.Pipeline.run")
+@patch("cli.functions.commands.get_configuration", return_value=MagicMock())
 class TestListFunctionsCommand(TestCase):
-    def test_list_functions_with_defaults(self, mock_pipeline_run):
+    def test_list_functions_with_defaults(
+        self, mock_get_configuration, mock_pipeline_run
+    ):
         mock_pipeline_run.return_value = None  # Simulate pipeline execution
 
         result = runner.invoke(function_app, ["list"])
@@ -235,7 +257,9 @@ class TestListFunctionsCommand(TestCase):
         self.assertEqual(result.exit_code, 0)
         mock_pipeline_run.assert_called_once()
 
-    def test_list_functions_with_custom_options(self, mock_pipeline_run):
+    def test_list_functions_with_custom_options(
+        self, mock_get_configuration, mock_pipeline_run
+    ):
         custom_fields = "runtime,raw"
         filter_value = "isActive=true"
         sort_by_value = "created_at"
@@ -266,8 +290,11 @@ class TestListFunctionsCommand(TestCase):
 
 
 @patch("cli.commons.pipelines.Pipeline.run")
+@patch("cli.functions.commands.get_configuration", return_value=MagicMock())
 class TestAddFunctionCommand(TestCase):
-    def test_add_function_with_minimum_arguments(self, mock_pipeline_run):
+    def test_add_function_with_minimum_arguments(
+        self, mock_get_configuration, mock_pipeline_run
+    ):
         mock_pipeline_run.return_value = None  # Simulate pipeline execution
 
         result = runner.invoke(function_app, ["add", "TestFunction"])
@@ -291,7 +318,9 @@ class TestAddFunctionCommand(TestCase):
             }
         )
 
-    def test_add_function_with_all_options(self, mock_pipeline_run):
+    def test_add_function_with_all_options(
+        self, mock_get_configuration, mock_pipeline_run
+    ):
         mock_pipeline_run.return_value = None  # Simulate pipeline execution
 
         result = runner.invoke(
@@ -322,20 +351,27 @@ class TestAddFunctionCommand(TestCase):
 @patch("cli.commons.pipelines.Pipeline.run")  # Mock pipeline to avoid actual execution
 @patch("cli.functions.commands.get_instance_key")
 @patch("cli.functions.handlers.update_function")
+@patch("cli.functions.commands.get_configuration", return_value=MagicMock())
 class TestUpdateFunctionCommand(TestCase):
     def test_update_function_with_minimum_arguments(
-        self, mock_update_function, mock_get_instance_key, mock_pipeline_run
+        self,
+        mock_get_configuration,
+        mock_update_function,
+        mock_get_instance_key,
+        mock_pipeline_run,
     ):
         mock_get_instance_key.return_value = "function_key_from_id"
-        mock_pipeline_run.return_value = None  # Simulate pipeline success
         result = runner.invoke(function_app, ["update", "--id", "function123"])
         self.assertEqual(result.exit_code, 0)
 
     def test_update_function_with_all_options(
-        self, mock_update_function, mock_get_instance_key, mock_pipeline_run
+        self,
+        mock_get_configuration,
+        mock_update_function,
+        mock_get_instance_key,
+        mock_pipeline_run,
     ):
         mock_get_instance_key.return_value = "function_key_from_label"
-        mock_pipeline_run.return_value = None  # Simulate pipeline success
 
         result = runner.invoke(
             function_app,
@@ -372,7 +408,7 @@ class TestDevStartFunctionCommand(TestCase):
 
         # Expected
         self.assertEqual(result.exit_code, 0)
-        mock_start_function.assert_called_once_with(verbose=True)
+        mock_start_function.assert_called_once_with(verbose=True, formatter=ANY)
 
 
 @patch("cli.functions.commands.executor.stop_function")
@@ -383,7 +419,7 @@ class TestDevStopFunctionCommand(TestCase):
 
         # Expected
         self.assertEqual(result.exit_code, 0)
-        mock_stop_function.assert_called_once_with(verbose=True)
+        mock_stop_function.assert_called_once_with(verbose=True, formatter=ANY)
 
 
 @patch("cli.functions.commands.executor.restart_function")
@@ -395,6 +431,7 @@ class TestDevRestartFunctionCommand(TestCase):
         self.assertEqual(result.exit_code, 0)
         mock_restart_function.assert_called_once_with(
             verbose=False,
+            formatter=ANY,
         )
 
 
@@ -407,6 +444,7 @@ class TestDevStatusFunctionCommand(TestCase):
         self.assertEqual(result.exit_code, 0)
         mock_status_function.assert_called_once_with(
             verbose=False,
+            formatter=ANY,
         )
 
 
@@ -420,11 +458,12 @@ class TestDevLogsCommand(TestCase):
         # Expected
         self.assertEqual(result.exit_code, 0)
         mock_logs_function.assert_called_once_with(
-            tail="all",
+            tail=0,
             follow=False,
-            profile="",
             remote=False,  # Always False for dev logs
+            profile="",
             verbose=False,
+            formatter=ANY,
         )
 
     def test_dev_logs_rejects_remote_flag(self, mock_logs_function):
@@ -443,8 +482,9 @@ class TestDevLogsCommand(TestCase):
 
 
 @patch("cli.functions.commands.executor.run_function")
+@patch("cli.functions.commands.get_configuration", return_value=MagicMock())
 class TestRunFunctionCommand(TestCase):
-    def test_run_with_label(self, mock_run_function):
+    def test_run_with_label(self, mock_get_configuration, mock_run_function):
         """Test run command with function label (default payload)."""
         result = runner.invoke(function_app, ["run", "--label", "my-func"])
 
@@ -454,10 +494,13 @@ class TestRunFunctionCommand(TestCase):
             payload={},
             profile="",
             verbose=False,
+            formatter=ANY,
         )
 
     @patch("cli.functions.commands.get_instance_key", return_value="abc123")
-    def test_run_with_id(self, mock_get_instance_key, mock_run_function):
+    def test_run_with_id(
+        self, mock_get_configuration, mock_get_instance_key, mock_run_function
+    ):
         """Test run command with function ID."""
         result = runner.invoke(function_app, ["run", "--id", "abc123"])
 
@@ -467,9 +510,10 @@ class TestRunFunctionCommand(TestCase):
             payload={},
             profile="",
             verbose=False,
+            formatter=ANY,
         )
 
-    def test_run_with_payload(self, mock_run_function):
+    def test_run_with_payload(self, mock_get_configuration, mock_run_function):
         """Test run command with JSON payload."""
         result = runner.invoke(
             function_app,
@@ -482,9 +526,10 @@ class TestRunFunctionCommand(TestCase):
             payload={"temp": 25},
             profile="",
             verbose=False,
+            formatter=ANY,
         )
 
-    def test_run_invalid_json_payload(self, mock_run_function):
+    def test_run_invalid_json_payload(self, mock_get_configuration, mock_run_function):
         """Test run command rejects invalid JSON payload before any HTTP call."""
         result = runner.invoke(
             function_app,
@@ -496,8 +541,11 @@ class TestRunFunctionCommand(TestCase):
 
 
 @patch("cli.functions.commands.executor.logs_function")
+@patch("cli.functions.commands.get_configuration", return_value=MagicMock())
 class TestRootLogsCommand(TestCase):
-    def test_root_logs_with_explicit_label(self, mock_logs_function):
+    def test_root_logs_with_explicit_label(
+        self, mock_get_configuration, mock_logs_function
+    ):
         """Test root logs command with explicit function label."""
         result = runner.invoke(
             function_app,
@@ -519,9 +567,12 @@ class TestRootLogsCommand(TestCase):
             function_key="~my-func",
             profile="test_profile",
             verbose=True,
+            formatter=ANY,
         )
 
-    def test_root_logs_with_custom_tail(self, mock_logs_function):
+    def test_root_logs_with_custom_tail(
+        self, mock_get_configuration, mock_logs_function
+    ):
         """Test root logs command with custom --tail value."""
         result = runner.invoke(
             function_app, ["logs", "--label", "my-func", "--tail", "3"]
@@ -535,10 +586,13 @@ class TestRootLogsCommand(TestCase):
             function_key="~my-func",
             profile="",
             verbose=False,
+            formatter=ANY,
         )
 
     @patch("cli.functions.commands.get_instance_key", return_value="abc123")
-    def test_root_logs_with_id(self, mock_get_instance_key, mock_logs_function):
+    def test_root_logs_with_id(
+        self, mock_get_configuration, mock_get_instance_key, mock_logs_function
+    ):
         """Test root logs command with function ID."""
         result = runner.invoke(function_app, ["logs", "--id", "abc123"])
 
@@ -550,12 +604,16 @@ class TestRootLogsCommand(TestCase):
             function_key="abc123",
             profile="",
             verbose=False,
+            formatter=ANY,
         )
 
 
 @patch("cli.functions.commands.executor.push_function")
+@patch("cli.functions.commands.get_configuration", return_value=MagicMock())
 class TestPushFunctionCommand(TestCase):
-    def test_push_function_with_defaults(self, mock_push_function):
+    def test_push_function_with_defaults(
+        self, mock_get_configuration, mock_push_function
+    ):
         # Action
         result = runner.invoke(function_app, ["push"])
         self.assertEqual(result.exit_code, 0)
@@ -563,9 +621,12 @@ class TestPushFunctionCommand(TestCase):
             confirm=False,
             profile="",
             verbose=False,
+            formatter=ANY,
         )
 
-    def test_push_function_with_confirmation(self, mock_push_function):
+    def test_push_function_with_confirmation(
+        self, mock_get_configuration, mock_push_function
+    ):
         # Action
         result = runner.invoke(function_app, ["push", "--yes", "--verbose"])
         # Expected
@@ -574,12 +635,16 @@ class TestPushFunctionCommand(TestCase):
             confirm=True,
             profile="",
             verbose=True,
+            formatter=ANY,
         )
 
 
 @patch("cli.functions.commands.executor.pull_function")
+@patch("cli.functions.commands.get_configuration", return_value=MagicMock())
 class TestPullFunctionCommand(TestCase):
-    def test_pull_function_with_defaults(self, mock_pull_function):
+    def test_pull_function_with_defaults(
+        self, mock_get_configuration, mock_pull_function
+    ):
         # Action
         result = runner.invoke(function_app, ["pull"])
         self.assertEqual(result.exit_code, 0)
@@ -588,9 +653,12 @@ class TestPullFunctionCommand(TestCase):
             profile="",
             confirm=False,
             verbose=False,
+            formatter=ANY,
         )
 
-    def test_pull_function_with_confirmation(self, mock_pull_function):
+    def test_pull_function_with_confirmation(
+        self, mock_get_configuration, mock_pull_function
+    ):
         function_id = "1234"
         # Action
         result = runner.invoke(
@@ -603,4 +671,5 @@ class TestPullFunctionCommand(TestCase):
             profile="",
             confirm=True,
             verbose=True,
+            formatter=ANY,
         )
