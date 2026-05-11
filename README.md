@@ -3,6 +3,8 @@
 
 Ubidots CLI is a command-line tool to build IoT applications — from raw sensor data to production-ready dashboards — using your local AI coding assistant and the Ubidots platform.
 
+[![GitHub](https://img.shields.io/badge/GitHub-ubidots--cli-blue?logo=github)](https://github.com/ubidots/ubidots-cli)
+
 ## What this is
 
 The Ubidots CLI connects your local development environment to the Ubidots IoT platform. When paired with an AI coding assistant (Claude Code, GitHub Copilot, Codex, Cursor), it creates a tight feedback loop: write code locally, push to Ubidots, trigger it, read the logs, iterate — without leaving your terminal.
