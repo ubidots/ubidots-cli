@@ -122,21 +122,6 @@ class TokenExchangeError(Exception):
         return "Failed to exchange authorization code for tokens."
 
 
-class SessionExpiredError(Exception):
-    def __str__(self):
-        return "Session expired. Run 'ubidots login' again."
-
-
-class InvalidTokenSignatureError(Exception):
-    def __str__(self):
-        return "Invalid token — your session may be compromised. Run 'ubidots login' again."
-
-
-class NoOAuthSessionError(Exception):
-    def __str__(self):
-        return "No OAuth session. Profile is using a static API token."
-
-
 class ContainerNotFoundError(Exception):
     """Raised by base Docker classes when a container cannot be found by label."""
 
