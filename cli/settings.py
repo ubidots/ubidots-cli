@@ -18,11 +18,15 @@ class OAuthSettings(BaseModel):
     AUTHORIZE_PATH: str = "/o/authorize/"
     TOKEN_PATH: str = "/o/token/"
     REVOKE_PATH: str = "/o/revoke_token/"
+    JWKS_PATH: str = "/o/.well-known/jwks.json"
     DEFAULT_SCOPE: str = "read write"
     LOGIN_TIMEOUT_SECONDS: int = 60
     VERIFIER_BYTES: int = 64
     STATE_BYTES: int = 32
     DEFAULT_CLIENT_ID: str = "ubidots-cli"
+    JWKS_CACHE_PATH: Path = Path.home() / ".cache" / "ubidots-cli" / "jwks.json"
+    JWKS_CACHE_TTL_SECONDS: int = 3600
+    REVOKE_TIMEOUT_SECONDS: int = 5
 
     @property
     def REDIRECT_URI(self) -> str:

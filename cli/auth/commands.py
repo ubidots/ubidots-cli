@@ -1,12 +1,19 @@
+import json
 import os
 import time
 import webbrowser
 from pathlib import Path
 from typing import Annotated
 
+import httpx
+import jwt
 import typer
 import yaml
+from jwt import PyJWKClient
+from jwt.exceptions import InvalidTokenError
+from jwt.exceptions import PyJWKClientError
 
+from cli.auth.jwks_cache import fetch_jwks
 from cli.auth.loopback_server import LoopbackServer
 from cli.auth.loopback_server import assert_state_matches
 from cli.auth.loopback_server import port_available
@@ -17,7 +24,10 @@ from cli.auth.oauth_client import generate_state
 from cli.commons.enums import MessageColorEnum
 from cli.commons.exceptions import AuthorizationDeniedError
 from cli.commons.exceptions import CSRFMismatchError
+from cli.commons.exceptions import InvalidTokenSignatureError
 from cli.commons.exceptions import LoginTimeoutError
+from cli.commons.exceptions import NoOAuthSessionError
+from cli.commons.exceptions import SessionExpiredError
 from cli.commons.exceptions import TokenExchangeError
 from cli.commons.exceptions import UnknownOAuthClientError
 from cli.config.helpers import profile_exists
@@ -320,6 +330,230 @@ def login(
         f"Login successful as {user_label} (profile: {profile_name})",
         color=MessageColorEnum.SUCCESS,
     )
+    raise typer.Exit(0)
+
+
+def _clear_oauth_fields(config: ProfileConfigModel) -> ProfileConfigModel:
+    return config.model_copy(
+        update={
+            "auth_method": AuthHeaderTypeEnum.TOKEN,
+            "access_token": "",
+            "refresh_token": "",
+            "expires_at": 0,
+            "scope": "",
+            "token_type": "",
+            "oauth_client_id": "",
+        }
+    )
+
+
+def _revoke_refresh_token(
+    api_domain: str,
+    client_id: str,
+    refresh_token: str,
+    http_client: httpx.Client | None = None,
+) -> tuple[bool, str]:
+    url = f"{api_domain.rstrip('/')}{settings.OAUTH.REVOKE_PATH}"
+    client = http_client or httpx.Client(timeout=settings.OAUTH.REVOKE_TIMEOUT_SECONDS)
+    owns_client = http_client is None
+    try:
+        response = client.post(
+            url,
+            data={"token": refresh_token, "client_id": client_id},
+            headers={"Content-Type": "application/x-www-form-urlencoded"},
+        )
+    except httpx.HTTPError as exc:
+        return False, f"network:{type(exc).__name__}"
+    finally:
+        if owns_client:
+            client.close()
+
+    if 200 <= response.status_code < 300:
+        return True, "ok"
+    return False, f"http:{response.status_code}"
+
+
+def logout(
+    profile: Annotated[
+        str,
+        typer.Option(
+            "--profile",
+            "-p",
+            help="Profile to log out from. Defaults to the active profile.",
+        ),
+    ] = "",
+    force_remote: Annotated[
+        bool,
+        typer.Option(
+            "--force-remote",
+            help="Skip local-only fast-path: always attempt the remote token revocation.",
+        ),
+    ] = False,
+) -> None:
+    profile_name, current_config, is_new_profile = _resolve_active_config(profile or None)
+    if is_new_profile or current_config.auth_method != AuthHeaderTypeEnum.OAUTH2:
+        typer.echo("No OAuth session to log out from.")
+        raise typer.Exit(0)
+
+    api_domain = current_config.api_domain or settings.CONFIG.API_DOMAIN
+    client_id = current_config.oauth_client_id or settings.OAUTH.DEFAULT_CLIENT_ID
+    refresh_token = current_config.refresh_token
+
+    if refresh_token:
+        ok, reason = _revoke_refresh_token(
+            api_domain=api_domain,
+            client_id=client_id,
+            refresh_token=refresh_token,
+        )
+    elif force_remote:
+        ok, reason = False, "no-refresh-token"
+    else:
+        ok, reason = True, "skipped:no-refresh-token"
+
+    cleared_config = _clear_oauth_fields(current_config)
+    save_profile_configuration(profile=profile_name, config_model=cleared_config)
+
+    if ok:
+        typer.echo(f"Logged out (profile: {profile_name}).")
+    elif reason.startswith("network:"):
+        typer.echo(
+            "Could not reach core to revoke remotely. Local credentials cleared. "
+            "Run 'ubidots logout --force-remote' when network is restored."
+        )
+    elif reason.startswith("http:"):
+        typer.echo("Logged out (refresh token was already invalid).")
+    else:
+        typer.echo(f"Logged out (profile: {profile_name}).")
+    raise typer.Exit(0)
+
+
+def _verify_jwt_signature(
+    access_token: str,
+    api_domain: str,
+) -> dict | None:
+    jwks = fetch_jwks(api_domain=api_domain)
+    if not jwks or "keys" not in jwks:
+        return None
+    try:
+        signing_key = PyJWKClient(
+            f"{api_domain.rstrip('/')}{settings.OAUTH.JWKS_PATH}"
+        ).get_signing_key_from_jwt(access_token)
+    except (PyJWKClientError, InvalidTokenError):
+        raise InvalidTokenSignatureError from None
+    try:
+        return jwt.decode(
+            access_token,
+            signing_key.key,
+            algorithms=["RS256"],
+            options={"verify_aud": False},
+        )
+    except InvalidTokenError as exc:
+        raise InvalidTokenSignatureError from exc
+
+
+def _decode_jwt_unverified(access_token: str) -> dict:
+    try:
+        return jwt.decode(access_token, options={"verify_signature": False})
+    except InvalidTokenError as exc:
+        raise InvalidTokenSignatureError from exc
+
+
+def _whoami_payload(
+    config: ProfileConfigModel,
+    verify_signature: bool = True,
+) -> dict:
+    if config.auth_method != AuthHeaderTypeEnum.OAUTH2 or not config.access_token:
+        raise NoOAuthSessionError
+
+    if verify_signature:
+        verified_claims = _verify_jwt_signature(
+            access_token=config.access_token,
+            api_domain=config.api_domain or settings.CONFIG.API_DOMAIN,
+        )
+        claims = verified_claims or _decode_jwt_unverified(config.access_token)
+        signature_state = "verified" if verified_claims else "unverified (JWKS unavailable)"
+    else:
+        claims = _decode_jwt_unverified(config.access_token)
+        signature_state = "skipped"
+
+    now = int(time.time())
+    expires_at = int(claims.get("exp") or config.expires_at or 0)
+    if expires_at and expires_at < now:
+        raise SessionExpiredError
+
+    return {
+        "email": claims.get("email", ""),
+        "user_type": claims.get("user_type", ""),
+        "business_account": claims.get("business_account", ""),
+        "scopes": claims.get("scope") or config.scope or "",
+        "expires_at": expires_at,
+        "expires_in": max(0, expires_at - now),
+        "signature": signature_state,
+    }
+
+
+def whoami(
+    profile: Annotated[
+        str,
+        typer.Option(
+            "--profile",
+            "-p",
+            help="Profile to inspect. Defaults to the active profile.",
+        ),
+    ] = "",
+    output_json: Annotated[
+        bool,
+        typer.Option(
+            "--json",
+            help="Print machine-readable JSON instead of a human summary.",
+        ),
+    ] = False,
+    skip_signature: Annotated[
+        bool,
+        typer.Option(
+            "--skip-signature",
+            help="Skip JWKS-based signature verification (decode JWT claims only).",
+        ),
+    ] = False,
+) -> None:
+    profile_name, current_config, is_new_profile = _resolve_active_config(profile or None)
+    if is_new_profile:
+        _emit_error(f"Profile '{profile_name}' does not exist.")
+        raise typer.Exit(1)
+
+    try:
+        payload = _whoami_payload(current_config, verify_signature=not skip_signature)
+    except NoOAuthSessionError as exc:
+        if output_json:
+            typer.echo(json.dumps({"error": str(exc), "profile": profile_name}))
+        else:
+            typer.echo(str(exc))
+        raise typer.Exit(0) from None
+    except SessionExpiredError as exc:
+        if output_json:
+            typer.echo(json.dumps({"error": str(exc), "profile": profile_name}))
+        else:
+            _emit_error(str(exc))
+        raise typer.Exit(1) from None
+    except InvalidTokenSignatureError as exc:
+        if output_json:
+            typer.echo(json.dumps({"error": str(exc), "profile": profile_name}))
+        else:
+            _emit_error(str(exc))
+        raise typer.Exit(1) from None
+
+    payload_with_profile = {"profile": profile_name, **payload}
+    if output_json:
+        typer.echo(json.dumps(payload_with_profile))
+    else:
+        typer.echo(f"profile         : {profile_name}")
+        typer.echo(f"email           : {payload['email']}")
+        typer.echo(f"user_type       : {payload['user_type'] or '—'}")
+        typer.echo(f"business_account: {payload['business_account'] or '—'}")
+        typer.echo(f"scopes          : {payload['scopes'] or '—'}")
+        typer.echo(f"expires_at      : {payload['expires_at']}")
+        typer.echo(f"expires_in      : {payload['expires_in']}s")
+        typer.echo(f"signature       : {payload['signature']}")
     raise typer.Exit(0)
 
 
