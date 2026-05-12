@@ -11,7 +11,9 @@ import typer
 import yaml
 from typer.testing import CliRunner
 
+from cli.auth.commands import API_DOMAIN_ENV_VAR
 from cli.auth.commands import CLIENT_ID_ENV_VAR
+from cli.auth.commands import LOOPBACK_PORT_ENV_VAR
 from cli.auth.commands import login
 from cli.auth.loopback_server import LoopbackResult
 from cli.auth.oauth_client import PKCEPair
@@ -340,3 +342,216 @@ class TestClientIdResolution:
         # Expected
         assert result.exit_code == 0
         assert mock_exchange.call_args.kwargs["client_id"] == expected_client_id
+
+
+class TestPortResolution:
+    def test_default_port_is_53682_when_no_flag_no_env(
+        self, cli_runner, isolated_profile_dir, monkeypatch
+    ):
+        # Setup
+        monkeypatch.delenv(LOOPBACK_PORT_ENV_VAR, raising=False)
+        expected_redirect_uri = "http://127.0.0.1:53682/callback"
+        # Action
+        with (
+            patch("cli.auth.commands.port_available", return_value=True) as mock_port_check,
+            patch("cli.auth.commands.webbrowser.open", return_value=True),
+            patch("cli.auth.commands.LoopbackServer") as mock_server,
+            patch(
+                "cli.auth.commands.generate_pkce_pair",
+                return_value=PKCEPair(verifier="v", challenge="c"),
+            ),
+            patch("cli.auth.commands.generate_state", return_value="s"),
+            patch(
+                "cli.auth.commands.exchange_code_for_tokens",
+                return_value=_fake_token_set(),
+            ) as mock_exchange,
+        ):
+            mock_server.return_value.wait_for_callback.return_value = LoopbackResult(
+                code="code", state="s"
+            )
+            result = cli_runner.invoke(_login_app(), ["--client-id", "ubidots-cli"])
+        # Expected
+        assert result.exit_code == 0
+        assert mock_port_check.call_args.kwargs == {"port": 53682}
+        mock_server.assert_called_once_with(port=53682)
+        assert mock_exchange.call_args.kwargs["redirect_uri"] == expected_redirect_uri
+
+    def test_flag_overrides_default_port_in_redirect_uri_and_server(
+        self, cli_runner, isolated_profile_dir, monkeypatch
+    ):
+        # Setup
+        monkeypatch.delenv(LOOPBACK_PORT_ENV_VAR, raising=False)
+        expected_port = 65000
+        expected_redirect_uri = "http://127.0.0.1:65000/callback"
+        # Action
+        with (
+            patch("cli.auth.commands.port_available", return_value=True) as mock_port_check,
+            patch("cli.auth.commands.webbrowser.open", return_value=True),
+            patch("cli.auth.commands.LoopbackServer") as mock_server,
+            patch(
+                "cli.auth.commands.generate_pkce_pair",
+                return_value=PKCEPair(verifier="v", challenge="c"),
+            ),
+            patch("cli.auth.commands.generate_state", return_value="s"),
+            patch(
+                "cli.auth.commands.exchange_code_for_tokens",
+                return_value=_fake_token_set(),
+            ) as mock_exchange,
+        ):
+            mock_server.return_value.wait_for_callback.return_value = LoopbackResult(
+                code="code", state="s"
+            )
+            result = cli_runner.invoke(
+                _login_app(), ["--client-id", "ubidots-cli", "--port", "65000"]
+            )
+        # Expected
+        assert result.exit_code == 0
+        assert mock_port_check.call_args.kwargs == {"port": expected_port}
+        mock_server.assert_called_once_with(port=expected_port)
+        assert mock_exchange.call_args.kwargs["redirect_uri"] == expected_redirect_uri
+
+    def test_env_var_supplies_port_when_flag_absent(
+        self, cli_runner, isolated_profile_dir, monkeypatch
+    ):
+        # Setup
+        monkeypatch.setenv(LOOPBACK_PORT_ENV_VAR, "60000")
+        expected_port = 60000
+        # Action
+        with (
+            patch("cli.auth.commands.port_available", return_value=True) as mock_port_check,
+            patch("cli.auth.commands.webbrowser.open", return_value=True),
+            patch("cli.auth.commands.LoopbackServer") as mock_server,
+            patch(
+                "cli.auth.commands.generate_pkce_pair",
+                return_value=PKCEPair(verifier="v", challenge="c"),
+            ),
+            patch("cli.auth.commands.generate_state", return_value="s"),
+            patch(
+                "cli.auth.commands.exchange_code_for_tokens",
+                return_value=_fake_token_set(),
+            ),
+        ):
+            mock_server.return_value.wait_for_callback.return_value = LoopbackResult(
+                code="code", state="s"
+            )
+            result = cli_runner.invoke(_login_app(), ["--client-id", "ubidots-cli"])
+        # Expected
+        assert result.exit_code == 0
+        assert mock_port_check.call_args.kwargs == {"port": expected_port}
+        mock_server.assert_called_once_with(port=expected_port)
+
+    def test_port_in_use_message_lists_diagnostic_commands(
+        self, cli_runner, isolated_profile_dir, monkeypatch
+    ):
+        # Setup
+        monkeypatch.delenv(LOOPBACK_PORT_ENV_VAR, raising=False)
+        expected_exit_code = 2
+        # Action
+        with patch("cli.auth.commands.port_available", return_value=False):
+            result = cli_runner.invoke(
+                _login_app(), ["--client-id", "ubidots-cli", "--port", "53682"]
+            )
+        # Expected
+        assert result.exit_code == expected_exit_code
+        assert "lsof" in result.output
+        assert "--port" in result.output
+        assert LOOPBACK_PORT_ENV_VAR in result.output
+
+
+class TestApiDomainResolution:
+    def test_flag_overrides_profile_api_domain_and_is_persisted(
+        self, cli_runner, isolated_profile_dir, monkeypatch
+    ):
+        # Setup
+        monkeypatch.delenv(API_DOMAIN_ENV_VAR, raising=False)
+        expected_api_domain = "https://cs.ubidots.site"
+        # Action
+        with (
+            patch("cli.auth.commands.port_available", return_value=True),
+            patch("cli.auth.commands.webbrowser.open", return_value=True),
+            patch("cli.auth.commands.LoopbackServer") as mock_server,
+            patch(
+                "cli.auth.commands.generate_pkce_pair",
+                return_value=PKCEPair(verifier="v", challenge="c"),
+            ),
+            patch("cli.auth.commands.generate_state", return_value="s"),
+            patch(
+                "cli.auth.commands.exchange_code_for_tokens",
+                return_value=_fake_token_set(),
+            ) as mock_exchange,
+        ):
+            mock_server.return_value.wait_for_callback.return_value = LoopbackResult(
+                code="code", state="s"
+            )
+            result = cli_runner.invoke(
+                _login_app(),
+                [
+                    "--client-id",
+                    "ubidots-cli",
+                    "--api-domain",
+                    expected_api_domain,
+                ],
+            )
+        saved_yaml = yaml.safe_load((isolated_profile_dir / "default.yaml").read_text())
+        # Expected
+        assert result.exit_code == 0
+        assert mock_exchange.call_args.kwargs["api_domain"] == expected_api_domain
+        assert saved_yaml["api_domain"] == expected_api_domain
+
+    def test_env_var_supplies_api_domain_when_flag_absent(
+        self, cli_runner, isolated_profile_dir, monkeypatch
+    ):
+        # Setup
+        monkeypatch.setenv(API_DOMAIN_ENV_VAR, "https://cs.ubidots.site")
+        expected_api_domain = "https://cs.ubidots.site"
+        # Action
+        with (
+            patch("cli.auth.commands.port_available", return_value=True),
+            patch("cli.auth.commands.webbrowser.open", return_value=True),
+            patch("cli.auth.commands.LoopbackServer") as mock_server,
+            patch(
+                "cli.auth.commands.generate_pkce_pair",
+                return_value=PKCEPair(verifier="v", challenge="c"),
+            ),
+            patch("cli.auth.commands.generate_state", return_value="s"),
+            patch(
+                "cli.auth.commands.exchange_code_for_tokens",
+                return_value=_fake_token_set(),
+            ) as mock_exchange,
+        ):
+            mock_server.return_value.wait_for_callback.return_value = LoopbackResult(
+                code="code", state="s"
+            )
+            result = cli_runner.invoke(_login_app(), ["--client-id", "ubidots-cli"])
+        # Expected
+        assert result.exit_code == 0
+        assert mock_exchange.call_args.kwargs["api_domain"] == expected_api_domain
+
+    def test_profile_api_domain_used_when_no_flag_no_env(
+        self, cli_runner, isolated_profile_dir, monkeypatch
+    ):
+        # Setup — fixture creates legacy profile with api_domain=https://core.test
+        monkeypatch.delenv(API_DOMAIN_ENV_VAR, raising=False)
+        expected_api_domain = "https://core.test"
+        # Action
+        with (
+            patch("cli.auth.commands.port_available", return_value=True),
+            patch("cli.auth.commands.webbrowser.open", return_value=True),
+            patch("cli.auth.commands.LoopbackServer") as mock_server,
+            patch(
+                "cli.auth.commands.generate_pkce_pair",
+                return_value=PKCEPair(verifier="v", challenge="c"),
+            ),
+            patch("cli.auth.commands.generate_state", return_value="s"),
+            patch(
+                "cli.auth.commands.exchange_code_for_tokens",
+                return_value=_fake_token_set(),
+            ) as mock_exchange,
+        ):
+            mock_server.return_value.wait_for_callback.return_value = LoopbackResult(
+                code="code", state="s"
+            )
+            result = cli_runner.invoke(_login_app(), ["--client-id", "ubidots-cli"])
+        # Expected
+        assert result.exit_code == 0
+        assert mock_exchange.call_args.kwargs["api_domain"] == expected_api_domain

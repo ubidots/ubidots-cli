@@ -24,6 +24,8 @@ from cli.config.models import ProfileConfigModel
 from cli.settings import settings
 
 CLIENT_ID_ENV_VAR = "UBIDOTS_OAUTH_CLIENT_ID"
+LOOPBACK_PORT_ENV_VAR = "UBIDOTS_OAUTH_LOOPBACK_PORT"
+API_DOMAIN_ENV_VAR = "UBIDOTS_API_DOMAIN"
 
 
 def _emit(message: str, color: MessageColorEnum = MessageColorEnum.SUCCESS) -> None:
@@ -50,6 +52,28 @@ def _resolve_client_id(flag_value: str, current_config: ProfileConfigModel) -> s
         or current_config.oauth_client_id
         or settings.OAUTH.DEFAULT_CLIENT_ID
     )
+
+
+def _resolve_api_domain(flag_value: str, current_config: ProfileConfigModel) -> str:
+    return (
+        flag_value
+        or os.getenv(API_DOMAIN_ENV_VAR, "")
+        or current_config.api_domain
+        or settings.CONFIG.API_DOMAIN
+    )
+
+
+def _resolve_loopback_port(flag_value: int) -> int:
+    if flag_value > 0:
+        return flag_value
+    env_value = os.getenv(LOOPBACK_PORT_ENV_VAR, "")
+    if env_value.isdigit():
+        return int(env_value)
+    return settings.OAUTH.LOOPBACK_PORT
+
+
+def _build_redirect_uri(port: int) -> str:
+    return f"http://{settings.OAUTH.LOOPBACK_HOST}:{port}{settings.OAUTH.CALLBACK_PATH}"
 
 
 def _extract_user_label(token_set, fallback: str = "user") -> str:
@@ -109,6 +133,29 @@ def login(
             help="Seconds to wait for the browser callback.",
         ),
     ] = 0,
+    port: Annotated[
+        int,
+        typer.Option(
+            "--port",
+            help=(
+                "Loopback port for the OAuth callback. Defaults to the env var "
+                f"{LOOPBACK_PORT_ENV_VAR} or the built-in 53682. Non-default ports "
+                "must be registered as a redirect_uri in the core OAuth Application."
+            ),
+        ),
+    ] = 0,
+    api_domain: Annotated[
+        str,
+        typer.Option(
+            "--api-domain",
+            "-a",
+            help=(
+                "Override the Ubidots API domain for this login (e.g. "
+                "https://cs.ubidots.site). Defaults to the env var "
+                f"{API_DOMAIN_ENV_VAR}, then the profile's api_domain."
+            ),
+        ),
+    ] = "",
 ) -> None:
     profile_name, current_config = _resolve_active_config(profile or None)
     resolved_client_id = _resolve_client_id(client_id, current_config)
@@ -118,29 +165,35 @@ def login(
             f"{CLIENT_ID_ENV_VAR}, or ask DevOps for the ubidots-cli client_id."
         )
         raise typer.Exit(2)
-    api_domain = current_config.api_domain or settings.CONFIG.API_DOMAIN
+    resolved_api_domain = _resolve_api_domain(api_domain, current_config)
+    resolved_port = _resolve_loopback_port(port)
+    redirect_uri = _build_redirect_uri(resolved_port)
     requested_scope = scope or settings.OAUTH.DEFAULT_SCOPE
     timeout_seconds = timeout if timeout > 0 else settings.OAUTH.LOGIN_TIMEOUT_SECONDS
 
-    if not port_available():
+    if not port_available(port=resolved_port):
         _emit_error(
-            f"Port {settings.OAUTH.LOOPBACK_PORT} is already in use. "
-            "Close the process holding it and try again."
+            f"Port {resolved_port} on {settings.OAUTH.LOOPBACK_HOST} is already in use.\n"
+            f"  · Find the process: `lsof -nP -iTCP:{resolved_port} -sTCP:LISTEN`\n"
+            f"  · Or pick another port: `--port <free-port>` "
+            f"(or export {LOOPBACK_PORT_ENV_VAR}=<free-port>).\n"
+            "  · Non-default ports must be registered as redirect_uri in the core OAuth Application."
         )
         raise typer.Exit(2)
 
     pkce = generate_pkce_pair()
     state = generate_state()
     authorize_url = build_authorize_url(
-        api_domain=api_domain,
+        api_domain=resolved_api_domain,
         client_id=resolved_client_id,
         state=state,
         code_challenge=pkce.challenge,
         scope=requested_scope,
+        redirect_uri=redirect_uri,
     )
 
     try:
-        server = LoopbackServer()
+        server = LoopbackServer(port=resolved_port)
     except OSError as exc:
         _emit_error(f"Could not bind loopback server: {exc}")
         raise typer.Exit(2) from exc
@@ -172,10 +225,11 @@ def login(
 
     try:
         token_set = exchange_code_for_tokens(
-            api_domain=api_domain,
+            api_domain=resolved_api_domain,
             client_id=resolved_client_id,
             code=result.code,
             code_verifier=pkce.verifier,
+            redirect_uri=redirect_uri,
         )
     except UnknownOAuthClientError as exc:
         _emit_error(str(exc))
@@ -186,6 +240,7 @@ def login(
 
     new_config = current_config.model_copy(
         update={
+            "api_domain": resolved_api_domain,
             "auth_method": AuthHeaderTypeEnum.OAUTH2,
             "access_token": token_set.access_token,
             "refresh_token": token_set.refresh_token,
