@@ -22,7 +22,7 @@ class OAuthSettings(BaseModel):
     LOGIN_TIMEOUT_SECONDS: int = 60
     VERIFIER_BYTES: int = 64
     STATE_BYTES: int = 32
-    DEFAULT_CLIENT_ID: str = ""
+    DEFAULT_CLIENT_ID: str = "ubidots-cli"
 
     @property
     def REDIRECT_URI(self) -> str:
