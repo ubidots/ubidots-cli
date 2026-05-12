@@ -179,6 +179,28 @@ class TestExchangeCodeForTokens:
         assert "Code expired" in str(excinfo.value)
 
     @respx.mock
+    def test_generic_client_word_in_error_does_not_misclassify_as_unknown_client(self):
+        # Setup — only the exact OAuth2 code `invalid_client` should raise UnknownOAuthClientError.
+        # Generic phrases like "Client-side validation" must propagate as TokenExchangeError.
+        respx.post("https://core.test/o/token/").mock(
+            return_value=httpx.Response(
+                400,
+                json={
+                    "error": "invalid_request",
+                    "error_description": "Client-side validation failed",
+                },
+            )
+        )
+        # Action / Expected
+        with pytest.raises(TokenExchangeError):
+            exchange_code_for_tokens(
+                api_domain="https://core.test",
+                client_id="ubidots-cli",
+                code="c",
+                code_verifier="v",
+            )
+
+    @respx.mock
     def test_request_body_contains_pkce_verifier_and_authorization_code_grant(self):
         # Setup
         expected_pairs = {

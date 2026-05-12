@@ -92,7 +92,7 @@ def exchange_code_for_tokens(
         raise UnknownOAuthClientError
     if response.status_code != httpx.codes.OK:
         detail = _safe_error_detail(response)
-        if "invalid_client" in detail or "client" in detail.lower():
+        if "invalid_client" in detail:
             raise UnknownOAuthClientError
         raise TokenExchangeError(detail=detail)
 

@@ -69,7 +69,7 @@ line_length = 123
 skip_glob = [".venv*"]
 
 [tool.ruff]
-target-version = "py314"
+target-version = "py313"
 line-length = 123
 
 [tool.ruff.lint]
