@@ -8,6 +8,7 @@ import typer
 import yaml
 
 from cli.commons.enums import MessageColorEnum
+from cli.commons.http_auth import get_auth_headers
 from cli.commons.validators import is_valid_object_id
 from cli.config.models import ProfileConfigModel
 
@@ -29,7 +30,7 @@ def build_endpoint(
         if filter_string:
             url += f"&{filter_string}"
 
-    headers = {active_config.auth_method: active_config.access_token}
+    headers = get_auth_headers(active_config)
     return url, headers
 
 

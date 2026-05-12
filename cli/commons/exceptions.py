@@ -80,6 +80,48 @@ class EmptyTokenError(Exception):
         return "Access token is empty. Please provide a valid access token."
 
 
+class OAuthFieldsRequiredError(Exception):
+    def __init__(self, missing_fields: list[str]):
+        self.missing_fields = missing_fields
+
+    def __str__(self):
+        joined = ", ".join(self.missing_fields)
+        return (
+            f"Profile uses auth_method=OAUTH2 but is missing required OAuth fields: {joined}. "
+            "Run 'ubidots login' to populate them."
+        )
+
+
+class AuthorizationDeniedError(Exception):
+    def __str__(self):
+        return "Authorization denied"
+
+
+class LoginTimeoutError(Exception):
+    def __str__(self):
+        return "Login timed out — run again"
+
+
+class CSRFMismatchError(Exception):
+    def __str__(self):
+        return "CSRF mismatch — possible attack, aborting"
+
+
+class UnknownOAuthClientError(Exception):
+    def __str__(self):
+        return "Unknown OAuth client. Verify with your DevOps team."
+
+
+class TokenExchangeError(Exception):
+    def __init__(self, detail: str = ""):
+        self.detail = detail
+
+    def __str__(self):
+        if self.detail:
+            return f"Failed to exchange authorization code for tokens: {self.detail}"
+        return "Failed to exchange authorization code for tokens."
+
+
 class ContainerNotFoundError(Exception):
     """Raised by base Docker classes when a container cannot be found by label."""
 

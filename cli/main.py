@@ -1,6 +1,7 @@
 import typer
 
 from cli.apps.commands import app as apps_app
+from cli.auth.commands import login
 from cli.config.commands import config
 from cli.devices.commands import app as device_app
 from cli.functions.commands import app as function_app
@@ -10,6 +11,7 @@ from cli.variables.commands import app as variable_app
 app = typer.Typer()
 
 app.command(help="Configure general settings for the CLI.")(config)
+app.command(help="Authenticate with Ubidots via OAuth2 (Authorization Code + PKCE).")(login)
 app.add_typer(function_app, name="functions")
 app.add_typer(device_app, name="devices")
 app.add_typer(variable_app, name="variables")

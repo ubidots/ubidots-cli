@@ -1,3 +1,8 @@
+import contextlib
+import os
+import stat
+import sys
+import warnings
 from pathlib import Path
 
 import requests
@@ -9,17 +14,57 @@ from cli.commons.exceptions import InvalidProfileError
 from cli.commons.exceptions import NoProfileError
 from cli.commons.exceptions import ProfileConfigEmptyFieldsError
 from cli.commons.exceptions import ProfileConfigMissingFieldsError
+from cli.commons.http_auth import get_auth_headers
 from cli.commons.utils import exit_with_error_message
 from cli.commons.utils import load_yaml
+from cli.config.models import AuthHeaderTypeEnum
 from cli.config.models import ProfileConfigModel
 from cli.settings import settings
+
+PROFILE_FILE_MODE = 0o600
+
+OAUTH_OPTIONAL_FIELDS = {
+    "oauth_client_id",
+    "refresh_token",
+    "expires_at",
+    "scope",
+    "token_type",
+}
+
+
+def _set_secure_permissions(file_path: Path) -> None:
+    if sys.platform == "win32":
+        return
+    with contextlib.suppress(OSError):
+        file_path.chmod(PROFILE_FILE_MODE)
+
+
+def _warn_if_permissive(file_path: Path) -> None:
+    if sys.platform == "win32" or not file_path.exists():
+        return
+    try:
+        mode = file_path.stat().st_mode & 0o777
+    except OSError:
+        return
+    if mode & (stat.S_IRWXG | stat.S_IRWXO):
+        warnings.warn(
+            f"Profile file {file_path} has permissions {oct(mode)} — tightening to 0600.",
+            stacklevel=2,
+        )
+        _set_secure_permissions(file_path)
 
 
 def save_profile_configuration(profile: str, config_model: ProfileConfigModel) -> None:
     file_path = Path(settings.CONFIG.PROFILES_PATH / f"{profile}.yaml")
     settings.CONFIG.PROFILES_PATH.mkdir(parents=True, exist_ok=True)
-    with file_path.open("w") as config_file:
+    fd = os.open(
+        str(file_path),
+        os.O_WRONLY | os.O_CREAT | os.O_TRUNC,
+        PROFILE_FILE_MODE,
+    )
+    with os.fdopen(fd, "w") as config_file:
         yaml.dump(config_model.to_yaml_serializable_format(), config_file)
+    _set_secure_permissions(file_path)
 
 
 def exists_default_profile() -> bool:
@@ -68,6 +113,7 @@ def overwrite_default_profile(profile: str) -> None:
 
 def read_cli_configuration(profile: str) -> ProfileConfigModel:
     file_path = Path(settings.CONFIG.PROFILES_PATH / f"{profile}.yaml")
+    _warn_if_permissive(file_path)
     with file_path.open() as config_file:
         config_data = yaml.safe_load(config_file)
     return ProfileConfigModel(**config_data)
@@ -113,7 +159,12 @@ def mask_token(
 
 
 def get_runtimes_from_api(access_token: str) -> list[dict]:
-    headers = {"X-Auth-Token": access_token}
+    headers = get_auth_headers(
+        ProfileConfigModel(
+            auth_method=AuthHeaderTypeEnum.TOKEN,
+            access_token=access_token,
+        )
+    )
 
     try:
         response = requests.get(settings.CONFIG.RUNTIMES_URL, headers=headers)
@@ -153,7 +204,7 @@ def validate_profile_config(
     profile_config: dict, profile_file: Path
 ) -> ProfileConfigModel:
 
-    required_fields = set(ProfileConfigModel.model_fields.keys())
+    required_fields = set(ProfileConfigModel.model_fields.keys()) - OAUTH_OPTIONAL_FIELDS
     missing_fields = required_fields - profile_config.keys()
     if missing_fields:
         raise ProfileConfigMissingFieldsError(
@@ -173,6 +224,7 @@ def validate_profile_config(
             empty_fields=empty_fields, profile_file=profile_file
         )
 
+    _warn_if_permissive(profile_file)
     try:
         return ProfileConfigModel(**profile_config)
     except ValidationError as e:
