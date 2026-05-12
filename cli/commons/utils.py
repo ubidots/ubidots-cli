@@ -8,17 +8,53 @@ import typer
 import yaml
 
 from cli.commons.enums import MessageColorEnum
+from cli.commons.exceptions import CoreUnreachableError
+from cli.commons.exceptions import RefreshFailedError
+from cli.commons.exceptions import RefreshLockBusyError
+from cli.commons.exceptions import RefreshTokenExpiredError
 from cli.commons.http_auth import get_auth_headers
 from cli.commons.validators import is_valid_object_id
+from cli.config.models import AuthHeaderTypeEnum
 from cli.config.models import ProfileConfigModel
+from cli.settings import settings
+
+
+def _infer_active_profile_name() -> str:
+    config_path = Path(settings.CONFIG.FILE_PATH)
+    if not config_path.exists():
+        return settings.CONFIG.DEFAULT_PROFILE
+    try:
+        with config_path.open() as f:
+            data = yaml.safe_load(f) or {}
+        return data.get("profile") or settings.CONFIG.DEFAULT_PROFILE
+    except (OSError, yaml.YAMLError):
+        return settings.CONFIG.DEFAULT_PROFILE
+
+
+def _refresh_or_exit(
+    active_config: ProfileConfigModel, profile_name: str | None
+) -> ProfileConfigModel:
+    if active_config.auth_method != AuthHeaderTypeEnum.OAUTH2:
+        return active_config
+    from cli.auth.token_refresh import ensure_fresh_token
+
+    resolved_profile = profile_name or _infer_active_profile_name()
+    try:
+        return ensure_fresh_token(profile_name=resolved_profile, config=active_config)
+    except RefreshTokenExpiredError as exc:
+        exit_with_error_message(exception=exc, message=str(exc))
+    except (RefreshFailedError, RefreshLockBusyError, CoreUnreachableError) as exc:
+        exit_with_error_message(exception=exc, message=str(exc))
 
 
 def build_endpoint(
     route: str,
     active_config: ProfileConfigModel,
     query_params: dict | None = None,
+    profile_name: str | None = None,
     **kwargs,
 ) -> tuple[str, dict]:
+    active_config = _refresh_or_exit(active_config, profile_name)
     url = f"{active_config.api_domain}{route.format(**kwargs)}"
     if query_params:
         filter_string = query_params.pop("filter", None)

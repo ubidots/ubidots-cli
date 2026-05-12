@@ -24,6 +24,9 @@ class OAuthSettings(BaseModel):
     STATE_BYTES: int = 32
     DEFAULT_CLIENT_ID: str = "ubidots-cli"
     REVOKE_TIMEOUT_SECONDS: int = 5
+    REFRESH_LEEWAY_SECONDS: int = 30
+    REFRESH_LOCK_TIMEOUT_SECONDS: int = 10
+    REFRESH_HTTP_TIMEOUT_SECONDS: int = 10
 
     @property
     def REDIRECT_URI(self) -> str:

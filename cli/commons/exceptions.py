@@ -122,6 +122,32 @@ class TokenExchangeError(Exception):
         return "Failed to exchange authorization code for tokens."
 
 
+class RefreshTokenExpiredError(Exception):
+    def __str__(self):
+        return "Your session has expired. Please run 'ubidots login' again."
+
+
+class RefreshFailedError(Exception):
+    def __init__(self, detail: str = ""):
+        self.detail = detail
+
+    def __str__(self):
+        return f"Could not refresh session: {self.detail or 'unknown error'}"
+
+
+class CoreUnreachableError(Exception):
+    def __init__(self, api_domain: str):
+        self.api_domain = api_domain
+
+    def __str__(self):
+        return f"Cannot reach Ubidots core at {self.api_domain}. Check your network."
+
+
+class RefreshLockBusyError(Exception):
+    def __str__(self):
+        return "Another ubidots command is currently refreshing the session, please retry."
+
+
 class ContainerNotFoundError(Exception):
     """Raised by base Docker classes when a container cannot be found by label."""
 
