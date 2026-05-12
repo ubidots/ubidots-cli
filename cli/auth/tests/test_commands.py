@@ -555,3 +555,195 @@ class TestApiDomainResolution:
         # Expected
         assert result.exit_code == 0
         assert mock_exchange.call_args.kwargs["api_domain"] == expected_api_domain
+
+
+class TestProfileResolution:
+    def test_no_profile_flag_writes_to_active_profile_not_default(
+        self, cli_runner, tmp_path, monkeypatch
+    ):
+        # Setup: active profile is "staging", NOT "default"
+        profiles_dir = tmp_path / "profiles"
+        profiles_dir.mkdir()
+        monkeypatch.setattr(settings.CONFIG, "DIRECTORY_PATH", tmp_path)
+        monkeypatch.setattr(settings.CONFIG, "PROFILES_PATH", profiles_dir)
+        monkeypatch.setattr(settings.CONFIG, "FILE_PATH", tmp_path / "config.yaml")
+        (tmp_path / "config.yaml").write_text(
+            yaml.dump({"profilesPath": str(profiles_dir), "profile": "staging"})
+        )
+        staging_profile = {
+            "api_domain": "https://staging.test",
+            "auth_method": AuthHeaderTypeEnum.TOKEN.value,
+            "access_token": "legacy-staging",
+            "runtimes": [],
+            "containerRepositoryBase": settings.CONFIG.DEFAULT_CONTAINER_REPOSITORY,
+            "output_format": "machine",
+        }
+        staging_path = profiles_dir / "staging.yaml"
+        staging_path.write_text(yaml.dump(staging_profile))
+        if os.name != "nt":
+            os.chmod(staging_path, 0o600)
+        # Action
+        with (
+            patch("cli.auth.commands.port_available", return_value=True),
+            patch("cli.auth.commands.webbrowser.open", return_value=True),
+            patch("cli.auth.commands.LoopbackServer") as mock_server,
+            patch(
+                "cli.auth.commands.generate_pkce_pair",
+                return_value=PKCEPair(verifier="v", challenge="c"),
+            ),
+            patch("cli.auth.commands.generate_state", return_value="s"),
+            patch(
+                "cli.auth.commands.exchange_code_for_tokens",
+                return_value=_fake_token_set(),
+            ),
+        ):
+            mock_server.return_value.wait_for_callback.return_value = LoopbackResult(
+                code="code", state="s"
+            )
+            result = cli_runner.invoke(_login_app(), ["--client-id", "ubidots-cli"])
+        # Expected — tokens persist in staging.yaml, default.yaml never created
+        assert result.exit_code == 0, result.output
+        assert "profile 'staging'" in result.output
+        saved = yaml.safe_load(staging_path.read_text())
+        assert saved["auth_method"] == AuthHeaderTypeEnum.OAUTH2.value
+        assert saved["refresh_token"]
+        assert not (profiles_dir / "default.yaml").exists()
+
+    def test_explicit_profile_flag_creates_new_profile_if_missing(
+        self, cli_runner, isolated_profile_dir
+    ):
+        # Setup — fixture creates only default.yaml; "fresh" does not exist
+        new_profile_path = isolated_profile_dir / "fresh.yaml"
+        assert not new_profile_path.exists()
+        # Action
+        with (
+            patch("cli.auth.commands.port_available", return_value=True),
+            patch("cli.auth.commands.webbrowser.open", return_value=True),
+            patch("cli.auth.commands.LoopbackServer") as mock_server,
+            patch(
+                "cli.auth.commands.generate_pkce_pair",
+                return_value=PKCEPair(verifier="v", challenge="c"),
+            ),
+            patch("cli.auth.commands.generate_state", return_value="s"),
+            patch(
+                "cli.auth.commands.exchange_code_for_tokens",
+                return_value=_fake_token_set(),
+            ),
+        ):
+            mock_server.return_value.wait_for_callback.return_value = LoopbackResult(
+                code="code", state="s"
+            )
+            result = cli_runner.invoke(
+                _login_app(),
+                ["--client-id", "ubidots-cli", "--profile", "fresh"],
+            )
+        # Expected
+        assert result.exit_code == 0, result.output
+        assert "does not exist yet" in result.output
+        assert new_profile_path.exists()
+        saved = yaml.safe_load(new_profile_path.read_text())
+        assert saved["auth_method"] == AuthHeaderTypeEnum.OAUTH2.value
+
+    def test_explicit_profile_flag_only_touches_target_profile(
+        self, cli_runner, isolated_profile_dir
+    ):
+        # Setup — fixture creates default.yaml; we'll login to "other"
+        default_before = (isolated_profile_dir / "default.yaml").read_text()
+        # Action
+        with (
+            patch("cli.auth.commands.port_available", return_value=True),
+            patch("cli.auth.commands.webbrowser.open", return_value=True),
+            patch("cli.auth.commands.LoopbackServer") as mock_server,
+            patch(
+                "cli.auth.commands.generate_pkce_pair",
+                return_value=PKCEPair(verifier="v", challenge="c"),
+            ),
+            patch("cli.auth.commands.generate_state", return_value="s"),
+            patch(
+                "cli.auth.commands.exchange_code_for_tokens",
+                return_value=_fake_token_set(),
+            ),
+        ):
+            mock_server.return_value.wait_for_callback.return_value = LoopbackResult(
+                code="code", state="s"
+            )
+            result = cli_runner.invoke(
+                _login_app(),
+                ["--client-id", "ubidots-cli", "--profile", "other"],
+            )
+        default_after = (isolated_profile_dir / "default.yaml").read_text()
+        # Expected — default profile is untouched
+        assert result.exit_code == 0, result.output
+        assert default_before == default_after
+
+
+class TestActiveSessionConfirmation:
+    def _seed_oauth_profile(self, profiles_dir, profile_name="default"):
+        from cli.auth.tests.test_commands import _jwt_with_email
+
+        profile_data = {
+            "api_domain": "https://core.test",
+            "auth_method": AuthHeaderTypeEnum.OAUTH2.value,
+            "access_token": _jwt_with_email("existing@ubidots.com"),
+            "refresh_token": "old-refresh",
+            "expires_at": 10_000_000_000,
+            "oauth_client_id": "ubidots-cli",
+            "scope": "read write",
+            "token_type": "Bearer",
+            "runtimes": [],
+            "containerRepositoryBase": settings.CONFIG.DEFAULT_CONTAINER_REPOSITORY,
+            "output_format": "machine",
+        }
+        profile_path = profiles_dir / f"{profile_name}.yaml"
+        profile_path.write_text(yaml.dump(profile_data))
+        if os.name != "nt":
+            os.chmod(profile_path, 0o600)
+
+    def test_active_oauth_session_prompts_for_confirmation_and_aborts_on_no(
+        self, cli_runner, isolated_profile_dir
+    ):
+        # Setup — replace default.yaml with an already-authenticated OAuth profile
+        self._seed_oauth_profile(isolated_profile_dir)
+        # Action — user types "n" to the prompt
+        with (
+            patch("cli.auth.commands.port_available", return_value=True),
+            patch("cli.auth.commands.LoopbackServer"),
+        ):
+            result = cli_runner.invoke(
+                _login_app(), ["--client-id", "ubidots-cli"], input="n\n"
+            )
+        # Expected
+        assert result.exit_code != 0
+        assert "already has an active OAuth session" in result.output
+        assert "existing@ubidots.com" in result.output
+        assert "Aborted by user" in result.output
+
+    def test_yes_flag_skips_confirmation_prompt(
+        self, cli_runner, isolated_profile_dir
+    ):
+        # Setup
+        self._seed_oauth_profile(isolated_profile_dir)
+        # Action
+        with (
+            patch("cli.auth.commands.port_available", return_value=True),
+            patch("cli.auth.commands.webbrowser.open", return_value=True),
+            patch("cli.auth.commands.LoopbackServer") as mock_server,
+            patch(
+                "cli.auth.commands.generate_pkce_pair",
+                return_value=PKCEPair(verifier="v", challenge="c"),
+            ),
+            patch("cli.auth.commands.generate_state", return_value="s"),
+            patch(
+                "cli.auth.commands.exchange_code_for_tokens",
+                return_value=_fake_token_set("new@ubidots.com"),
+            ),
+        ):
+            mock_server.return_value.wait_for_callback.return_value = LoopbackResult(
+                code="code", state="s"
+            )
+            result = cli_runner.invoke(
+                _login_app(), ["--client-id", "ubidots-cli", "--yes"]
+            )
+        # Expected
+        assert result.exit_code == 0, result.output
+        assert "new@ubidots.com" in result.output

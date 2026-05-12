@@ -1,8 +1,11 @@
 import os
+import time
 import webbrowser
+from pathlib import Path
 from typing import Annotated
 
 import typer
+import yaml
 
 from cli.auth.loopback_server import LoopbackServer
 from cli.auth.loopback_server import assert_state_matches
@@ -17,7 +20,8 @@ from cli.commons.exceptions import CSRFMismatchError
 from cli.commons.exceptions import LoginTimeoutError
 from cli.commons.exceptions import TokenExchangeError
 from cli.commons.exceptions import UnknownOAuthClientError
-from cli.config.helpers import get_configuration
+from cli.config.helpers import profile_exists
+from cli.config.helpers import read_cli_configuration
 from cli.config.helpers import save_profile_configuration
 from cli.config.models import AuthHeaderTypeEnum
 from cli.config.models import ProfileConfigModel
@@ -36,13 +40,42 @@ def _emit_error(message: str) -> None:
     typer.echo(typer.style(f"> [ERROR]: {message}", fg=MessageColorEnum.ERROR, bold=True), err=True)
 
 
-def _resolve_active_config(profile: str | None) -> tuple[str, ProfileConfigModel]:
+def _read_active_profile_name() -> str:
+    config_path = Path(settings.CONFIG.FILE_PATH)
+    if not config_path.exists():
+        return settings.CONFIG.DEFAULT_PROFILE
     try:
-        config = get_configuration(profile=profile)
-    except FileNotFoundError:
-        config = ProfileConfigModel()
-    profile_name = profile or settings.CONFIG.DEFAULT_PROFILE
-    return profile_name, config
+        with config_path.open() as f:
+            data = yaml.safe_load(f) or {}
+        return data.get("profile") or settings.CONFIG.DEFAULT_PROFILE
+    except (OSError, yaml.YAMLError):
+        return settings.CONFIG.DEFAULT_PROFILE
+
+
+def _resolve_active_config(profile: str | None) -> tuple[str, ProfileConfigModel, bool]:
+    profile_name = profile or _read_active_profile_name()
+
+    if profile_exists(profile_name):
+        try:
+            current_config = read_cli_configuration(profile=profile_name)
+            is_new = False
+        except (OSError, yaml.YAMLError):
+            current_config = ProfileConfigModel()
+            is_new = True
+    else:
+        current_config = ProfileConfigModel()
+        is_new = True
+
+    return profile_name, current_config, is_new
+
+
+def _has_active_oauth_session(config: ProfileConfigModel) -> bool:
+    return (
+        config.auth_method == AuthHeaderTypeEnum.OAUTH2
+        and bool(config.access_token)
+        and bool(config.refresh_token)
+        and config.expires_at > int(time.time())
+    )
 
 
 def _resolve_client_id(flag_value: str, current_config: ProfileConfigModel) -> str:
@@ -76,12 +109,12 @@ def _build_redirect_uri(port: int) -> str:
     return f"http://{settings.OAUTH.LOOPBACK_HOST}:{port}{settings.OAUTH.CALLBACK_PATH}"
 
 
-def _extract_user_label(token_set, fallback: str = "user") -> str:
+def _extract_user_label_from_jwt(jwt: str, fallback: str = "user") -> str:
     try:
         import base64
         import json
 
-        parts = token_set.access_token.split(".")
+        parts = jwt.split(".")
         if len(parts) < 2:
             return fallback
         payload_b64 = parts[1] + "=" * (-len(parts[1]) % 4)
@@ -89,6 +122,10 @@ def _extract_user_label(token_set, fallback: str = "user") -> str:
         return claims.get("email") or claims.get("preferred_username") or claims.get("sub") or fallback
     except Exception:
         return fallback
+
+
+def _extract_user_label(token_set, fallback: str = "user") -> str:
+    return _extract_user_label_from_jwt(token_set.access_token, fallback=fallback)
 
 
 def login(
@@ -156,8 +193,16 @@ def login(
             ),
         ),
     ] = "",
+    yes: Annotated[
+        bool,
+        typer.Option(
+            "--yes",
+            "-y",
+            help="Skip the confirmation prompt if the profile already has an active OAuth session.",
+        ),
+    ] = False,
 ) -> None:
-    profile_name, current_config = _resolve_active_config(profile or None)
+    profile_name, current_config, is_new_profile = _resolve_active_config(profile or None)
     resolved_client_id = _resolve_client_id(client_id, current_config)
     if not resolved_client_id:
         _emit_error(
@@ -170,6 +215,24 @@ def login(
     redirect_uri = _build_redirect_uri(resolved_port)
     requested_scope = scope or settings.OAUTH.DEFAULT_SCOPE
     timeout_seconds = timeout if timeout > 0 else settings.OAUTH.LOGIN_TIMEOUT_SECONDS
+
+    typer.echo(
+        f"Logging into profile '{profile_name}' at {resolved_api_domain} "
+        f"(client_id={resolved_client_id})"
+    )
+    if is_new_profile:
+        typer.echo(f"  · Profile '{profile_name}' does not exist yet — it will be created.")
+    elif _has_active_oauth_session(current_config):
+        existing_label = _extract_user_label_from_jwt(
+            current_config.access_token, fallback=profile_name
+        )
+        typer.echo(
+            f"  · Profile '{profile_name}' already has an active OAuth session as "
+            f"{existing_label}."
+        )
+        if not yes and not typer.confirm("Overwrite the existing session?", default=False):
+            _emit_error("Aborted by user.")
+            raise typer.Exit(1)
 
     if not port_available(port=resolved_port):
         _emit_error(
@@ -202,7 +265,7 @@ def login(
         typer.echo("Open the following URL in your browser to continue login:")
         typer.echo(authorize_url)
     else:
-        typer.echo(f"Opening your browser to authenticate (profile: {profile_name})...")
+        typer.echo("Opening your browser to authenticate...")
         opened = webbrowser.open(authorize_url, new=1, autoraise=True)
         if not opened:
             typer.echo("Could not open a browser automatically. Open this URL manually:")
@@ -253,7 +316,10 @@ def login(
     save_profile_configuration(profile=profile_name, config_model=new_config)
 
     user_label = _extract_user_label(token_set, fallback=profile_name)
-    _emit(f"Login successful as {user_label}", color=MessageColorEnum.SUCCESS)
+    _emit(
+        f"Login successful as {user_label} (profile: {profile_name})",
+        color=MessageColorEnum.SUCCESS,
+    )
     raise typer.Exit(0)
 
 
