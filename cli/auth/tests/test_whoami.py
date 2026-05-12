@@ -84,11 +84,13 @@ def _seed_token_profile(profiles_dir, name="default"):
 
 
 class TestWhoamiHumanOutput:
-    def test_oauth_profile_prints_claims_and_signature_state(
-        self, cli_runner, isolated_profile_dir
+    def test_oauth_profile_prints_full_summary_with_every_expected_line(
+        self, cli_runner, isolated_profile_dir, monkeypatch
     ):
-        # Setup
-        expires_at = int(time.time()) + 600
+        # Setup — freeze time so expires_in is deterministic
+        now = 1_700_000_000
+        monkeypatch.setattr(time, "time", lambda: now)
+        expires_at = now + 600
         _seed_oauth_profile(
             isolated_profile_dir,
             claims={
@@ -99,25 +101,33 @@ class TestWhoamiHumanOutput:
             },
             expires_at=expires_at,
         )
+        expected_lines = [
+            "profile         : default",
+            "email           : gustavo@ubidots.com",
+            "user_type       : admin",
+            "business_account: ubidots",
+            "scopes          : read write",
+            f"expires_at      : {expires_at}",
+            "expires_in      : 600s",
+            "signature       : unverified (JWKS unavailable)",
+        ]
         # Action
         with patch("cli.auth.commands.fetch_jwks", return_value=None):
             result = cli_runner.invoke(_whoami_app(), [])
+        actual_lines = result.output.strip().splitlines()
         # Expected
         assert result.exit_code == 0
-        assert "gustavo@ubidots.com" in result.output
-        assert "admin" in result.output
-        assert "ubidots" in result.output
-        assert "read write" in result.output
-        assert str(expires_at) in result.output
-        assert "unverified (JWKS unavailable)" in result.output
+        assert actual_lines == expected_lines
 
 
 class TestWhoamiJSONOutput:
-    def test_json_output_contains_full_payload_and_no_token_values(
-        self, cli_runner, isolated_profile_dir
+    def test_json_output_is_full_payload_and_does_not_leak_tokens(
+        self, cli_runner, isolated_profile_dir, monkeypatch
     ):
-        # Setup
-        expires_at = int(time.time()) + 600
+        # Setup — freeze time so expires_in is deterministic
+        now = 1_700_000_000
+        monkeypatch.setattr(time, "time", lambda: now)
+        expires_at = now + 600
         _seed_oauth_profile(
             isolated_profile_dir,
             claims={
@@ -128,22 +138,23 @@ class TestWhoamiJSONOutput:
             },
             expires_at=expires_at,
         )
-        # Action
-        with patch("cli.auth.commands.fetch_jwks", return_value=None):
-            result = cli_runner.invoke(_whoami_app(), ["--json"])
-        payload = json.loads(result.output.strip())
-        # Expected — full payload, no leaked tokens
-        assert result.exit_code == 0
-        assert payload == {
+        expected_payload = {
             "profile": "default",
             "email": "dev@ubidots.com",
             "user_type": "regular",
             "business_account": "acme",
             "scopes": "read",
             "expires_at": expires_at,
-            "expires_in": payload["expires_in"],
+            "expires_in": 600,
             "signature": "unverified (JWKS unavailable)",
         }
+        # Action
+        with patch("cli.auth.commands.fetch_jwks", return_value=None):
+            result = cli_runner.invoke(_whoami_app(), ["--json"])
+        actual_payload = json.loads(result.output.strip())
+        # Expected — full payload, no leaked tokens
+        assert result.exit_code == 0
+        assert actual_payload == expected_payload
         assert "access_token" not in result.output
         assert "refresh_token" not in result.output
 
@@ -160,18 +171,21 @@ class TestWhoamiTokenProfile:
         assert result.exit_code == 0
         assert "No OAuth session" in result.output
 
-    def test_token_profile_json_returns_error_field(
+    def test_token_profile_json_returns_full_error_payload(
         self, cli_runner, isolated_profile_dir
     ):
         # Setup
         _seed_token_profile(isolated_profile_dir)
+        expected_payload = {
+            "error": "No OAuth session. Profile is using a static API token.",
+            "profile": "default",
+        }
         # Action
         result = cli_runner.invoke(_whoami_app(), ["--json"])
-        payload = json.loads(result.output.strip())
+        actual_payload = json.loads(result.output.strip())
         # Expected
         assert result.exit_code == 0
-        assert payload["profile"] == "default"
-        assert "No OAuth session" in payload["error"]
+        assert actual_payload == expected_payload
 
 
 class TestWhoamiSessionExpired:

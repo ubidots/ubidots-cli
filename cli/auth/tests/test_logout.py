@@ -1,4 +1,5 @@
 import os
+from urllib.parse import parse_qs
 
 import httpx
 import pytest
@@ -8,6 +9,7 @@ import yaml
 from typer.testing import CliRunner
 
 from cli.auth.commands import logout
+from cli.commons.enums import OutputFormatFieldsEnum
 from cli.config.models import AuthHeaderTypeEnum
 from cli.settings import settings
 
@@ -48,7 +50,7 @@ def _seed_oauth_profile(profiles_dir, name="default", refresh_token="r-token"):
         "token_type": "Bearer",
         "runtimes": [],
         "containerRepositoryBase": settings.CONFIG.DEFAULT_CONTAINER_REPOSITORY,
-        "output_format": "machine",
+        "output_format": OutputFormatFieldsEnum.MACHINE.value,
     }
     profile_path = profiles_dir / f"{name}.yaml"
     profile_path.write_text(yaml.dump(data))
@@ -64,7 +66,7 @@ def _seed_token_profile(profiles_dir, name="default"):
         "access_token": "static",
         "runtimes": [],
         "containerRepositoryBase": settings.CONFIG.DEFAULT_CONTAINER_REPOSITORY,
-        "output_format": "machine",
+        "output_format": OutputFormatFieldsEnum.MACHINE.value,
     }
     profile_path = profiles_dir / f"{name}.yaml"
     profile_path.write_text(yaml.dump(data))
@@ -73,9 +75,24 @@ def _seed_token_profile(profiles_dir, name="default"):
     return profile_path
 
 
+def _expected_cleared_yaml(api_domain="https://core.test"):
+    return {
+        "api_domain": api_domain,
+        "auth_method": AuthHeaderTypeEnum.TOKEN.value,
+        "access_token": "",
+        "containerRepositoryBase": settings.CONFIG.DEFAULT_CONTAINER_REPOSITORY,
+        "runtimes": [],
+        "output_format": OutputFormatFieldsEnum.MACHINE.value,
+    }
+
+
+def _expected_revoke_form_body():
+    return {"token": "r-token", "client_id": "ubidots-cli"}
+
+
 class TestLogoutHappyPath:
     @respx.mock
-    def test_revoke_200_clears_oauth_fields_and_keeps_token_auth_method(
+    def test_revoke_200_clears_profile_to_full_token_only_state(
         self, cli_runner, isolated_profile_dir
     ):
         # Setup
@@ -83,24 +100,25 @@ class TestLogoutHappyPath:
         route = respx.post("https://core.test/o/revoke_token/").mock(
             return_value=httpx.Response(200)
         )
+        expected_yaml = _expected_cleared_yaml()
+        expected_form = _expected_revoke_form_body()
         # Action
         result = cli_runner.invoke(_logout_app(), [])
-        saved = yaml.safe_load(profile_path.read_text())
-        sent_body = route.calls[0].request.content.decode("utf-8")
+        actual_yaml = yaml.safe_load(profile_path.read_text())
+        sent_form = {
+            k: v[0]
+            for k, v in parse_qs(route.calls[0].request.content.decode("utf-8")).items()
+        }
         # Expected
         assert result.exit_code == 0
-        assert "Logged out" in result.output
-        assert saved["auth_method"] == AuthHeaderTypeEnum.TOKEN.value
-        assert saved["access_token"] == ""
-        assert "refresh_token" not in saved or not saved["refresh_token"]
-        assert "oauth_client_id" not in saved or not saved["oauth_client_id"]
-        assert "token=r-token" in sent_body
-        assert "client_id=ubidots-cli" in sent_body
+        assert "Logged out (profile: default)." in result.output
+        assert actual_yaml == expected_yaml
+        assert sent_form == expected_form
 
 
 class TestLogoutErrorPaths:
     @respx.mock
-    def test_revoke_4xx_still_clears_local_credentials(
+    def test_revoke_4xx_clears_profile_to_full_token_only_state(
         self, cli_runner, isolated_profile_dir
     ):
         # Setup
@@ -108,16 +126,17 @@ class TestLogoutErrorPaths:
         respx.post("https://core.test/o/revoke_token/").mock(
             return_value=httpx.Response(401, json={"error": "invalid_token"})
         )
+        expected_yaml = _expected_cleared_yaml()
         # Action
         result = cli_runner.invoke(_logout_app(), [])
-        saved = yaml.safe_load(profile_path.read_text())
+        actual_yaml = yaml.safe_load(profile_path.read_text())
         # Expected
         assert result.exit_code == 0
-        assert "already invalid" in result.output
-        assert saved["auth_method"] == AuthHeaderTypeEnum.TOKEN.value
+        assert "Logged out (refresh token was already invalid)." in result.output
+        assert actual_yaml == expected_yaml
 
     @respx.mock
-    def test_network_error_clears_local_and_hints_force_remote(
+    def test_network_error_clears_profile_and_hints_force_remote(
         self, cli_runner, isolated_profile_dir
     ):
         # Setup
@@ -125,14 +144,19 @@ class TestLogoutErrorPaths:
         respx.post("https://core.test/o/revoke_token/").mock(
             side_effect=httpx.ConnectError("boom")
         )
+        expected_yaml = _expected_cleared_yaml()
+        expected_output_substrings = [
+            "Could not reach core to revoke remotely. Local credentials cleared.",
+            "ubidots logout --force-remote",
+        ]
         # Action
         result = cli_runner.invoke(_logout_app(), [])
-        saved = yaml.safe_load(profile_path.read_text())
+        actual_yaml = yaml.safe_load(profile_path.read_text())
         # Expected
         assert result.exit_code == 0
-        assert "Could not reach core" in result.output
-        assert "--force-remote" in result.output
-        assert saved["auth_method"] == AuthHeaderTypeEnum.TOKEN.value
+        for substring in expected_output_substrings:
+            assert substring in result.output
+        assert actual_yaml == expected_yaml
 
 
 class TestLogoutTokenProfile:
@@ -141,19 +165,19 @@ class TestLogoutTokenProfile:
     ):
         # Setup
         profile_path = _seed_token_profile(isolated_profile_dir)
-        profile_before = profile_path.read_text()
+        expected_yaml = yaml.safe_load(profile_path.read_text())
         # Action
         result = cli_runner.invoke(_logout_app(), [])
-        profile_after = profile_path.read_text()
+        actual_yaml = yaml.safe_load(profile_path.read_text())
         # Expected
         assert result.exit_code == 0
-        assert "No OAuth session to log out from" in result.output
-        assert profile_before == profile_after
+        assert "No OAuth session to log out from." in result.output
+        assert actual_yaml == expected_yaml
 
 
 class TestLogoutProfileFlag:
     @respx.mock
-    def test_profile_flag_only_touches_target_profile(
+    def test_profile_flag_clears_target_profile_only_and_keeps_bystander_intact(
         self, cli_runner, isolated_profile_dir
     ):
         # Setup
@@ -161,15 +185,17 @@ class TestLogoutProfileFlag:
         bystander_path = _seed_oauth_profile(
             isolated_profile_dir, name="default", refresh_token="bystander-token"
         )
-        bystander_before = bystander_path.read_text()
+        bystander_before = yaml.safe_load(bystander_path.read_text())
         respx.post("https://core.test/o/revoke_token/").mock(
             return_value=httpx.Response(200)
         )
+        expected_target_yaml = _expected_cleared_yaml()
         # Action
         result = cli_runner.invoke(_logout_app(), ["--profile", "staging"])
-        target_saved = yaml.safe_load(target_path.read_text())
-        bystander_after = bystander_path.read_text()
+        actual_target_yaml = yaml.safe_load(target_path.read_text())
+        bystander_after = yaml.safe_load(bystander_path.read_text())
         # Expected
         assert result.exit_code == 0
-        assert target_saved["auth_method"] == AuthHeaderTypeEnum.TOKEN.value
-        assert bystander_before == bystander_after
+        assert "Logged out (profile: staging)." in result.output
+        assert actual_target_yaml == expected_target_yaml
+        assert bystander_after == bystander_before

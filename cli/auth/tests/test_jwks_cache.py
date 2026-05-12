@@ -17,9 +17,14 @@ def cache_path(tmp_path):
 
 class TestFetchJWKS:
     @respx.mock
-    def test_first_call_fetches_from_remote_and_writes_cache(self, cache_path):
-        # Setup
+    def test_first_call_fetches_remote_and_writes_full_cache_payload(
+        self, cache_path, monkeypatch
+    ):
+        # Setup — freeze time so fetched_at is deterministic
+        now = 1_700_000_000
+        monkeypatch.setattr(time, "time", lambda: now)
         expected_jwks = {"keys": [{"kty": "RSA", "kid": "k1", "n": "abc"}]}
+        expected_cached_payload = {"jwks": expected_jwks, "fetched_at": now}
         respx.get("https://core.test/o/.well-known/jwks.json").mock(
             return_value=httpx.Response(200, json=expected_jwks)
         )
@@ -29,12 +34,10 @@ class TestFetchJWKS:
             cache_path=cache_path,
             ttl_seconds=3600,
         )
+        actual_cached_payload = json.loads(cache_path.read_text())
         # Expected
         assert actual_jwks == expected_jwks
-        assert cache_path.exists()
-        cached_payload = json.loads(cache_path.read_text())
-        assert cached_payload["jwks"] == expected_jwks
-        assert isinstance(cached_payload["fetched_at"], int)
+        assert actual_cached_payload == expected_cached_payload
 
     @respx.mock
     def test_cache_hit_skips_remote_fetch(self, cache_path):
