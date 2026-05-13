@@ -1,0 +1,6 @@
+api_domain: https://industrial.api.ubidots.com
+auth_method: X-Auth-Token
+access_token: legacy-static-token
+containerRepositoryBase: registry.example.com/
+runtimes: []
+output_format: machine

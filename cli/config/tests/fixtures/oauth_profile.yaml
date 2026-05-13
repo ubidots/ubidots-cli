@@ -1,0 +1,11 @@
+api_domain: https://industrial.api.ubidots.com
+auth_method: Authorization
+access_token: jwt-access-token
+containerRepositoryBase: registry.example.com/
+runtimes: []
+output_format: machine
+oauth_client_id: ubidots-cli
+refresh_token: refresh-token-value
+expires_at: 1893456000
+scope: devices:read variables:read offline_access
+token_type: Bearer

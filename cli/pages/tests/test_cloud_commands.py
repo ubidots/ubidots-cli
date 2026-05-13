@@ -9,6 +9,7 @@ from cli.commons.enums import DefaultInstanceFieldEnum
 from cli.pages.commands import app
 
 
+@patch("cli.pages.commands.get_configuration", return_value=MagicMock())
 class TestListCloudCommand(unittest.TestCase):
 
     def setUp(self):
@@ -16,7 +17,7 @@ class TestListCloudCommand(unittest.TestCase):
 
     @patch("cli.pages.commands.executor.list_pages_from_cloud_platform")
     def test_list_pages_forwards_default_settings_to_executor(
-        self, mock_list_pages_cloud
+        self, mock_list_pages_cloud, mock_get_configuration
     ):
         self.runner.invoke(app, ["list"])
 
@@ -30,7 +31,9 @@ class TestListCloudCommand(unittest.TestCase):
         )
 
     @patch("cli.pages.commands.executor.list_pages_from_cloud_platform")
-    def test_list_pages_forwards_custom_fields_to_executor(self, mock_list_pages_cloud):
+    def test_list_pages_forwards_custom_fields_to_executor(
+        self, mock_list_pages_cloud, mock_get_configuration
+    ):
         self.runner.invoke(app, ["list", "--fields", "id,label,url"])
 
         mock_list_pages_cloud.assert_called_once_with(
@@ -43,7 +46,9 @@ class TestListCloudCommand(unittest.TestCase):
         )
 
     @patch("cli.pages.commands.executor.list_pages_from_cloud_platform")
-    def test_list_pages_forwards_json_format_to_executor(self, mock_list_pages_cloud):
+    def test_list_pages_forwards_json_format_to_executor(
+        self, mock_list_pages_cloud, mock_get_configuration
+    ):
         self.runner.invoke(app, ["list", "--format", "json"])
 
         mock_list_pages_cloud.assert_called_once_with(
@@ -56,7 +61,9 @@ class TestListCloudCommand(unittest.TestCase):
         )
 
     @patch("cli.pages.commands.executor.list_pages_from_cloud_platform")
-    def test_list_pages_forwards_sort_by_to_executor(self, mock_list_pages_cloud):
+    def test_list_pages_forwards_sort_by_to_executor(
+        self, mock_list_pages_cloud, mock_get_configuration
+    ):
         self.runner.invoke(app, ["list", "--sort-by", "createdAt"])
 
         mock_list_pages_cloud.assert_called_once_with(
@@ -70,7 +77,7 @@ class TestListCloudCommand(unittest.TestCase):
 
     @patch("cli.pages.commands.executor.list_pages_from_cloud_platform")
     def test_list_pages_forwards_pagination_params_to_executor(
-        self, mock_list_pages_cloud
+        self, mock_list_pages_cloud, mock_get_configuration
     ):
         self.runner.invoke(app, ["list", "--page-size", "10", "--page", "2"])
 
@@ -84,6 +91,7 @@ class TestListCloudCommand(unittest.TestCase):
         )
 
 
+@patch("cli.pages.commands.get_configuration", return_value=MagicMock())
 @patch("cli.commons.pipelines.Pipeline.run")
 @patch("cli.pages.commands.get_instance_key")
 class TestGetCommand(unittest.TestCase):
@@ -92,7 +100,7 @@ class TestGetCommand(unittest.TestCase):
         self.runner = CliRunner()
 
     def test_get_page_resolves_key_by_id_when_id_flag_is_provided(
-        self, mock_get_instance_key, mock_pipeline_run
+        self, mock_get_instance_key, mock_pipeline_run, mock_get_configuration
     ):
         mock_get_instance_key.return_value = "66e9a2aae24bae000e144c28"
         mock_pipeline_run.side_effect = lambda _: None
@@ -105,7 +113,7 @@ class TestGetCommand(unittest.TestCase):
         )
 
     def test_get_page_resolves_key_by_label_when_label_flag_is_provided(
-        self, mock_get_instance_key, mock_pipeline_run
+        self, mock_get_instance_key, mock_pipeline_run, mock_get_configuration
     ):
         mock_get_instance_key.return_value = "~my-page"
         mock_pipeline_run.side_effect = lambda _: None
@@ -116,7 +124,7 @@ class TestGetCommand(unittest.TestCase):
         mock_get_instance_key.assert_called_once_with(id=None, label="my-page")
 
     def test_get_page_fails_when_neither_id_nor_label_is_provided(
-        self, mock_get_instance_key, mock_pipeline_run
+        self, mock_get_instance_key, mock_pipeline_run, mock_get_configuration
     ):
         mock_get_instance_key.side_effect = Exception(
             "Providing an '--id' or '--label' is required."
@@ -127,7 +135,7 @@ class TestGetCommand(unittest.TestCase):
         self.assertNotEqual(result.exit_code, 0)
 
     def test_get_page_forwards_custom_fields_to_executor(
-        self, mock_get_instance_key, mock_pipeline_run
+        self, mock_get_instance_key, mock_pipeline_run, mock_get_configuration
     ):
         mock_get_instance_key.return_value = "66e9a2aae24bae000e144c28"
         mock_pipeline_run.side_effect = lambda _: None
@@ -141,7 +149,7 @@ class TestGetCommand(unittest.TestCase):
         self.assertEqual(context["fields"], "id,label,url")
 
     def test_get_page_exits_successfully_with_json_format(
-        self, mock_get_instance_key, mock_pipeline_run
+        self, mock_get_instance_key, mock_pipeline_run, mock_get_configuration
     ):
         mock_get_instance_key.return_value = "66e9a2aae24bae000e144c28"
         mock_pipeline_run.side_effect = lambda _: None
@@ -210,6 +218,7 @@ class TestAddCommand(unittest.TestCase):
         )
 
 
+@patch("cli.pages.commands.get_configuration", return_value=MagicMock())
 @patch("cli.pages.commands.get_instance_key")
 @patch("cli.pages.executor.Pipeline.run")
 @patch("typer.confirm", return_value=True)
@@ -219,7 +228,11 @@ class TestDeleteCommand(unittest.TestCase):
         self.runner = CliRunner()
 
     def test_delete_page_resolves_key_by_id_and_triggers_deletion(
-        self, mock_confirm, mock_pipeline_run, mock_get_instance_key
+        self,
+        mock_confirm,
+        mock_pipeline_run,
+        mock_get_instance_key,
+        mock_get_configuration,
     ):
         mock_get_instance_key.return_value = "valid_page_key"
         mock_pipeline_run.return_value = None
@@ -246,7 +259,11 @@ class TestDeleteCommand(unittest.TestCase):
         )
 
     def test_delete_page_resolves_key_by_label_and_triggers_deletion(
-        self, mock_confirm, mock_pipeline_run, mock_get_instance_key
+        self,
+        mock_confirm,
+        mock_pipeline_run,
+        mock_get_instance_key,
+        mock_get_configuration,
     ):
         mock_get_instance_key.return_value = "valid_page_key"
         mock_pipeline_run.return_value = None
@@ -269,7 +286,11 @@ class TestDeleteCommand(unittest.TestCase):
         )
 
     def test_delete_page_fails_when_neither_id_nor_label_is_provided(
-        self, mock_confirm, mock_pipeline_run, mock_get_instance_key
+        self,
+        mock_confirm,
+        mock_pipeline_run,
+        mock_get_instance_key,
+        mock_get_configuration,
     ):
         mock_get_instance_key.side_effect = Exception(
             "Providing an '--id' or '--label' is required."
