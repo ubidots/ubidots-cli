@@ -11,6 +11,24 @@ from cli.functions.enums import FunctionLanguageEnum
 from cli.functions.enums import FunctionMethodEnum
 
 
+class OAuthSettings(BaseModel):
+    LOOPBACK_HOST: str = "127.0.0.1"
+    LOOPBACK_PORT: int = 53682
+    CALLBACK_PATH: str = "/callback"
+    AUTHORIZE_PATH: str = "/o/authorize/"
+    TOKEN_PATH: str = "/o/token/"
+    REVOKE_PATH: str = "/o/revoke_token/"
+    DEFAULT_SCOPE: str = "read write offline_access"
+    LOGIN_TIMEOUT_SECONDS: int = 60
+    VERIFIER_BYTES: int = 64
+    STATE_BYTES: int = 32
+    DEFAULT_CLIENT_ID: str = "ubidots-cli"
+
+    @property
+    def REDIRECT_URI(self) -> str:
+        return f"http://{self.LOOPBACK_HOST}:{self.LOOPBACK_PORT}{self.CALLBACK_PATH}"
+
+
 class ConfigSettings(BaseModel):
     API_DOMAIN: str = "https://industrial.api.ubidots.com"
     RUNTIMES_URL: str = f"{API_DOMAIN}/api/-/functions/_/runtimes"
@@ -127,6 +145,7 @@ class Settings(BaseSettings):
     CONFIG: ConfigSettings = ConfigSettings()
     FUNCTIONS: FunctionSettings = FunctionSettings()
     PAGES: PagesSettings = PagesSettings()
+    OAUTH: OAuthSettings = OAuthSettings()
 
 
 @lru_cache

@@ -83,6 +83,7 @@ ignore = [
   "EM102",    # exception f-string literals (pre-existing style)
   "INP001",   # implicit namespace packages (pre-existing structure)
   "TC001",    # move import into TYPE_CHECKING block (pre-existing)
+  "TC003",    # move stdlib import into TYPE_CHECKING block (cosmetic only)
   "UP036",    # version block check in compat.py is intentional (supports Python 3.9+)
   "UP042",    # StrEnum backport in compat.py is intentional (supports Python 3.9/3.10)
 ]
