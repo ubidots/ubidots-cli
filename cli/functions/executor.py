@@ -463,10 +463,10 @@ def get_function(
 def list_functions(
     profile: str,
     fields: str,
-    filter: str,
-    sort_by: str,
-    page_size: int,
-    page: int,
+    filter: str | None,
+    sort_by: str | None,
+    page_size: int | None,
+    page: int | None,
     formatter: OutputFormatter,
 ):
     steps = [

@@ -8,10 +8,10 @@ from cli.devices.helpers import build_devices_payload
 
 def list_devices(
     fields: str,
-    filter: str,
-    sort_by: str,
-    page_size: int,
-    page: int,
+    filter: str | None,
+    sort_by: str | None,
+    page_size: int | None,
+    page: int | None,
     formatter: OutputFormatter,
     active_config: ProfileConfigModel,
 ):
