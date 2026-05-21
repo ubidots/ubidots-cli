@@ -35,9 +35,7 @@ RESTART_COMMAND_HELP_TEXT = (
     "The page must already be running; use 'dev start' first if it is stopped."
 )
 
-STATUS_COMMAND_HELP_TEXT = (
-    "Show the status of the local development server for the Ubidots page. "
-)
+STATUS_COMMAND_HELP_TEXT = "Show the status of the local development server for the Ubidots page. "
 
 LIST_COMMAND_HELP_TEXT = "List all pages and their status. "
 
@@ -80,9 +78,7 @@ def create_page(
     ] = None,
     verbose: bool = False,
 ):
-    formatter = resolve_formatter(
-        flag=output_format, active_config=None, command="pages dev add"
-    )
+    formatter = resolve_formatter(flag=output_format, active_config=None, command="pages dev add")
     executor.create_local_page(
         name=name,
         verbose=verbose,
@@ -136,9 +132,7 @@ def start_page(
     ] = None,
     verbose: bool = False,
 ):
-    formatter = resolve_formatter(
-        flag=output_format, active_config=None, command="pages dev start"
-    )
+    formatter = resolve_formatter(flag=output_format, active_config=None, command="pages dev start")
     executor.start_local_dev_server(
         verbose=verbose,
         formatter=formatter,
@@ -154,9 +148,7 @@ def stop_page(
     ] = None,
     verbose: bool = False,
 ):
-    formatter = resolve_formatter(
-        flag=output_format, active_config=None, command="pages dev stop"
-    )
+    formatter = resolve_formatter(flag=output_format, active_config=None, command="pages dev stop")
     executor.stop_local_dev_server(
         verbose=verbose,
         formatter=formatter,
@@ -172,9 +164,7 @@ def restart_page(
     ] = None,
     verbose: bool = False,
 ):
-    formatter = resolve_formatter(
-        flag=output_format, active_config=None, command="pages dev restart"
-    )
+    formatter = resolve_formatter(flag=output_format, active_config=None, command="pages dev restart")
     executor.restart_local_dev_server(
         verbose=verbose,
         formatter=formatter,
@@ -190,9 +180,7 @@ def status_page(
     ] = None,
     verbose: bool = False,
 ):
-    formatter = resolve_formatter(
-        flag=output_format, active_config=None, command="pages dev status"
-    )
+    formatter = resolve_formatter(flag=output_format, active_config=None, command="pages dev status")
     executor.show_local_dev_server_status(
         verbose=verbose,
         formatter=formatter,
@@ -208,9 +196,7 @@ def list_pages(
     ] = None,
     verbose: bool = False,
 ):
-    formatter = resolve_formatter(
-        flag=output_format, active_config=None, command="pages dev list"
-    )
+    formatter = resolve_formatter(flag=output_format, active_config=None, command="pages dev list")
     executor.list_local_pages(
         verbose=verbose,
         formatter=formatter,
@@ -222,9 +208,7 @@ def list_pages(
 def clean_pages(
     confirm: Annotated[
         bool,
-        typer.Option(
-            "--yes", "-y", help="Skip confirmation prompt and remove immediately."
-        ),
+        typer.Option("--yes", "-y", help="Skip confirmation prompt and remove immediately."),
     ] = False,
     output_format: Annotated[
         OutputFormatFieldsEnum | None,
@@ -232,9 +216,7 @@ def clean_pages(
     ] = None,
     verbose: bool = False,
 ):
-    formatter = resolve_formatter(
-        flag=output_format, active_config=None, command="pages dev clean"
-    )
+    formatter = resolve_formatter(flag=output_format, active_config=None, command="pages dev clean")
     executor.clean_orphaned_pages(confirm=confirm, verbose=verbose, formatter=formatter)
 
 
@@ -260,9 +242,7 @@ def logs_page(
     verbose: bool = False,
 ):
     """Show dev server logs (hot-reload + copy-watcher) for the current page."""
-    formatter = resolve_formatter(
-        flag=output_format, active_config=None, command="pages dev logs"
-    )
+    formatter = resolve_formatter(flag=output_format, active_config=None, command="pages dev logs")
     executor.logs_local_dev_server(
         tail=tail,
         follow=follow,
@@ -282,9 +262,7 @@ def logs_page(
 def list_pages_cloud(
     profile: Annotated[
         str,
-        typer.Option(
-            help="Name of the profile to use for remote server communication."
-        ),
+        typer.Option(help="Name of the profile to use for remote server communication."),
     ] = "",
     fields: Annotated[
         str,
@@ -299,9 +277,7 @@ def list_pages_cloud(
     ] = None,
 ):
     active_config = get_configuration(profile=profile)
-    formatter = resolve_formatter(
-        flag=output_format, active_config=active_config, command="pages list"
-    )
+    formatter = resolve_formatter(flag=output_format, active_config=active_config, command="pages list")
     executor.list_pages_from_cloud_platform(
         profile=profile,
         fields=fields,
@@ -322,9 +298,7 @@ def list_pages_cloud(
 def get_page(
     profile: Annotated[
         str,
-        typer.Option(
-            help="Name of the profile to use for remote server communication."
-        ),
+        typer.Option(help="Name of the profile to use for remote server communication."),
     ] = "",
     id: str | None = None,
     label: str | None = None,
@@ -340,9 +314,7 @@ def get_page(
 ):
     page_key = get_instance_key(id=id, label=label)
     active_config = get_configuration(profile=profile)
-    formatter = resolve_formatter(
-        flag=output_format, active_config=active_config, command="pages get"
-    )
+    formatter = resolve_formatter(flag=output_format, active_config=active_config, command="pages get")
     executor.get_page_from_cloud_platform(
         page_key=page_key,
         profile=profile,
@@ -358,14 +330,10 @@ def get_page(
     rich_help_panel="Cloud Commands",
 )
 def add_page(
-    name: Annotated[
-        str, typer.Argument(help="The name of the page.", show_default=False)
-    ],
+    name: Annotated[str, typer.Argument(help="The name of the page.", show_default=False)],
     profile: Annotated[
         str,
-        typer.Option(
-            help="Name of the profile to use for remote server communication."
-        ),
+        typer.Option(help="Name of the profile to use for remote server communication."),
     ] = "",
     label: Annotated[str, typer.Option(help="The label for the page.")] = "",
     output_format: Annotated[
@@ -375,9 +343,7 @@ def add_page(
 ):
     label = label or sanitize_function_name(name)
     active_config = get_configuration(profile=profile)
-    formatter = resolve_formatter(
-        flag=output_format, active_config=active_config, command="pages add"
-    )
+    formatter = resolve_formatter(flag=output_format, active_config=active_config, command="pages add")
     executor.add_page_to_cloud_platform(
         profile=profile,
         name=name,
@@ -395,9 +361,7 @@ def add_page(
 def delete_page(
     profile: Annotated[
         str,
-        typer.Option(
-            help="Name of the profile to use for remote server communication."
-        ),
+        typer.Option(help="Name of the profile to use for remote server communication."),
     ] = "",
     id: str | None = None,
     label: str | None = None,
@@ -413,9 +377,7 @@ def delete_page(
 ):
     page_key = get_instance_key(id=id, label=label)
     active_config = get_configuration(profile=profile)
-    formatter = resolve_formatter(
-        flag=output_format, active_config=active_config, command="pages delete"
-    )
+    formatter = resolve_formatter(flag=output_format, active_config=active_config, command="pages delete")
     executor.delete_page_from_cloud_platform(
         page_key=page_key,
         profile=profile,
@@ -434,9 +396,7 @@ def delete_page(
 def update_page(
     profile: Annotated[
         str,
-        typer.Option(
-            help="Name of the profile to use for remote server communication."
-        ),
+        typer.Option(help="Name of the profile to use for remote server communication."),
     ] = "",
     id: str | None = None,
     label: str | None = None,
@@ -455,15 +415,11 @@ def update_page(
     verbose: bool = False,
 ):
     if not new_name and not new_label:
-        typer.echo(
-            "Error: at least one of --new-name or --new-label is required.", err=True
-        )
+        typer.echo("Error: at least one of --new-name or --new-label is required.", err=True)
         raise typer.Exit(1)
     page_key = get_instance_key(id=id, label=label)
     active_config = get_configuration(profile=profile)
-    formatter = resolve_formatter(
-        flag=output_format, active_config=active_config, command="pages update"
-    )
+    formatter = resolve_formatter(flag=output_format, active_config=active_config, command="pages update")
     executor.update_page_from_cloud_platform(
         page_key=page_key,
         new_name=new_name,
@@ -496,9 +452,7 @@ def push_page(
     verbose: bool = False,
 ):
     active_config = get_configuration(profile=profile)
-    formatter = resolve_formatter(
-        flag=output_format, active_config=active_config, command="pages push"
-    )
+    formatter = resolve_formatter(flag=output_format, active_config=active_config, command="pages push")
     executor.push_page_to_cloud_platform(
         confirm=confirm,
         profile=profile,
@@ -533,9 +487,7 @@ def pull_page(
     verbose: bool = False,
 ):
     active_config = get_configuration(profile=profile)
-    formatter = resolve_formatter(
-        flag=output_format, active_config=active_config, command="pages pull"
-    )
+    formatter = resolve_formatter(flag=output_format, active_config=active_config, command="pages pull")
     executor.pull_page_from_cloud_platform(
         remote_id=remote_id,
         profile=profile,

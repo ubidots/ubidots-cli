@@ -28,9 +28,7 @@ def get_interactive_configuration() -> dict:
         type=str,
         default=AuthHeaderTypeEnum.TOKEN.name,
     )
-    original_token, masked_token = handlers.get_access_token_configuration(
-        profile=profile
-    )
+    original_token, masked_token = handlers.get_access_token_configuration(profile=profile)
     access_token_input = custom_prompt(
         "Access Token",
         type=str,
@@ -62,9 +60,7 @@ def config(
         typer.Option(
             "--no-interactive",
             "-n",
-            help=(
-                "Disable interactive mode and create config file with default values."
-            ),
+            help=("Disable interactive mode and create config file with default values."),
         ),
     ] = settings.CONFIG.DEFAULT_INTERACTIVE,
     profile: Annotated[
@@ -113,26 +109,24 @@ def config(
     1. `ubidots config --default <profile>` -> Marca el perfil indicado como default.
     2. `ubidots config` -> Crea un perfil de configuracion en modo interactivo.
         -> Pregunta por todos los parametros incluido el `profile`.
-    3. `ubidots config --no-interactive --profile <profile> [--token <token> --api-domain <domain> --auth-method <method>]`
+    3. `ubidots config --no-interactive --profile <profile>`
+        `[--token <token> --api-domain <domain> --auth-method <method>]`
         -> Crea un perfil de configuracion en modo no interactivo con valores por defecto o vacios segun aplique.
     """
-    formatter = resolve_formatter(
-        flag=output_format, active_config=None, command="config"
-    )
+    formatter = resolve_formatter(flag=output_format, active_config=None, command="config")
     # 1.
     if default:
         handlers.set_default_profile(profile=default, formatter=formatter)
+    # 2.
+    elif interactive:
+        config_details = get_interactive_configuration()
+        handlers.set_configuration(**config_details, formatter=formatter)
+    # 3.
     else:
-        # 2.
-        if interactive:
-            config_details = get_interactive_configuration()
-            handlers.set_configuration(**config_details, formatter=formatter)
-        # 3.
-        else:
-            handlers.set_configuration(
-                api_domain=domain,
-                auth_method_key=auth_method,
-                access_token=token,
-                profile=profile,
-                formatter=formatter,
-            )
+        handlers.set_configuration(
+            api_domain=domain,
+            auth_method_key=auth_method,
+            access_token=token,
+            profile=profile,
+            formatter=formatter,
+        )

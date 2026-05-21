@@ -50,9 +50,7 @@ class TestValidateTemplateStep:
         with pytest.raises(TemplateNotFoundError) as exc_info:
             step.execute(data)
         # Assert
-        assert f"Template for '{FunctionLanguageEnum.PYTHON}' not found at" in str(
-            exc_info.value
-        )
+        assert f"Template for '{FunctionLanguageEnum.PYTHON}' not found at" in str(exc_info.value)
         mock_exists.assert_called_once_with()
 
     def test_execute_with_temporal_file_success(self):
@@ -81,10 +79,7 @@ class TestValidateTemplateStep:
         with pytest.raises(TemplateNotFoundError) as exc_info:
             step.execute(data)
         # Assert
-        assert (
-            f"Template for '{FunctionLanguageEnum.PYTHON}' not found at '{temp_path_file}'."
-            in str(exc_info.value)
-        )
+        assert f"Template for '{FunctionLanguageEnum.PYTHON}' not found at '{temp_path_file}'." in str(exc_info.value)
 
     def test_execute_with_real_file_raises_template_not_found_error(self):
         language = "java"
@@ -96,10 +91,7 @@ class TestValidateTemplateStep:
         with pytest.raises(TemplateNotFoundError) as exc_info:
             step.execute(data)
         # Assert
-        assert (
-            f"Template for '{language}' not found at '{real_template_path_file}'."
-            in str(exc_info.value)
-        )
+        assert f"Template for '{language}' not found at '{real_template_path_file}'." in str(exc_info.value)
 
 
 class TestCreateProjectFolderStep:
@@ -125,9 +117,7 @@ class TestCreateProjectFolderStep:
         with pytest.raises(FolderAlreadyExistsError) as exc_info:
             step.execute(data)
         # Assert
-        assert f"A folder named '{data['project_path'].name}' already exists." in str(
-            exc_info.value
-        )
+        assert f"A folder named '{data['project_path'].name}' already exists." in str(exc_info.value)
         mock_exists.assert_called_once_with()
 
     @patch("pathlib.Path.exists", return_value=False)
@@ -312,10 +302,7 @@ class TestReadManifestStep:
         with pytest.raises(ValueError) as exc_info:
             step.execute(data)
         # Assert
-        assert (
-            "The '.metadata.yaml' is empty, make sure it has the correct structure."
-            in str(exc_info.value)
-        )
+        assert "The '.metadata.yaml' is empty, make sure it has the correct structure." in str(exc_info.value)
         mock_read_manifest.assert_called_once_with(data["project_path"])
 
     @patch("cli.functions.pipelines.read_manifest_project_file")
@@ -414,9 +401,8 @@ class TestValidateProjectStep:
         with pytest.raises(ValueError) as exc_info:
             step.execute(data)
         # Assert
-        assert (
-            "Function not yet registered or synchronized with the platform. Missing function key."
-            in str(exc_info.value)
+        assert "Function not yet registered or synchronized with the platform. Missing function key." in str(
+            exc_info.value
         )
 
     def test_execute_raises_main_file_not_found_error(self):
@@ -435,10 +421,7 @@ class TestValidateProjectStep:
         with pytest.raises(FileNotFoundError) as exc_info:
             step.execute(data)
         # Assert
-        assert (
-            str(exc_info.value)
-            == "Main file 'main.py' not found in the project directory."
-        )
+        assert str(exc_info.value) == "Main file 'main.py' not found in the project directory."
 
 
 class TestExtractProjectStep:
@@ -469,9 +452,7 @@ class TestExtractProjectStep:
         assert result == data
         mock_zip_class.assert_called_once()
         # The test should expect the path that the implementation actually uses
-        mock_zip_instance.extractall.assert_called_once_with(
-            Path("/path/to/project/my_function")
-        )
+        mock_zip_instance.extractall.assert_called_once_with(Path("/path/to/project/my_function"))
 
     @patch("zipfile.ZipFile.__init__", side_effect=zipfile.BadZipFile("Bad zip file"))
     def test_execute_raises_bad_zip_file_error(self, mock_zip_init):
@@ -538,9 +519,7 @@ class TestValidateNotInExistingFunctionDirectoryStep:
         with pytest.raises(ValueError) as exc_info:
             step.execute(data)
 
-        assert "Cannot run 'functions init' from within an existing" in str(
-            exc_info.value
-        )
+        assert "Cannot run 'functions init' from within an existing" in str(exc_info.value)
         assert "function directory" in str(exc_info.value)
         mock_exists.assert_called_once()
 
@@ -596,9 +575,7 @@ class TestCreateFunctionStep:
     @patch("cli.functions.pipelines.build_functions_payload")
     @patch("httpx.Client.post")
     @patch("typer.confirm", return_value=True)
-    def test_execute_create_function_success(
-        self, mock_confirm, mock_post, mock_build_payload
-    ):
+    def test_execute_create_function_success(self, mock_confirm, mock_post, mock_build_payload):
         # Setup
         step = pipelines.CreateFunctionStep()
         mock_response = MagicMock()
@@ -665,9 +642,7 @@ class TestHttpGetRequestStep:
 
     @patch(
         "httpx.get",
-        side_effect=httpx.HTTPStatusError(
-            "Not Found", request=MagicMock(), response=MagicMock(status_code=404)
-        ),
+        side_effect=httpx.HTTPStatusError("Not Found", request=MagicMock(), response=MagicMock(status_code=404)),
     )
     def test_execute_get_request_http_error(self, mock_get):
         # Setup
@@ -722,9 +697,7 @@ class TestCheckResponseStep:
         # Setup: Use the correct response_key ("response")
         step = pipelines.CheckResponseStep(response_key="response")
         mock_response = MagicMock()
-        mock_response.status_code = (
-            httpx.codes.BAD_REQUEST
-        )  # status code indicating failure
+        mock_response.status_code = httpx.codes.BAD_REQUEST  # status code indicating failure
         data = {"response": mock_response}
         # Action & Assert: Expect a RequestError to be raised during execution.
         with pytest.raises(httpx.RequestError) as exc_info:
@@ -738,9 +711,7 @@ class TestPrintColoredTableStep:
     def test_execute_print_table_with_results(self, mock_print_table):
         # Setup
         step = pipelines.PrintColoredTableStep(key="test_results")
-        data = {
-            "test_results": [{"id": 1, "name": "Item1"}, {"id": 2, "name": "Item2"}]
-        }
+        data = {"test_results": [{"id": 1, "name": "Item1"}, {"id": 2, "name": "Item2"}]}
         # Action
         result = step.execute(data)
         # Assert
@@ -751,9 +722,7 @@ class TestPrintColoredTableStep:
     def test_execute_no_key_in_data(self, mock_print_table):
         # Setup
         step = pipelines.PrintColoredTableStep(key="nonexistent_key")
-        data = {
-            "test_results": [{"id": 1, "name": "Item1"}, {"id": 2, "name": "Item2"}]
-        }
+        data = {"test_results": [{"id": 1, "name": "Item1"}, {"id": 2, "name": "Item2"}]}
         # Action
         result = step.execute(data)
         # Assert
@@ -764,9 +733,7 @@ class TestPrintColoredTableStep:
     def test_execute_empty_key_skips_print(self, mock_print_table):
         # Setup
         step = pipelines.PrintColoredTableStep(key="")
-        data = {
-            "test_results": [{"id": 1, "name": "Item1"}, {"id": 2, "name": "Item2"}]
-        }
+        data = {"test_results": [{"id": 1, "name": "Item1"}, {"id": 2, "name": "Item2"}]}
         # Action
         result = step.execute(data)
         # Assert
@@ -836,7 +803,7 @@ class TestPrintkeyStep:
 
 
 def test_function_runtime_layer_type_enum_removed():
-    import cli.functions.enums as enums
+    from cli.functions import enums
 
     assert not hasattr(enums, "FunctionRuntimeLayerTypeEnum")
 
@@ -947,9 +914,7 @@ class TestWaitAndFetchLatestLogsStep:
     @patch("cli.functions.pipelines.httpx.get")
     @patch("cli.functions.pipelines.build_endpoint")
     @patch("typer.echo")
-    def test_no_activations(
-        self, mock_echo, mock_build, mock_get, mock_check, mock_fetch
-    ):
+    def test_no_activations(self, mock_echo, mock_build, mock_get, mock_check, mock_fetch):
         mock_build.return_value = (
             "https://api.ubidots.com/logs",
             {"X-Auth-Token": "tok"},
@@ -998,9 +963,7 @@ class TestWaitAndFetchLatestLogsStep:
     @patch("cli.functions.pipelines.check_response_status")
     @patch("cli.functions.pipelines.httpx.get")
     @patch("cli.functions.pipelines.build_endpoint")
-    def test_count_larger_than_available(
-        self, mock_build, mock_get, mock_check, mock_fetch
-    ):
+    def test_count_larger_than_available(self, mock_build, mock_get, mock_check, mock_fetch):
         mock_build.return_value = (
             "https://api.ubidots.com/logs",
             {"X-Auth-Token": "tok"},
@@ -1051,11 +1014,7 @@ class TestPrintActivationLogsStep:
     @patch("typer.echo")
     def test_prints_list_logs(self, mock_echo):
         step = pipelines.PrintActivationLogsStep()
-        data = {
-            "activation_logs": [
-                {"_activation_id": "act-1", "logs": ["line1\n", "line2\n"]}
-            ]
-        }
+        data = {"activation_logs": [{"_activation_id": "act-1", "logs": ["line1\n", "line2\n"]}]}
         step.execute(data)
 
         calls = [c.args[0] for c in mock_echo.call_args_list]
@@ -1065,9 +1024,7 @@ class TestPrintActivationLogsStep:
     @patch("typer.echo")
     def test_prints_string_logs(self, mock_echo):
         step = pipelines.PrintActivationLogsStep()
-        data = {
-            "activation_logs": [{"_activation_id": "act-1", "logs": "full log output"}]
-        }
+        data = {"activation_logs": [{"_activation_id": "act-1", "logs": "full log output"}]}
         step.execute(data)
 
         calls = [c.args[0] for c in mock_echo.call_args_list]
@@ -1076,11 +1033,7 @@ class TestPrintActivationLogsStep:
     @patch("typer.echo")
     def test_handles_error_entries(self, mock_echo):
         step = pipelines.PrintActivationLogsStep()
-        data = {
-            "activation_logs": [
-                {"_activation_id": "act-1", "error": "Failed to fetch log detail"}
-            ]
-        }
+        data = {"activation_logs": [{"_activation_id": "act-1", "error": "Failed to fetch log detail"}]}
         step.execute(data)
 
         calls = [c.args[0] for c in mock_echo.call_args_list]

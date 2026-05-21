@@ -1,6 +1,7 @@
 import io
 import os
 import zipfile
+from datetime import UTC
 from datetime import datetime
 from pathlib import Path
 from typing import IO
@@ -21,12 +22,11 @@ def read_page_manifest(project_path: Path) -> PageProjectMetadata:
 
     if not metadata_file.exists():
         error_message = (
-            "Not in a page directory. Run this command inside a page project "
-            "or use 'dev add' to create one."
+            "Not in a page directory. Run this command inside a page project or use 'dev add' to create one."
         )
         raise FileNotFoundError(error_message)
 
-    with open(metadata_file) as file:
+    with Path(metadata_file).open(encoding="utf-8") as file:
         metadata_data = yaml.safe_load(file)
 
     return PageProjectMetadata(**metadata_data)
@@ -36,7 +36,7 @@ def save_page_manifest(project_path: Path, metadata: PageProjectMetadata) -> Non
     manifest_file = project_path / settings.PAGES.PROJECT_METADATA_FILE
 
     # Save as YAML using the model's serialization method
-    with open(manifest_file, "w") as file:
+    with Path(manifest_file).open("w", encoding="utf-8") as file:
         yaml.dump(metadata.to_yaml_serializable_format(), file)
 
 
@@ -47,7 +47,7 @@ def create_and_save_page_manifest(
     project_model = PageProjectModel(
         name=page_name,
         label=page_name,
-        createdAt=datetime.now().isoformat(),
+        createdAt=datetime.now(UTC).isoformat(),
         type=page_type,
     )
 
@@ -71,7 +71,7 @@ def _add_files_to_zip(
     exclude_files: list[str],
 ) -> None:
     for file in files:
-        file_path = os.path.join(root, file)
+        file_path = Path(root) / file
         zip_path = os.path.relpath(file_path, project_path)
         if not any(Path(zip_path).match(pattern) for pattern in exclude_files):
             zipf.write(file_path, zip_path)
@@ -83,17 +83,14 @@ def _add_folders_to_zip(
     project_path: Path,
     exclude_files: list[str],
 ) -> None:
-    for folder in os.listdir(root):
-        folder_path = os.path.join(root, folder)
-        if os.path.isdir(folder_path):
+    for folder_path in Path(root).iterdir():
+        if folder_path.is_dir():
             zip_path = os.path.relpath(folder_path, project_path)
             if not any(Path(zip_path).match(pattern) for pattern in exclude_files):
                 zipf.write(folder_path, arcname=zip_path)
 
 
-def compress_page_to_zip(
-    project_path: Path, exclude_files: list[str] | None = None
-) -> IO[bytes]:
+def compress_page_to_zip(project_path: Path, exclude_files: list[str] | None = None) -> IO[bytes]:
     exclude_files = exclude_files or []
     zip_buffer = io.BytesIO()
     with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zipf:
@@ -134,15 +131,9 @@ def render_ubidots_page_index_html(
     template_page["js_libraries"] = _convert_libraries(page.get("js_libraries", []))
     template_page["css_libraries"] = _convert_libraries(page.get("css_libraries", []))
     template_page["link_libraries"] = _convert_libraries(page.get("link_libraries", []))
-    template_page["js_thirdparty_libraries"] = _convert_libraries(
-        page.get("js_thirdparty_libraries", [])
-    )
-    template_page["css_thirdparty_libraries"] = _convert_libraries(
-        page.get("css_thirdparty_libraries", [])
-    )
-    template_page["link_thirdparty_libraries"] = _convert_libraries(
-        page.get("link_thirdparty_libraries", [])
-    )
+    template_page["js_thirdparty_libraries"] = _convert_libraries(page.get("js_thirdparty_libraries", []))
+    template_page["css_thirdparty_libraries"] = _convert_libraries(page.get("css_thirdparty_libraries", []))
+    template_page["link_thirdparty_libraries"] = _convert_libraries(page.get("link_thirdparty_libraries", []))
 
     # Prepare template context with all mandatory parameters
     context = {
@@ -202,7 +193,7 @@ def generate_page_url(page_name, routing_mode, container=None):
 
     if routing_mode == "port":
         external_port = extract_port_from_container(container)
-        port = external_port if external_port else "8090"
+        port = external_port or "8090"
         return f"http://localhost:{port}/"
 
     return ""

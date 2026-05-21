@@ -61,10 +61,9 @@ class ArgoAdapterBaseModel(BaseModel):
     label: str
     path: str
     is_strict: bool = Field(default=True)
-    middlewares: list[
-        ArgoAdapterMiddlewareAllowedMethodsBaseModel
-        | ArgoAdapterMiddlewareCorsBaseModel
-    ] = Field(default=[ArgoAdapterMiddlewareAllowedMethodsBaseModel()])
+    middlewares: list[ArgoAdapterMiddlewareAllowedMethodsBaseModel | ArgoAdapterMiddlewareCorsBaseModel] = Field(
+        default=[ArgoAdapterMiddlewareAllowedMethodsBaseModel()]
+    )
     bridge: ArgoBridgeBaseModel
 
 

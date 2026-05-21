@@ -7,12 +7,9 @@ from cli.pages.handlers import upload_page_code
 
 
 class TestUploadPageCode(unittest.TestCase):
-
     @respx.mock
     def test_sends_zip_file(self):
-        route = respx.post("http://api/pages/abc123/code").mock(
-            return_value=httpx.Response(200)
-        )
+        route = respx.post("http://api/pages/abc123/code").mock(return_value=httpx.Response(200))
 
         upload_page_code("http://api/pages/abc123/code", {}, b"zipdata", "my_page")
 

@@ -47,9 +47,6 @@ def validate_menu_xml(xml: str) -> None:
         dtd = etree.DTD(dtd_file)
 
     if not dtd.validate(root):
-        errors = "\n".join(
-            f"  line {entry.line}, col {entry.column}: {entry.message}"
-            for entry in dtd.error_log
-        )
+        errors = "\n".join(f"  line {entry.line}, col {entry.column}: {entry.message}" for entry in dtd.error_log)
         msg = f"XML failed V2 DTD validation:\n{errors}"
         raise typer.BadParameter(msg)

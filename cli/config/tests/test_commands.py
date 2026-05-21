@@ -27,9 +27,7 @@ class TestConfigCommand(TestCase):
     @patch("cli.config.handlers.set_configuration")
     @patch("cli.config.handlers.get_access_token_configuration")
     @patch("cli.config.commands.custom_prompt")
-    def test_config_interactive_creation(
-        self, mock_prompt, mock_get_token, mock_set_config
-    ):
+    def test_config_interactive_creation(self, mock_prompt, mock_get_token, mock_set_config):
         """Test interactive profile creation."""
         mock_get_token.return_value = ("original_token_value", "masked_token_value")
         mock_prompt.side_effect = [
@@ -95,9 +93,7 @@ class TestConfigCommand(TestCase):
 
     @patch("cli.commons.utils.exit_with_error_message")
     @patch("cli.config.handlers.validate_auth_method")
-    def test_config_non_interactive_invalid_auth_method(
-        self, mock_validate_auth, mock_exit_with_error
-    ):
+    def test_config_non_interactive_invalid_auth_method(self, mock_validate_auth, mock_exit_with_error):
         """Test that non-interactive mode fails when --auth-method is invalid."""
 
         # Make validate_auth_method raise an error

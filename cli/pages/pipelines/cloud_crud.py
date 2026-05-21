@@ -95,7 +95,7 @@ class CreatePageRemoteServerStep(PipelineStep):
             name=name,
             label=label,
         )
-        if response.status_code not in (httpx.codes.OK, httpx.codes.CREATED):
+        if response.status_code not in {httpx.codes.OK, httpx.codes.CREATED}:
             msg = f"Failed to create page: {response.text}"
             raise RuntimeError(msg)
         response_data = response.json()
@@ -122,9 +122,7 @@ class ConfirmOverwriteStep(PipelineStep):
         overwrite = data["overwrite"]
 
         if not overwrite.get("confirm") and not typer.confirm(overwrite.get("message")):
-            error_message = (
-                "Operation cancelled: The overwrite process was aborted by the user."
-            )
+            error_message = "Operation cancelled: The overwrite process was aborted by the user."
             raise typer.Abort(error_message)
         return data
 
@@ -167,8 +165,7 @@ class LoadTemplateZipStep(PipelineStep):
             msg = f"Default page template not found at {template_path}"
             raise FileNotFoundError(msg)
 
-        with open(template_path, "rb") as f:
-            zip_content = f.read()
+        zip_content = Path(template_path).read_bytes()
 
         data["zip_file"] = zip_content
         return data

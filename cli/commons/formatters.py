@@ -33,9 +33,7 @@ class OutputFormatter(ABC):
         """
 
     @abstractmethod
-    def emit_error(
-        self, exception: Exception, message: str = "", hint: str | None = None
-    ) -> NoReturn:
+    def emit_error(self, exception: Exception, message: str = "", hint: str | None = None) -> NoReturn:
         """Signal failure. Always raises typer.Exit(1)."""
 
 
@@ -72,9 +70,7 @@ class MachineOutputFormatter(OutputFormatter):
         )
         raise typer.Exit(0)
 
-    def emit_error(
-        self, exception: Exception, message: str = "", hint: str | None = None
-    ) -> NoReturn:
+    def emit_error(self, exception: Exception, message: str = "", hint: str | None = None) -> NoReturn:
         self._dump(
             {
                 "status": "error",
@@ -108,9 +104,7 @@ class HumanOutputFormatter(OutputFormatter):
         # data is intentionally not used in human mode — it carries machine-readable result keys only
         exit_with_success_message(message)
 
-    def emit_error(
-        self, exception: Exception, message: str = "", hint: str | None = None
-    ) -> NoReturn:
+    def emit_error(self, exception: Exception, message: str = "", hint: str | None = None) -> NoReturn:
         exit_with_error_message(exception=exception, message=message, hint=hint or "")
 
 

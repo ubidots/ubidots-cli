@@ -156,10 +156,7 @@ class ValidateAllowedRuntimeStep(PipelineStep):
 
         if runtime not in allowed_runtimes:
             formatted = ", ".join(allowed_runtimes)
-            raise ValueError(
-                f"Runtime '{runtime}' is not allowed. "
-                f"Available runtimes: {formatted}"
-            )
+            raise ValueError(f"Runtime '{runtime}' is not allowed. Available runtimes: {formatted}")
 
         return data
 
@@ -215,15 +212,9 @@ class GetRemoteFunctionLocalMetadataStep(PipelineStep):
         project_path = data["project_path"]
         remote_function_name = data["remote_function_detail"]["name"]
         function_path = Path(project_path / remote_function_name)
-        function_yaml_file = Path(
-            project_path
-            / remote_function_name
-            / settings.FUNCTIONS.PROJECT_METADATA_FILE
-        )
+        function_yaml_file = Path(project_path / remote_function_name / settings.FUNCTIONS.PROJECT_METADATA_FILE)
         if function_yaml_file.exists():
-            data["existing_project_metadata"] = read_manifest_project_file(
-                function_path
-            )
+            data["existing_project_metadata"] = read_manifest_project_file(function_path)
         return data
 
 
@@ -231,9 +222,7 @@ class GetFunctionParametersStep(PipelineStep):
     def execute(self, data):
         remote_function_details = data["remote_function_detail"]
         data["name"] = (name := remote_function_details["name"])
-        data["language"] = get_language_from_runtime(
-            runtime := remote_function_details["serverless"]["runtime"]
-        )
+        data["language"] = get_language_from_runtime(runtime := remote_function_details["serverless"]["runtime"])
         data["runtime"] = runtime
         data["methods"] = remote_function_details["triggers"]["httpMethods"]
         data["label"] = remote_function_details["label"]
@@ -247,12 +236,10 @@ class GetFunctionParametersStep(PipelineStep):
         data["cron"] = remote_function_details["triggers"]["schedulerCron"]
         data["has_cron"] = remote_function_details["triggers"]["schedulerEnabled"]
         data["function_id"] = remote_function_details["id"]
-        data["token"] = remote_function_details["serverless"]["authToken"].get(
-            "token", ""
-        )
+        data["token"] = remote_function_details["serverless"]["authToken"].get("token", "")
         data["params"] = json.dumps(remote_function_details["serverless"]["params"])
         if data["project_path"].name != name:
-            data["project_path"] = data["project_path"] / name
+            data["project_path"] /= name
         return data
 
 
@@ -265,9 +252,7 @@ class ConfirmOverwritePushFunctionStep(PipelineStep):
             return data
         message = "This function has already been pushed. Would you like to overwrite the remote function?"
         if not confirm and not typer.confirm(message):
-            error_message = (
-                "Operation cancelled: The pushing process was aborted by the user."
-            )
+            error_message = "Operation cancelled: The pushing process was aborted by the user."
             raise typer.Abort(error_message)
         return data
 
@@ -313,9 +298,7 @@ class CreateFunctionRemoteServerStep(PipelineStep):
             "label": data["label"],
         }
         if data["scheduler_cron"]:
-            create_function_payload["triggers"]["schedulerCron"] = data[
-                "scheduler_cron"
-            ]
+            create_function_payload["triggers"]["schedulerCron"] = data["scheduler_cron"]
 
         result = add_function(active_config=active_config, **create_function_payload)
 
@@ -342,13 +325,9 @@ class ConfirmOverwritePullFunctionStep(PipelineStep):
 
         if not needs_update:
             return data
-        message = (
-            "This function has already been pulled. Would you like to overwrite it?"
-        )
+        message = "This function has already been pulled. Would you like to overwrite it?"
         if not confirm and not typer.confirm(message):
-            error_message = (
-                "Operation cancelled: The overwrite process was aborted by the user."
-            )
+            error_message = "Operation cancelled: The overwrite process was aborted by the user."
             raise typer.Abort(error_message)
         return data
 
@@ -430,9 +409,7 @@ class ConfirmOverwriteStep(PipelineStep):
         overwrite = data["overwrite"]
 
         if not overwrite.get("confirm") and not typer.confirm(overwrite.get("message")):
-            error_message = (
-                "Operation cancelled: The overwrite process was aborted by the user."
-            )
+            error_message = "Operation cancelled: The overwrite process was aborted by the user."
             raise typer.Abort(error_message)
         return data
 
@@ -473,11 +450,7 @@ class ExtractProjectStep(PipelineStep):
 
         # If we're already in a function directory, extract directly to it
         # Otherwise, create a subdirectory with the function name
-        extract_path = (
-            project_path
-            if in_function_dir
-            else Path(project_path / remote_function_name)
-        )
+        extract_path = project_path if in_function_dir else Path(project_path / remote_function_name)
 
         destination = extract_path.resolve()
         with zipfile.ZipFile(BytesIO(response.content), "r") as zip_ref:
@@ -500,13 +473,9 @@ class BuildEndpointStep(PipelineStep):
     api_route: str
 
     def execute(self, data):
-        function_key = (
-            data["remote_id"] if self.api_route != FUNCTION_API_ROUTES["base"] else None
-        )
+        function_key = data["remote_id"] if self.api_route != FUNCTION_API_ROUTES["base"] else None
         active_config = data["active_config"]
-        url, headers = build_endpoint(
-            route=self.api_route, function_key=function_key, active_config=active_config
-        )
+        url, headers = build_endpoint(route=self.api_route, function_key=function_key, active_config=active_config)
         data["url"] = url
         data["headers"] = headers
         return data
@@ -524,15 +493,11 @@ class CreateFunctionStep(PipelineStep):
 
         message = "This function is not created. Would you like to create a new function and push it?"
         if not typer.confirm(message):
-            error_message = (
-                "Operation cancelled: Function pushing was aborted by the user."
-            )
+            error_message = "Operation cancelled: Function pushing was aborted by the user."
             raise typer.Abort(error_message)
 
         triggers = {
-            "httpMethods": FunctionMethodEnum.enum_list_to_str_list(
-                project_metadata.function.triggers.httpMethods
-            ),
+            "httpMethods": FunctionMethodEnum.enum_list_to_str_list(project_metadata.function.triggers.httpMethods),
             "httpHasCors": project_metadata.function.triggers.httpHasCors,
         }
 
@@ -599,25 +564,17 @@ class UpdateFunctionSettings(PipelineStep):
             "triggers": {
                 "httpMethods": project_metadata.function.triggers.httpMethods,
                 "httpHasCors": project_metadata.function.triggers.httpHasCors,
-                "schedulerEnabled": (
-                    bool(project_metadata.function.triggers.schedulerCron)
-                ),
+                "schedulerEnabled": (bool(project_metadata.function.triggers.schedulerCron)),
             },
         }
 
         if project_metadata.function.triggers.schedulerCron:
-            payload["triggers"][
-                "schedulerCron"
-            ] = project_metadata.function.triggers.schedulerCron
+            payload["triggers"]["schedulerCron"] = project_metadata.function.triggers.schedulerCron
 
         if project_metadata.function.serverless.params:
-            payload["serverless"][
-                "params"
-            ] = project_metadata.function.serverless.params
+            payload["serverless"]["params"] = project_metadata.function.serverless.params
 
-        response = update_function(
-            url=url, headers=headers, data=payload, function_key=function_key
-        )
+        response = update_function(url=url, headers=headers, data=payload, function_key=function_key)
         data["response"] = response
         return data
 
@@ -643,7 +600,7 @@ class ValidateRemoteFunctionExistStep(PipelineStep):
         except httpx.HTTPStatusError as error:
             if error.response.status_code == httpx.codes.NOT_FOUND:
                 return data
-            raise error
+            raise
         data["needs_update"] = True
         data["remote_id"] = remote_id
         return data
@@ -671,9 +628,7 @@ class UpdateFunctionStep(PipelineStep):
         if merged_payload["serverless"]["authToken"] == {}:
             del merged_payload["serverless"]["authToken"]
 
-        response = update_function(
-            url=url, headers=headers, data=merged_payload, function_key=function_key
-        )
+        response = update_function(url=url, headers=headers, data=merged_payload, function_key=function_key)
         data["response"] = response
         return data
 
@@ -862,7 +817,9 @@ class GetImageNamesStep(PipelineStep):
         # TODO: consolidate FUNCTIONS_HUB_USERNAME into cli.commons.settings once
         #       runtime images are published under the same hub account as the Argo image
         FUNCTIONS_HUB_USERNAME = "ubidots"
-        function_image_name = f"{FUNCTIONS_HUB_USERNAME}/{engine_settings.HUB_PREFFIX}-{project_metadata.project.runtime}"
+        function_image_name = (
+            f"{FUNCTIONS_HUB_USERNAME}/{engine_settings.HUB_PREFFIX}-{project_metadata.project.runtime}"
+        )
         argo_image_name = ARGO_IMAGE_NAME
 
         data["image_names"] = [
@@ -955,9 +912,7 @@ class CreateHandlerFRIEStep(PipelineStep):
         project_path = data["project_path"]
         project_metadata = data["project_metadata"]
 
-        data["handler_path"] = create_handler_file(
-            project_path, project_metadata.project.language
-        )
+        data["handler_path"] = create_handler_file(project_path, project_metadata.project.language)
         return data
 
 
@@ -977,9 +932,7 @@ class RemoveNonDeployableFilesStep(PipelineStep):
         container_manager = data["container_manager"]
 
         try:
-            container = container_manager.get(
-                f"{engine_settings.CONTAINER.FRIE.LABEL_KEY}={container_key}"
-            )
+            container = container_manager.get(f"{engine_settings.CONTAINER.FRIE.LABEL_KEY}={container_key}")
             project_path = Path(container.attrs["Mounts"][0]["Source"])
             for pattern in [
                 f"{settings.FUNCTIONS.DEFAULT_HANDLER_FILE_NAME}.{FunctionHandlerFileExtensionEnum.PYTHON_EXTENSION}",
@@ -1068,9 +1021,7 @@ class StopFunctionStep(PipelineStep):
         container_manager = data["container_manager"]
 
         try:
-            container_manager.stop(
-                f"{engine_settings.CONTAINER.FRIE.LABEL_KEY}={container_key}"
-            )
+            container_manager.stop(f"{engine_settings.CONTAINER.FRIE.LABEL_KEY}={container_key}")
             data["local_label"] = f"\n Local label: {container_key}"
         except ContainerNotFoundException:
             typer.echo(
@@ -1089,9 +1040,7 @@ class RestartFunctionStep(PipelineStep):
         container_key = data["container_key"]
         container_manager = data["container_manager"]
 
-        container_manager.restart(
-            f"{engine_settings.CONTAINER.FRIE.LABEL_KEY}={container_key}"
-        )
+        container_manager.restart(f"{engine_settings.CONTAINER.FRIE.LABEL_KEY}={container_key}")
         return data
 
 
@@ -1099,15 +1048,11 @@ class CleanFunctionsStep(PipelineStep):
     def execute(self, data):
         client = data["client"]
         container_manager = data["container_manager"]
-        for container in container_manager.list(
-            label_filters={"label": engine_settings.CONTAINER.FRIE.LABEL_KEY}
-        ):
+        for container in container_manager.list(label_filters={"label": engine_settings.CONTAINER.FRIE.LABEL_KEY}):
             container.stop()
             container.remove()
 
-        for container in container_manager.list(
-            label_filters={"label": ARGO_LABEL_KEY}
-        ):
+        for container in container_manager.list(label_filters={"label": ARGO_LABEL_KEY}):
             container.stop()
             container.remove()
 
@@ -1294,9 +1239,7 @@ def _fetch_activation_details(activations, function_key, active_config, headers)
             entry["_activation_id"] = activation_id
             activation_logs.append(entry)
         else:
-            activation_logs.append(
-                {"_activation_id": activation_id, "error": "Failed to fetch log detail"}
-            )
+            activation_logs.append({"_activation_id": activation_id, "error": "Failed to fetch log detail"})
     return activation_logs
 
 

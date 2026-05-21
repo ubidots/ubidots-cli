@@ -49,17 +49,11 @@ def print_colored_table(
         should_show_sub_keys = key in sub_keys_to_show_dict
 
         if isinstance(results[0][key], dict) and should_show_sub_keys:
-            keys_to_show.extend(
-                f"{key}.{sub_key}" for sub_key in sub_keys_to_show_dict[key]
-            )
+            keys_to_show.extend(f"{key}.{sub_key}" for sub_key in sub_keys_to_show_dict[key])
         else:
             keys_to_show.append(key)
 
-    ordered_keys = (
-        [key for key in column_order if key in keys_to_show]
-        if column_order
-        else keys_to_show
-    )
+    ordered_keys = [key for key in column_order if key in keys_to_show] if column_order else keys_to_show
 
     for key in ordered_keys:
         color = next(color_cycle)

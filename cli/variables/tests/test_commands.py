@@ -44,14 +44,10 @@ class TestGetCommand(TestCase):
             formatter=ANY,
         )
 
-    def test_get_variable_with_custom_fields(
-        self, mock_retrieve_variable, mock_get_instance_key, _
-    ):
+    def test_get_variable_with_custom_fields(self, mock_retrieve_variable, mock_get_instance_key, _):
         mock_get_instance_key.return_value = "variable_id"
         custom_fields = "name,description"
-        result = runner.invoke(
-            variable_app, ["get", "--id", "variable123", "--fields", custom_fields]
-        )
+        result = runner.invoke(variable_app, ["get", "--id", "variable123", "--fields", custom_fields])
         self.assertEqual(result.exit_code, 0)
         mock_get_instance_key.assert_called_once_with(id="variable123")
         mock_retrieve_variable.assert_called_once_with(
@@ -163,9 +159,7 @@ class TestAddCommand(TestCase):
 @patch("cli.variables.commands.get_instance_key")
 @patch("cli.variables.handlers.update_variable")
 class TestUpdateCommand(TestCase):
-    def test_update_variable_with_minimum_arguments(
-        self, mock_update_variable, mock_get_instance_key, _
-    ):
+    def test_update_variable_with_minimum_arguments(self, mock_update_variable, mock_get_instance_key, _):
         mock_get_instance_key.return_value = "variable_key"
         result = runner.invoke(variable_app, ["update", "--id", "variable123"])
         self.assertEqual(result.exit_code, 0)
@@ -186,9 +180,7 @@ class TestUpdateCommand(TestCase):
             max=None,
         )
 
-    def test_update_variable_with_all_options(
-        self, mock_update_variable, mock_get_instance_key, _
-    ):
+    def test_update_variable_with_all_options(self, mock_update_variable, mock_get_instance_key, _):
         mock_get_instance_key.return_value = "variable_key"
         result = runner.invoke(
             variable_app,
@@ -236,9 +228,7 @@ class TestUpdateCommand(TestCase):
             max=200,
         )
 
-    def test_update_variable_with_invalid_json_properties(
-        self, mock_update_variable, mock_get_instance_key, _
-    ):
+    def test_update_variable_with_invalid_json_properties(self, mock_update_variable, mock_get_instance_key, _):
         mock_get_instance_key.return_value = "variable_key"
         result = runner.invoke(
             variable_app,

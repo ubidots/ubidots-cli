@@ -36,9 +36,7 @@ def _error_response(status, json_body=None):
 @patch("cli.apps.handlers.list_apps")
 class TestListAppsCommand(TestCase):
     def test_list_defaults(self, mock_list, _):
-        mock_list.return_value = _ok_response(
-            {"results": [{"id": "abc", "label": "iotexpo", "name": "IoT Expo"}]}
-        )
+        mock_list.return_value = _ok_response({"results": [{"id": "abc", "label": "iotexpo", "name": "IoT Expo"}]})
         result = runner.invoke(apps_app, ["list"])
         self.assertEqual(result.exit_code, 0)
         mock_list.assert_called_once_with(
@@ -51,9 +49,7 @@ class TestListAppsCommand(TestCase):
         )
 
     def test_list_json_format(self, mock_list, _):
-        mock_list.return_value = _ok_response(
-            {"results": [{"id": "abc", "label": "iotexpo"}]}
-        )
+        mock_list.return_value = _ok_response({"results": [{"id": "abc", "label": "iotexpo"}]})
         result = runner.invoke(apps_app, ["list", "--format", "json"])
         self.assertEqual(result.exit_code, 0)
         self.assertIn("iotexpo", result.output)
@@ -68,12 +64,8 @@ class TestListAppsCommand(TestCase):
 @patch("cli.apps.handlers.get_menu")
 class TestMenuGetCommand(TestCase):
     def test_get_by_id(self, mock_get, _):
-        mock_get.return_value = _ok_response(
-            {"menuMode": "custom", "menuXml": "<tree/>", "menuAlignment": "left"}
-        )
-        result = runner.invoke(
-            apps_app, ["menu", "get", "--id", "5df2b8bf1d8472535a742e53"]
-        )
+        mock_get.return_value = _ok_response({"menuMode": "custom", "menuXml": "<tree/>", "menuAlignment": "left"})
+        result = runner.invoke(apps_app, ["menu", "get", "--id", "5df2b8bf1d8472535a742e53"])
         self.assertEqual(result.exit_code, 0)
         mock_get.assert_called_once_with(
             active_config=ANY,
@@ -82,12 +74,8 @@ class TestMenuGetCommand(TestCase):
         self.assertIn("<tree/>", result.output)
 
     def test_get_by_label(self, mock_get, _):
-        mock_get.return_value = _ok_response(
-            {"menuMode": "custom", "menuXml": "<tree/>", "menuAlignment": "left"}
-        )
-        result = runner.invoke(
-            apps_app, ["menu", "get", "--label", "iotexpo_ubidots_app"]
-        )
+        mock_get.return_value = _ok_response({"menuMode": "custom", "menuXml": "<tree/>", "menuAlignment": "left"})
+        result = runner.invoke(apps_app, ["menu", "get", "--label", "iotexpo_ubidots_app"])
         self.assertEqual(result.exit_code, 0)
         mock_get.assert_called_once_with(
             active_config=ANY,
@@ -100,9 +88,7 @@ class TestMenuGetCommand(TestCase):
         mock_get.assert_not_called()
 
     def test_get_writes_to_output_file(self, mock_get, _):
-        mock_get.return_value = _ok_response(
-            {"menuMode": "custom", "menuXml": "<tree/>", "menuAlignment": "left"}
-        )
+        mock_get.return_value = _ok_response({"menuMode": "custom", "menuXml": "<tree/>", "menuAlignment": "left"})
         with TemporaryDirectory() as tmp_dir:
             output_path = Path(tmp_dir) / "menu.json"
             result = runner.invoke(

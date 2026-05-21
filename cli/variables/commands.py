@@ -34,9 +34,7 @@ def delete(
     id: str,
     profile: Annotated[
         str,
-        typer.Option(
-            help="Name of the profile to use for remote server communication."
-        ),
+        typer.Option(help="Name of the profile to use for remote server communication."),
     ] = "",
     output_format: Annotated[
         OutputFormatFieldsEnum | None,
@@ -45,12 +43,8 @@ def delete(
 ):
     active_config = get_configuration(profile=profile)
     variable_key = get_instance_key(id=id)
-    formatter = resolve_formatter(
-        flag=output_format, active_config=active_config, command="variables delete"
-    )
-    handlers.delete_variable(
-        variable_key=variable_key, active_config=active_config, formatter=formatter
-    )
+    formatter = resolve_formatter(flag=output_format, active_config=active_config, command="variables delete")
+    handlers.delete_variable(variable_key=variable_key, active_config=active_config, formatter=formatter)
 
 
 @app.command(short_help="Retrieves a specific variable using its id.")
@@ -60,9 +54,7 @@ def get(
     id: str,
     profile: Annotated[
         str,
-        typer.Option(
-            help="Name of the profile to use for remote server communication."
-        ),
+        typer.Option(help="Name of the profile to use for remote server communication."),
     ] = "",
     fields: Annotated[
         str,
@@ -75,9 +67,7 @@ def get(
 ):
     active_config = get_configuration(profile=profile)
     variable_key = get_instance_key(id=id)
-    formatter = resolve_formatter(
-        flag=output_format, active_config=active_config, command="variables get"
-    )
+    formatter = resolve_formatter(flag=output_format, active_config=active_config, command="variables get")
     handlers.retrieve_variable(
         active_config=active_config,
         variable_key=variable_key,
@@ -102,9 +92,7 @@ def list(
     page: int | None = None,
     profile: Annotated[
         str,
-        typer.Option(
-            help="Name of the profile to use for remote server communication."
-        ),
+        typer.Option(help="Name of the profile to use for remote server communication."),
     ] = "",
     output_format: Annotated[
         OutputFormatFieldsEnum | None,
@@ -112,9 +100,7 @@ def list(
     ] = None,
 ):
     active_config = get_configuration(profile=profile)
-    formatter = resolve_formatter(
-        flag=output_format, active_config=active_config, command="variables list"
-    )
+    formatter = resolve_formatter(flag=output_format, active_config=active_config, command="variables list")
     handlers.list_variable(
         active_config=active_config,
         fields=fields,
@@ -137,9 +123,7 @@ def add(
     ],
     label: Annotated[str, typer.Argument(help="The label for the variable.")] = "",
     name: Annotated[str, typer.Argument(help="The name of the variable.")] = "",
-    description: Annotated[
-        str, typer.Option(help="A brief description of the variable.")
-    ] = "",
+    description: Annotated[str, typer.Option(help="A brief description of the variable.")] = "",
     type: Annotated[
         VariableTypeEnum,
         typer.Option(
@@ -148,9 +132,7 @@ def add(
             show_default=True,
         ),
     ] = VariableTypeEnum.RAW,
-    unit: Annotated[
-        str, typer.Option(help="The unit of measurement that represents the variable.")
-    ] = "",
+    unit: Annotated[str, typer.Option(help="The unit of measurement that represents the variable.")] = "",
     synthetic_expression: Annotated[
         str,
         typer.Option(
@@ -166,9 +148,7 @@ def add(
     ] = "",
     properties: Annotated[
         str,
-        typer.Option(
-            help="Device properties in JSON format.", callback=is_valid_json_string
-        ),
+        typer.Option(help="Device properties in JSON format.", callback=is_valid_json_string),
     ] = "{}",
     min: Annotated[
         int | None,
@@ -186,9 +166,7 @@ def add(
     ] = None,
     profile: Annotated[
         str,
-        typer.Option(
-            help="Name of the profile to use for remote server communication."
-        ),
+        typer.Option(help="Name of the profile to use for remote server communication."),
     ] = "",
     output_format: Annotated[
         OutputFormatFieldsEnum | None,
@@ -200,9 +178,7 @@ def add(
         error_message = "Either 'label' or 'name' must be provided."
         raise typer.BadParameter(error_message)
 
-    formatter = resolve_formatter(
-        flag=output_format, active_config=active_config, command="variables add"
-    )
+    formatter = resolve_formatter(flag=output_format, active_config=active_config, command="variables add")
     handlers.add_variable(
         active_config=active_config,
         formatter=formatter,
@@ -226,9 +202,7 @@ def update(
     id: str,
     new_label: Annotated[str, typer.Option(help="The label for the variable.")] = "",
     new_name: Annotated[str, typer.Option(help="The name of the variable.")] = "",
-    description: Annotated[
-        str, typer.Option(help="A brief description of the variable.")
-    ] = "",
+    description: Annotated[str, typer.Option(help="A brief description of the variable.")] = "",
     type: Annotated[
         VariableTypeEnum,
         typer.Option(
@@ -237,9 +211,7 @@ def update(
             show_default=True,
         ),
     ] = VariableTypeEnum.RAW,
-    unit: Annotated[
-        str, typer.Option(help="The unit of measurement that represents the variable.")
-    ] = "",
+    unit: Annotated[str, typer.Option(help="The unit of measurement that represents the variable.")] = "",
     synthetic_expression: Annotated[
         str,
         typer.Option(
@@ -255,9 +227,7 @@ def update(
     ] = "",
     properties: Annotated[
         str,
-        typer.Option(
-            help="Device properties in JSON format.", callback=is_valid_json_string
-        ),
+        typer.Option(help="Device properties in JSON format.", callback=is_valid_json_string),
     ] = "{}",
     min: Annotated[
         int | None,
@@ -286,9 +256,7 @@ def update(
 ):
     active_config = get_configuration(profile=profile)
     variable_key = get_instance_key(id=id)
-    formatter = resolve_formatter(
-        flag=output_format, active_config=active_config, command="variables update"
-    )
+    formatter = resolve_formatter(flag=output_format, active_config=active_config, command="variables update")
     handlers.update_variable(
         active_config=active_config,
         variable_key=variable_key,

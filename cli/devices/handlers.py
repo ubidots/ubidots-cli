@@ -66,9 +66,7 @@ def retrieve_device(
 
 def add_device(active_config: ProfileConfigModel, formatter: OutputFormatter, **kwargs):
     data = build_devices_payload(**kwargs)
-    url, headers = build_endpoint(
-        route="/api/v2.0/devices/", active_config=active_config
-    )
+    url, headers = build_endpoint(route="/api/v2.0/devices/", active_config=active_config)
     client = httpx.Client(follow_redirects=True)
     response = client.post(url, headers=headers, json=data)
     if response.status_code == httpx.codes.CREATED:
@@ -113,9 +111,7 @@ def update_device(
         )
 
 
-def delete_device(
-    device_key: str, active_config: ProfileConfigModel, formatter: OutputFormatter
-):
+def delete_device(device_key: str, active_config: ProfileConfigModel, formatter: OutputFormatter):
     url, headers = build_endpoint(
         route="/api/v2.0/devices/{device_key}/",
         device_key=device_key,

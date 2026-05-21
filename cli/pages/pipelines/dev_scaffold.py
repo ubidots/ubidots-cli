@@ -79,9 +79,7 @@ class CreateProjectFolderStep(PipelineStep):
         try:
             project_path.mkdir(parents=True, exist_ok=False)
         except FileExistsError:
-            raise PageWithNameAlreadyExistsError(
-                name=data["page_name"], page_path=project_path
-            ) from None
+            raise PageWithNameAlreadyExistsError(name=data["page_name"], page_path=project_path) from None
         except PermissionError as error:
             raise PermissionDeniedError(error=str(error)) from error
         return data
@@ -104,9 +102,7 @@ class ValidateExtractedPageStep(PipelineStep):
         page_type = data["page_type"]
 
         try:
-            page_model = PageModelFactory.create_page_model_from_project(
-                project_path, page_type
-            )
+            page_model = PageModelFactory.create_page_model_from_project(project_path, page_type)
 
             validation_result = page_model.validate_complete(project_path)
 

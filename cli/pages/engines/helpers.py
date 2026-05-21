@@ -59,9 +59,7 @@ def get_page_workspace(workspace_key: str) -> Path:
     return path
 
 
-_COPY_EXCLUDED = frozenset(
-    {"index.html", ".manifest.yaml", ".pid", ".watcher.pid", ".hot_reload_port"}
-)
+_COPY_EXCLUDED = frozenset({"index.html", ".manifest.yaml", ".pid", ".watcher.pid", ".hot_reload_port"})
 
 
 def get_tracked_files(source_dir: Path) -> list[Path]:
@@ -157,9 +155,7 @@ def render_index_html(
     page_dict = page_model.model_dump()
 
     body_file = source_dir / "body.html"
-    page_dict["body"] = (
-        body_file.read_text(encoding="utf-8") if body_file.exists() else ""
-    )
+    page_dict["body"] = body_file.read_text(encoding="utf-8") if body_file.exists() else ""
 
     cdn = settings.PAGES.TEMPLATE_PLACEHOLDERS[page_type.value]
     base_url = f"/{workspace_dir.name}"
@@ -175,9 +171,7 @@ def render_index_html(
         VULCANUI_JS_URL=cdn["vulcanui_js_url"],
         VULCANUI_CSS_URL=cdn["vulcanui_css_url"],
     )
-    final_html = ubidots_html.replace(
-        "</body>", f"{_hot_reload_snippet(hot_reload_port)}\n</body>"
-    )
+    final_html = ubidots_html.replace("</body>", f"{_hot_reload_snippet(hot_reload_port)}\n</body>")
     (workspace_dir / "index.html").write_text(final_html, encoding="utf-8")
 
 
@@ -234,6 +228,4 @@ def register_page_in_argo(workspace_key: str, argo_admin_port: int) -> None:
 def deregister_page_from_argo(workspace_key: str, argo_admin_port: int) -> None:
     """Remove the Argo route for workspace_key (best-effort)."""
     with suppress(Exception):
-        httpx.delete(
-            f"http://localhost:{argo_admin_port}/{ARGO_API_BASE_PATH}/~pages-{workspace_key}"
-        )
+        httpx.delete(f"http://localhost:{argo_admin_port}/{ARGO_API_BASE_PATH}/~pages-{workspace_key}")

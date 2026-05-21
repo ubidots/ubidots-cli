@@ -4,6 +4,8 @@ from tempfile import TemporaryDirectory
 from unittest.mock import MagicMock
 from unittest.mock import patch
 
+import pytest
+
 from cli.pages.exceptions import PageAlreadyExistsInCurrentDirectoryError
 from cli.pages.exceptions import PageIsAlreadyRunningError
 from cli.pages.exceptions import PageIsAlreadyStoppedError
@@ -21,7 +23,6 @@ from cli.pages.pipelines import ValidatePageRunningStep
 
 
 class TestValidationSteps(unittest.TestCase):
-
     @patch("cli.pages.pipelines.dev_scaffold.settings")
     def test_validate_not_running_from_page_directory_step_exists(self, mock_settings):
         mock_settings.PAGES.PROJECT_MANIFEST_FILE = ".manifest.yaml"
@@ -34,14 +35,12 @@ class TestValidationSteps(unittest.TestCase):
 
             with (
                 patch("pathlib.Path.cwd", return_value=Path(temp_dir)),
-                self.assertRaises(PageAlreadyExistsInCurrentDirectoryError),
+                pytest.raises(PageAlreadyExistsInCurrentDirectoryError),
             ):
                 step.execute({})
 
     @patch("cli.pages.pipelines.dev_scaffold.settings")
-    def test_validate_not_running_from_page_directory_step_not_exists(
-        self, mock_settings
-    ):
+    def test_validate_not_running_from_page_directory_step_not_exists(self, mock_settings):
         mock_settings.PAGES.PROJECT_MANIFEST_FILE = ".manifest.yaml"
 
         with TemporaryDirectory() as temp_dir:
@@ -73,12 +72,11 @@ class TestValidationSteps(unittest.TestCase):
 
             step = ValidatePageDirectoryStep()
 
-            with self.assertRaises(FileNotFoundError):
+            with pytest.raises(FileNotFoundError):
                 step.execute(data)
 
 
 class TestCreationSteps(unittest.TestCase):
-
     def test_create_project_folder_step(self):
         with TemporaryDirectory() as temp_dir:
             project_path = Path(temp_dir) / "test_page"
@@ -110,9 +108,7 @@ class TestCreationSteps(unittest.TestCase):
         expected_data["project_metadata"] = mock_metadata
         self.assertEqual(result, expected_data)
 
-        mock_create_manifest.assert_called_once_with(
-            Path("/test"), "test_page", PageTypeEnum.DASHBOARD
-        )
+        mock_create_manifest.assert_called_once_with(Path("/test"), "test_page", PageTypeEnum.DASHBOARD)
 
     @patch("cli.pages.pipelines.dev_engine.read_page_manifest")
     def test_read_page_metadata_step_success(self, mock_read_manifest):
@@ -136,7 +132,7 @@ class TestCreationSteps(unittest.TestCase):
 
         step = ReadPageMetadataStep()
 
-        with self.assertRaises(FileNotFoundError):
+        with pytest.raises(FileNotFoundError):
             step.execute(data)
 
 
@@ -160,9 +156,7 @@ class TestPidBasedSteps(unittest.TestCase):
             data = {"project_path": project_path, "workspace_key": "test-page-abc123"}
             step = ValidatePageNotRunningStep()
 
-            with patch("os.kill"), self.assertRaises(
-                PageIsAlreadyRunningError
-            ):  # Simulate process exists
+            with patch("os.kill"), pytest.raises(PageIsAlreadyRunningError):  # Simulate process exists
                 step.execute(data)
 
     def test_validate_page_running_step_is_running(self):
@@ -185,7 +179,7 @@ class TestPidBasedSteps(unittest.TestCase):
             data = {"project_path": project_path, "workspace_key": "test-page-abc123"}
             step = ValidatePageRunningStep()
 
-            with self.assertRaises(PageIsAlreadyStoppedError):
+            with pytest.raises(PageIsAlreadyStoppedError):
                 step.execute(data)
 
     def test_get_page_status_step_stopped_no_pid(self):
@@ -224,9 +218,7 @@ class TestPidBasedSteps(unittest.TestCase):
                 page_dir.mkdir()
                 source_dir = Path(source_temp_dir) / "my-page"
                 source_dir.mkdir(parents=True)
-                (page_dir / ".source_path").write_text(
-                    str(source_dir), encoding="utf-8"
-                )
+                (page_dir / ".source_path").write_text(str(source_dir), encoding="utf-8")
 
                 data = {"argo_adapter_port": 8040}
                 step = ListAllPagesStep()
@@ -269,9 +261,7 @@ class TestPidBasedSteps(unittest.TestCase):
             page_dir = workspace / "my-page-abc12345"
             page_dir.mkdir()
             # .source_path points to a directory that no longer exists
-            (page_dir / ".source_path").write_text(
-                "/nonexistent/path/my-page", encoding="utf-8"
-            )
+            (page_dir / ".source_path").write_text("/nonexistent/path/my-page", encoding="utf-8")
 
             data = {"argo_adapter_port": 8040}
             step = ListAllPagesStep()
@@ -290,7 +280,6 @@ class TestPidBasedSteps(unittest.TestCase):
 
 
 class TestPrintkeyStep(unittest.TestCase):
-
     def test_prints_existing_key(self):
         step = PrintkeyStep(key="logs")
         data = {"logs": "line1\nline2"}

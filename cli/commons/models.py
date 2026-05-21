@@ -13,10 +13,7 @@ class BaseYAMLDumpModel(BaseModel):
                 case Enum():
                     return obj.value
                 case dict():
-                    return {
-                        key: _convert_enums_to_values(value)
-                        for key, value in obj.items()
-                    }
+                    return {key: _convert_enums_to_values(value) for key, value in obj.items()}
                 case list():
                     return [_convert_enums_to_values(item) for item in obj]
                 case _:
@@ -34,10 +31,7 @@ class BaseTOMLDumpModel(BaseModel):
                 case Enum():
                     return obj.value
                 case dict():
-                    return {
-                        key: _convert_enums_to_values(value)
-                        for key, value in obj.items()
-                    }
+                    return {key: _convert_enums_to_values(value) for key, value in obj.items()}
                 case list():
                     return [_convert_enums_to_values(item) for item in obj]
                 case _:

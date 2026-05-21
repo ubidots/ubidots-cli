@@ -82,9 +82,7 @@ class BasePageModel(BaseModel, ABC):
         for field_path in self.get_required_toml_fields():
             if not self._check_toml_path_exists(original_data, field_path):
                 validation_result["valid"] = False
-                validation_result["errors"].append(
-                    f"manifest.toml missing required path: {field_path}"
-                )
+                validation_result["errors"].append(f"manifest.toml missing required path: {field_path}")
 
         return validation_result
 
@@ -136,7 +134,7 @@ class BasePageModel(BaseModel, ABC):
             raise FileNotFoundError(msg)
 
         try:
-            with open(manifest_path, "rb") as f:
+            with Path(manifest_path).open("rb") as f:
                 toml_data = tomli.load(f)
         except Exception as e:
             msg = f"Invalid TOML: {e}"
@@ -185,9 +183,7 @@ class PageModelFactory:
     """Factory for creating appropriate page models based on page type."""
 
     @staticmethod
-    def create_page_model_from_toml(
-        toml_data: dict[str, Any], page_type: PageTypeEnum
-    ) -> BasePageModel:
+    def create_page_model_from_toml(toml_data: dict[str, Any], page_type: PageTypeEnum) -> BasePageModel:
         """Create the appropriate page model from TOML data."""
         if page_type == PageTypeEnum.DASHBOARD:
             return DashboardPageModel.from_toml_data(toml_data)
@@ -196,9 +192,7 @@ class PageModelFactory:
         raise ValueError(msg)
 
     @staticmethod
-    def create_page_model_from_project(
-        project_path: Path, page_type: PageTypeEnum
-    ) -> BasePageModel:
+    def create_page_model_from_project(project_path: Path, page_type: PageTypeEnum) -> BasePageModel:
         """Create page model by loading from project directory."""
         if page_type == PageTypeEnum.DASHBOARD:
             return DashboardPageModel.load_from_project(project_path)

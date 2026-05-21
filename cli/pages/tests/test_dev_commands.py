@@ -9,7 +9,6 @@ from cli.pages.models import PageTypeEnum
 
 
 class TestDevAddCommand(unittest.TestCase):
-
     def setUp(self):
         self.runner = CliRunner()
 
@@ -111,7 +110,6 @@ class TestDevAddCommand(unittest.TestCase):
 
 
 class TestStartCommand(unittest.TestCase):
-
     def setUp(self):
         self.runner = CliRunner()
 
@@ -131,7 +129,6 @@ class TestStartCommand(unittest.TestCase):
 
 
 class TestStopCommand(unittest.TestCase):
-
     def setUp(self):
         self.runner = CliRunner()
 
@@ -151,7 +148,6 @@ class TestStopCommand(unittest.TestCase):
 
 
 class TestRestartCommand(unittest.TestCase):
-
     def setUp(self):
         self.runner = CliRunner()
 
@@ -171,7 +167,6 @@ class TestRestartCommand(unittest.TestCase):
 
 
 class TestStatusCommand(unittest.TestCase):
-
     def setUp(self):
         self.runner = CliRunner()
 
@@ -191,7 +186,6 @@ class TestStatusCommand(unittest.TestCase):
 
 
 class TestListCommand(unittest.TestCase):
-
     def setUp(self):
         self.runner = CliRunner()
 
@@ -211,7 +205,6 @@ class TestListCommand(unittest.TestCase):
 
 
 class TestCommandsIntegration(unittest.TestCase):
-
     def setUp(self):
         self.runner = CliRunner()
 
@@ -259,7 +252,6 @@ class TestCommandsIntegration(unittest.TestCase):
 
 
 class TestLogsCommand(unittest.TestCase):
-
     def setUp(self):
         self.runner = CliRunner()
 
@@ -268,51 +260,38 @@ class TestLogsCommand(unittest.TestCase):
         result = self.runner.invoke(app, ["dev", "logs"])
 
         self.assertEqual(result.exit_code, 0)
-        mock_logs.assert_called_once_with(
-            tail="all", follow=False, verbose=False, formatter=ANY
-        )
+        mock_logs.assert_called_once_with(tail="all", follow=False, verbose=False, formatter=ANY)
 
     @patch("cli.pages.commands.executor.logs_local_dev_server")
     def test_logs_command_with_tail(self, mock_logs):
         result = self.runner.invoke(app, ["dev", "logs", "--tail", "50"])
 
         self.assertEqual(result.exit_code, 0)
-        mock_logs.assert_called_once_with(
-            tail="50", follow=False, verbose=False, formatter=ANY
-        )
+        mock_logs.assert_called_once_with(tail="50", follow=False, verbose=False, formatter=ANY)
 
     @patch("cli.pages.commands.executor.logs_local_dev_server")
     def test_logs_command_with_follow(self, mock_logs):
         result = self.runner.invoke(app, ["dev", "logs", "--follow"])
 
         self.assertEqual(result.exit_code, 0)
-        mock_logs.assert_called_once_with(
-            tail="all", follow=True, verbose=False, formatter=ANY
-        )
+        mock_logs.assert_called_once_with(tail="all", follow=True, verbose=False, formatter=ANY)
 
     @patch("cli.pages.commands.executor.logs_local_dev_server")
     def test_logs_command_with_verbose(self, mock_logs):
         result = self.runner.invoke(app, ["dev", "logs", "--verbose"])
 
         self.assertEqual(result.exit_code, 0)
-        mock_logs.assert_called_once_with(
-            tail="all", follow=False, verbose=True, formatter=ANY
-        )
+        mock_logs.assert_called_once_with(tail="all", follow=False, verbose=True, formatter=ANY)
 
     @patch("cli.pages.commands.executor.logs_local_dev_server")
     def test_logs_command_all_options(self, mock_logs):
-        result = self.runner.invoke(
-            app, ["dev", "logs", "--tail", "100", "--follow", "--verbose"]
-        )
+        result = self.runner.invoke(app, ["dev", "logs", "--tail", "100", "--follow", "--verbose"])
 
         self.assertEqual(result.exit_code, 0)
-        mock_logs.assert_called_once_with(
-            tail="100", follow=True, verbose=True, formatter=ANY
-        )
+        mock_logs.assert_called_once_with(tail="100", follow=True, verbose=True, formatter=ANY)
 
 
 class TestLogsCommandHelp(unittest.TestCase):
-
     def setUp(self):
         self.runner = CliRunner()
 

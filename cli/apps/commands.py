@@ -24,8 +24,7 @@ APP_HELP_TEXT = (
 )
 
 MENU_HELP_TEXT = (
-    "Manage the sidebar menu XML for an Ubidots App. "
-    "Use `ubidots apps menu schema` to see the expected XML grammar."
+    "Manage the sidebar menu XML for an Ubidots App. Use `ubidots apps menu schema` to see the expected XML grammar."
 )
 
 FIELDS_APP_HELP_TEXT = (
@@ -53,9 +52,7 @@ def list_apps(
     page: int | None = None,
     profile: Annotated[
         str,
-        typer.Option(
-            help="Name of the profile to use for remote server communication."
-        ),
+        typer.Option(help="Name of the profile to use for remote server communication."),
     ] = "",
     format: OutputFormatFieldsEnum = settings.CONFIG.DEFAULT_OUTPUT_FORMAT,
 ):
@@ -79,9 +76,7 @@ def menu_get(
     label: str | None = None,
     profile: Annotated[
         str,
-        typer.Option(
-            help="Name of the profile to use for remote server communication."
-        ),
+        typer.Option(help="Name of the profile to use for remote server communication."),
     ] = "",
     format: OutputFormatFieldsEnum = settings.CONFIG.DEFAULT_OUTPUT_FORMAT,
     output: Annotated[
@@ -124,9 +119,7 @@ def menu_set(
     mode: MenuModeEnum = MenuModeEnum.CUSTOM,
     profile: Annotated[
         str,
-        typer.Option(
-            help="Name of the profile to use for remote server communication."
-        ),
+        typer.Option(help="Name of the profile to use for remote server communication."),
     ] = "",
 ):
     if not file:
@@ -159,9 +152,7 @@ def menu_reset(
     ] = False,
     profile: Annotated[
         str,
-        typer.Option(
-            help="Name of the profile to use for remote server communication."
-        ),
+        typer.Option(help="Name of the profile to use for remote server communication."),
     ] = "",
 ):
     app_key = get_instance_key(id=id, label=label)

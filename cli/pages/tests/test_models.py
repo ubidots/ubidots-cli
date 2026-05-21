@@ -4,6 +4,8 @@ import unittest
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
+import pytest
+
 from cli.pages.models import DashboardPageModel
 from cli.pages.models import PageModel
 from cli.pages.models import PageModelFactory
@@ -145,9 +147,7 @@ class TestPageModelFactory(unittest.TestCase):
                 "is_react_enabled": True,
             }
         }
-        model = PageModelFactory.create_page_model_from_toml(
-            toml_data, PageTypeEnum.DASHBOARD
-        )
+        model = PageModelFactory.create_page_model_from_toml(toml_data, PageTypeEnum.DASHBOARD)
         self.assertIsInstance(model, DashboardPageModel)
         self.assertEqual(model.name, "Test Dashboard")
         self.assertEqual(model.description, "A test dashboard")
@@ -156,16 +156,14 @@ class TestPageModelFactory(unittest.TestCase):
     def test_create_page_model_from_toml_invalid_type(self):
         """Test that invalid page type raises ValueError."""
         toml_data = {"page": {"name": "Test"}}
-        with self.assertRaises(ValueError) as context:
+        with pytest.raises(ValueError) as context:
             PageModelFactory.create_page_model_from_toml(toml_data, "invalid_type")
-        self.assertIn("Unsupported page type", str(context.exception))
+        self.assertIn("Unsupported page type", str(context.value))
 
     def test_create_page_model_from_project_invalid_type(self):
         """Test that invalid page type raises ValueError for project loading."""
         with TemporaryDirectory() as temp_dir:
             project_path = Path(temp_dir)
-            with self.assertRaises(ValueError) as context:
-                PageModelFactory.create_page_model_from_project(
-                    project_path, "invalid_type"
-                )
-            self.assertIn("Unsupported page type", str(context.exception))
+            with pytest.raises(ValueError) as context:
+                PageModelFactory.create_page_model_from_project(project_path, "invalid_type")
+            self.assertIn("Unsupported page type", str(context.value))

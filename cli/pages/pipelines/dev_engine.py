@@ -1,7 +1,7 @@
 import os
 import shutil
 import signal
-import subprocess
+import subprocess  # noqa: S404
 import sys
 import time
 from contextlib import suppress
@@ -42,10 +42,7 @@ class ValidatePageDirectoryStep(PipelineStep):
         project_path = data["project_path"]
         manifest_file = project_path / settings.PAGES.PROJECT_MANIFEST_FILE
         if not manifest_file.exists():
-            msg = (
-                "Not in a page directory. Run this command inside a page project "
-                "or use 'dev add' to create one."
-            )
+            msg = "Not in a page directory. Run this command inside a page project or use 'dev add' to create one."
             raise FileNotFoundError(msg)
         return data
 
@@ -57,10 +54,7 @@ class ReadPageMetadataStep(PipelineStep):
         try:
             data["project_metadata"] = read_page_manifest(project_path)
         except FileNotFoundError as err:
-            msg = (
-                "Not in a page directory. Run this command inside a page project "
-                "or use 'dev add' to create one."
-            )
+            msg = "Not in a page directory. Run this command inside a page project or use 'dev add' to create one."
             raise FileNotFoundError(msg) from err
         except Exception as e:
             msg = f"Failed to read page metadata: {e!s}"
@@ -76,9 +70,7 @@ class ValidatePageStructureStep(PipelineStep):
         page_type = project_metadata.project.type
 
         try:
-            page_model = PageModelFactory.create_page_model_from_project(
-                project_path, page_type
-            )
+            page_model = PageModelFactory.create_page_model_from_project(project_path, page_type)
 
             validation_result = page_model.validate_complete(project_path)
 
@@ -145,9 +137,7 @@ class GetArgoImageNameStep(PipelineStep):
 
 class ValidateArgoImageStep(PipelineStep):
     def execute(self, data):
-        verify_and_fetch_images(
-            client=data["client"], image_names=[data["argo_image_name"]]
-        )
+        verify_and_fetch_images(client=data["client"], image_names=[data["argo_image_name"]])
         return data
 
 
@@ -178,16 +168,8 @@ class TryGetArgoPortStep(PipelineStep):
             if container.status == "running":
                 mapping_a = (container.ports or {}).get(ARGO_INTERNAL_ADAPTER_PORT, [])
                 mapping_t = (container.ports or {}).get(ARGO_INTERNAL_TARGET_PORT, [])
-                data["argo_adapter_port"] = (
-                    int(mapping_a[0]["HostPort"])
-                    if mapping_a
-                    else ARGO_EXTERNAL_ADAPTER_PORT
-                )
-                data["argo_target_port"] = (
-                    int(mapping_t[0]["HostPort"])
-                    if mapping_t
-                    else ARGO_EXTERNAL_TARGET_PORT
-                )
+                data["argo_adapter_port"] = int(mapping_a[0]["HostPort"]) if mapping_a else ARGO_EXTERNAL_ADAPTER_PORT
+                data["argo_target_port"] = int(mapping_t[0]["HostPort"]) if mapping_t else ARGO_EXTERNAL_TARGET_PORT
             else:
                 data["argo_adapter_port"] = None
                 data["argo_target_port"] = None
@@ -224,14 +206,9 @@ class RegisterPageInArgoStep(PipelineStep):
 
 class StartHotReloadSubprocessStep(PipelineStep):
     def execute(self, data):
-        hot_reload_script = (
-            Path(__file__).parent.parent
-            / "engines"
-            / "templates"
-            / "hot_reload_server.py"
-        )
+        hot_reload_script = Path(__file__).parent.parent / "engines" / "templates" / "hot_reload_server.py"
         log_file = data["workspace_path"] / ".hot_reload.log"
-        with open(log_file, "w") as log:
+        with Path(log_file).open("w", encoding="utf-8") as log:
             proc = subprocess.Popen(
                 [
                     sys.executable,
@@ -311,15 +288,13 @@ class ShowPageLogsStep(PipelineStep):
             if follow:
                 cmd.append("-f")
             cmd.extend([str(f) for f in log_files])
-            subprocess.run(cmd)
+            subprocess.run(cmd, check=False)
         return data
 
 
 class StoreHotReloadPortStep(PipelineStep):
     def execute(self, data):
-        (data["project_path"] / ".hot_reload_port").write_text(
-            str(data["hot_reload_port"])
-        )
+        (data["project_path"] / ".hot_reload_port").write_text(str(data["hot_reload_port"]))
         return data
 
 
@@ -338,9 +313,7 @@ class GetWorkspaceKeyStep(PipelineStep):
 class CreateWorkspaceStep(PipelineStep):
     def execute(self, data):
         data["workspace_path"].mkdir(parents=True, exist_ok=True)
-        (data["workspace_path"] / ".source_path").write_text(
-            str(data["project_path"]), encoding="utf-8"
-        )
+        (data["workspace_path"] / ".source_path").write_text(str(data["project_path"]), encoding="utf-8")
         return data
 
 
@@ -366,9 +339,7 @@ class CopyTrackedFilesStep(PipelineStep):
 
 class StartCopyWatcherStep(PipelineStep):
     def execute(self, data):
-        copy_watcher_script = (
-            Path(__file__).parent.parent / "engines" / "templates" / "copy_watcher.py"
-        )
+        copy_watcher_script = Path(__file__).parent.parent / "engines" / "templates" / "copy_watcher.py"
         proc = subprocess.Popen(
             [
                 sys.executable,
@@ -444,9 +415,7 @@ class ValidatePageRunningStep(PipelineStep):
             os.kill(pid, 0)
         except ProcessLookupError:
             pid_file.unlink(missing_ok=True)
-            raise PageIsAlreadyStoppedError(
-                name=data.get("workspace_key", "")
-            ) from None
+            raise PageIsAlreadyStoppedError(name=data.get("workspace_key", "")) from None
         except PermissionError:
             pass  # Process exists (different user) — page is running
         return data
@@ -482,11 +451,7 @@ class GetPageStatusStep(PipelineStep):
 
         status = "running" if (argo_running and hot_reload_running) else "stopped"
         argo_target_port = data.get("argo_target_port", ARGO_EXTERNAL_TARGET_PORT)
-        url = (
-            f"http://localhost:{argo_target_port}/{workspace_key}/"
-            if argo_running
-            else ""
-        )
+        url = f"http://localhost:{argo_target_port}/{workspace_key}/" if argo_running else ""
 
         data["page_status"] = status
         data["page_url"] = url
@@ -516,9 +481,7 @@ class GetPageStatusTableStep(PipelineStep):
         argo_running = False
         if argo_port is not None:
             try:
-                resp = httpx.get(
-                    f"http://localhost:{argo_port}/api/_/route/", timeout=2.0
-                )
+                resp = httpx.get(f"http://localhost:{argo_port}/api/_/route/", timeout=2.0)
                 if resp.status_code == 200:
                     for adapter in resp.json():
                         if adapter.get("label", "") == f"pages-{workspace_key}":
@@ -534,9 +497,7 @@ class GetPageStatusTableStep(PipelineStep):
             if hr_port_file.exists():
                 try:
                     hr_port = int(hr_port_file.read_text().strip())
-                    status_resp = httpx.get(
-                        f"http://localhost:{hr_port}/__dev/status", timeout=2.0
-                    )
+                    status_resp = httpx.get(f"http://localhost:{hr_port}/__dev/status", timeout=2.0)
                     if status_resp.status_code == 200:
                         browser_errors = status_resp.json().get("errors", [])
                 except Exception:
@@ -544,11 +505,7 @@ class GetPageStatusTableStep(PipelineStep):
 
         status = "running" if (argo_running and hot_reload_running) else "stopped"
         argo_target_port = data.get("argo_target_port", ARGO_EXTERNAL_TARGET_PORT)
-        url = (
-            f"http://localhost:{argo_target_port}/{workspace_key}/"
-            if argo_running
-            else "-"
-        )
+        url = f"http://localhost:{argo_target_port}/{workspace_key}/" if argo_running else "-"
 
         data["page_status"] = {
             "workspace_key": workspace_key,
@@ -596,16 +553,8 @@ class ListAllPagesStep(PipelineStep):
                 {
                     "name": key,
                     "path": source_path,
-                    "status": (
-                        "orphaned"
-                        if source_missing
-                        else ("running" if running else "stopped")
-                    ),
-                    "url": (
-                        f"http://localhost:{argo_target_port}/{key}/"
-                        if running and not source_missing
-                        else "-"
-                    ),
+                    "status": ("orphaned" if source_missing else ("running" if running else "stopped")),
+                    "url": (f"http://localhost:{argo_target_port}/{key}/" if running and not source_missing else "-"),
                 }
             )
 
@@ -655,9 +604,7 @@ class PrintPagesListStep(PipelineStep):
         if formatter is not None:
             formatter.emit_results(pages_info)
         else:
-            print_colored_table(
-                results=pages_info, column_order=["name", "path", "status", "url"]
-            )
+            print_colored_table(results=pages_info, column_order=["name", "path", "status", "url"])
 
         return data
 

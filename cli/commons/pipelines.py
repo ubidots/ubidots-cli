@@ -93,11 +93,9 @@ class PipelineStep:
 
         try:
             step = self.execute(data)
-        except Exception as exception:
-            self.log(
-                data=data, message="(Finished ERROR)\n", color=MessageColorEnum.ERROR
-            )
-            raise exception
+        except Exception:
+            self.log(data=data, message="(Finished ERROR)\n", color=MessageColorEnum.ERROR)
+            raise
 
         self.log(data=data, message="(Finished OK)\n", color=MessageColorEnum.SUCCESS)
         return step

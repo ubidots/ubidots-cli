@@ -76,9 +76,7 @@ class TestArgoAdapterTargetBaseModel:
         with pytest.raises(ValidationError) as exc_info:
             ArgoAdapterTargetBaseModel(type="INVALID_TYPE", url="https://example.com")
         # Assert
-        assert "Input should be 'rie_function' or 'rie_function_raw'" in str(
-            exc_info.value
-        )
+        assert "Input should be 'rie_function' or 'rie_function_raw'" in str(exc_info.value)
 
 
 class TestArgoAdapterBaseModel:
@@ -94,9 +92,7 @@ class TestArgoAdapterBaseModel:
             ],
             bridge=ArgoBridgeBaseModel(
                 label="Test Adapter",
-                target=ArgoAdapterTargetBaseModel(
-                    type=TargetTypeEnum.RIE_FUNCTION, url="https://example.com"
-                ),
+                target=ArgoAdapterTargetBaseModel(type=TargetTypeEnum.RIE_FUNCTION, url="https://example.com"),
             ),
         )
         # Assert
@@ -115,13 +111,8 @@ class TestArgoAdapterBaseModel:
                 middlewares=["INVALID_MIDDLEWARE"],
                 bridge=ArgoBridgeBaseModel(
                     label="Test Adapter",
-                    target=ArgoAdapterTargetBaseModel(
-                        type=TargetTypeEnum.RIE_FUNCTION, url="https://example.com"
-                    ),
+                    target=ArgoAdapterTargetBaseModel(type=TargetTypeEnum.RIE_FUNCTION, url="https://example.com"),
                 ),
             )
         # Assert
-        assert (
-            "Input should be a valid dictionary or instance of ArgoAdapterMiddleware"
-            in str(exc_info.value)
-        )
+        assert "Input should be a valid dictionary or instance of ArgoAdapterMiddleware" in str(exc_info.value)

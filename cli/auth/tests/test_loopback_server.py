@@ -56,14 +56,9 @@ class TestLoopbackServer:
         # Setup
         port = _free_port()
         server = LoopbackServer(host="127.0.0.1", port=port)
-        callback_url = (
-            f"http://127.0.0.1:{port}{settings.OAUTH.CALLBACK_PATH}"
-            "?code=THECODE&state=STATE"
-        )
+        callback_url = f"http://127.0.0.1:{port}{settings.OAUTH.CALLBACK_PATH}?code=THECODE&state=STATE"
         expected_result = LoopbackResult(code="THECODE", state="STATE")
-        client_timer = threading.Timer(
-            0.2, lambda: urllib.request.urlopen(callback_url).read()
-        )
+        client_timer = threading.Timer(0.2, lambda: urllib.request.urlopen(callback_url).read())
         client_timer.start()
         # Action
         try:
@@ -81,9 +76,7 @@ class TestLoopbackServer:
             f"http://127.0.0.1:{port}{settings.OAUTH.CALLBACK_PATH}"
             "?error=access_denied&error_description=User+cancelled"
         )
-        client_timer = threading.Timer(
-            0.2, lambda: urllib.request.urlopen(denied_url).read()
-        )
+        client_timer = threading.Timer(0.2, lambda: urllib.request.urlopen(denied_url).read())
         client_timer.start()
         # Action / Expected
         try:

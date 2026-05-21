@@ -58,7 +58,7 @@ def _read_active_profile_name() -> str:
     if not config_path.exists():
         return settings.CONFIG.DEFAULT_PROFILE
     try:
-        with config_path.open() as f:
+        with config_path.open(encoding="utf-8") as f:
             data = yaml.safe_load(f) or {}
         return data.get("profile") or settings.CONFIG.DEFAULT_PROFILE
     except (OSError, yaml.YAMLError):
@@ -101,12 +101,7 @@ def _resolve_client_id(flag_value: str, current_config: ProfileConfigModel) -> s
 
 
 def _resolve_api_domain(flag_value: str, current_config: ProfileConfigModel) -> str:
-    return (
-        flag_value
-        or os.getenv(API_DOMAIN_ENV_VAR, "")
-        or current_config.api_domain
-        or settings.CONFIG.API_DOMAIN
-    )
+    return flag_value or os.getenv(API_DOMAIN_ENV_VAR, "") or current_config.api_domain or settings.CONFIG.API_DOMAIN
 
 
 def _resolve_loopback_port(flag_value: int) -> int:
@@ -132,12 +127,7 @@ def _extract_user_label(jwt: str, fallback: str = "user") -> str:
             return fallback
         payload_b64 = parts[1] + "=" * (-len(parts[1]) % 4)
         claims = json.loads(base64.urlsafe_b64decode(payload_b64).decode("utf-8"))
-        return (
-            claims.get("email")
-            or claims.get("preferred_username")
-            or claims.get("sub")
-            or fallback
-        )
+        return claims.get("email") or claims.get("preferred_username") or claims.get("sub") or fallback
     except Exception:
         return fallback
 
@@ -225,9 +215,7 @@ def login(
     ] = False,
 ) -> None:
     with redaction.redaction_session():
-        profile_name, current_config, is_new_profile = _resolve_active_config(
-            profile or None
-        )
+        profile_name, current_config, is_new_profile = _resolve_active_config(profile or None)
         resolved_client_id = _resolve_client_id(client_id, current_config)
         if not resolved_client_id:
             _emit_error(
@@ -239,29 +227,15 @@ def login(
         resolved_port = _resolve_loopback_port(port)
         redirect_uri = _build_redirect_uri(resolved_port)
         requested_scope = scope or settings.OAUTH.DEFAULT_SCOPE
-        timeout_seconds = (
-            timeout if timeout > 0 else settings.OAUTH.LOGIN_TIMEOUT_SECONDS
-        )
+        timeout_seconds = timeout if timeout > 0 else settings.OAUTH.LOGIN_TIMEOUT_SECONDS
 
-        typer.echo(
-            f"Logging into profile '{profile_name}' at {resolved_api_domain} "
-            f"(client_id={resolved_client_id})"
-        )
+        typer.echo(f"Logging into profile '{profile_name}' at {resolved_api_domain} (client_id={resolved_client_id})")
         if is_new_profile:
-            typer.echo(
-                f"  · Profile '{profile_name}' does not exist yet — it will be created."
-            )
+            typer.echo(f"  · Profile '{profile_name}' does not exist yet — it will be created.")
         elif _has_active_oauth_session(current_config):
-            existing_label = _extract_user_label(
-                current_config.access_token, fallback=profile_name
-            )
-            typer.echo(
-                f"  · Profile '{profile_name}' already has an active OAuth session as "
-                f"{existing_label}."
-            )
-            if not yes and not typer.confirm(
-                "Overwrite the existing session?", default=False
-            ):
+            existing_label = _extract_user_label(current_config.access_token, fallback=profile_name)
+            typer.echo(f"  · Profile '{profile_name}' already has an active OAuth session as {existing_label}.")
+            if not yes and not typer.confirm("Overwrite the existing session?", default=False):
                 _emit_error("Aborted by user.")
                 raise typer.Exit(1)
 
@@ -302,9 +276,7 @@ def login(
             typer.echo("Opening your browser to authenticate...")
             opened = webbrowser.open(authorize_url, new=1, autoraise=True)
             if not opened:
-                typer.echo(
-                    "Could not open a browser automatically. Open this URL manually:"
-                )
+                typer.echo("Could not open a browser automatically. Open this URL manually:")
                 typer.echo(authorize_url)
 
         try:

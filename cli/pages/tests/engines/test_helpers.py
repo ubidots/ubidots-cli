@@ -21,9 +21,7 @@ def test_compute_workspace_key_format():
 
 def test_compute_workspace_key_deterministic():
     path = Path("/home/dev/projects/my-page")
-    assert compute_workspace_key("my-page", path) == compute_workspace_key(
-        "my-page", path
-    )
+    assert compute_workspace_key("my-page", path) == compute_workspace_key("my-page", path)
 
 
 def test_compute_workspace_key_differs_by_path():
@@ -91,6 +89,4 @@ def test_deregister_page_from_argo_sends_delete():
     with patch("cli.pages.engines.helpers.httpx.delete") as mock_delete:
         deregister_page_from_argo("my-page-abc12345", 8040)
 
-    mock_delete.assert_called_once_with(
-        "http://localhost:8040/api/_/route/~pages-my-page-abc12345"
-    )
+    mock_delete.assert_called_once_with("http://localhost:8040/api/_/route/~pages-my-page-abc12345")

@@ -1,4 +1,5 @@
 from builtins import list as BuiltinList
+from datetime import UTC
 from datetime import datetime
 from typing import Annotated
 from typing import Any
@@ -31,9 +32,7 @@ FIELDS_FUNCTION_HELP_TEXT = (
     "* Available fields: (url, id, label, name, isActive, createdAt, serverless, "
     "triggers, environment, zipFileProperties)."
 )
-DEV_ADD_COMMAND_HELP_TEXT = (
-    "Create a new local function project with starter code and configuration."
-)
+DEV_ADD_COMMAND_HELP_TEXT = "Create a new local function project with starter code and configuration."
 
 
 app = typer.Typer(help="Tool for managing and deploying functions.")
@@ -112,9 +111,7 @@ def create_function(
     ] = None,
     verbose: bool = False,
 ):
-    formatter = resolve_formatter(
-        flag=output_format, active_config=None, command="functions dev add"
-    )
+    formatter = resolve_formatter(flag=output_format, active_config=None, command="functions dev add")
     executor.create_function(
         name=name,
         language=language,
@@ -125,7 +122,7 @@ def create_function(
         cors=cors,
         verbose=verbose,
         timeout=timeout,
-        created_at=datetime.now().isoformat(),
+        created_at=datetime.now(UTC).isoformat(),
         engine=settings.CONFIG.DEFAULT_CONTAINER_ENGINE,
         token=token,
         profile=profile,
@@ -202,9 +199,7 @@ def create_function_deprecated(
     ] = None,
     verbose: bool = False,
 ):
-    formatter = resolve_formatter(
-        flag=output_format, active_config=None, command="functions dev init"
-    )
+    formatter = resolve_formatter(flag=output_format, active_config=None, command="functions dev init")
     executor.create_function(
         name=name,
         language=language,
@@ -215,7 +210,7 @@ def create_function_deprecated(
         cors=cors,
         verbose=verbose,
         timeout=timeout,
-        created_at=datetime.now().isoformat(),
+        created_at=datetime.now(UTC).isoformat(),
         engine=settings.CONFIG.DEFAULT_CONTAINER_ENGINE,
         token=token,
         profile=profile,
@@ -232,9 +227,7 @@ def start_function(
     ] = None,
     verbose: bool = False,
 ):
-    formatter = resolve_formatter(
-        flag=output_format, active_config=None, command="functions dev start"
-    )
+    formatter = resolve_formatter(flag=output_format, active_config=None, command="functions dev start")
     executor.start_function(
         verbose=verbose,
         formatter=formatter,
@@ -250,9 +243,7 @@ def stop_function(
     ] = None,
     verbose: bool = False,
 ):
-    formatter = resolve_formatter(
-        flag=output_format, active_config=None, command="functions dev stop"
-    )
+    formatter = resolve_formatter(flag=output_format, active_config=None, command="functions dev stop")
     executor.stop_function(
         verbose=verbose,
         formatter=formatter,
@@ -268,18 +259,14 @@ def restart_function(
     ] = None,
     verbose: bool = False,
 ):
-    formatter = resolve_formatter(
-        flag=output_format, active_config=None, command="functions dev restart"
-    )
+    formatter = resolve_formatter(flag=output_format, active_config=None, command="functions dev restart")
     executor.restart_function(
         verbose=verbose,
         formatter=formatter,
     )
 
 
-@dev_app.command(
-    name="status", help="Check the status of the local functions development server."
-)
+@dev_app.command(name="status", help="Check the status of the local functions development server.")
 @add_verbose_option()
 def status_function(
     output_format: Annotated[
@@ -288,18 +275,14 @@ def status_function(
     ] = None,
     verbose: bool = False,
 ):
-    formatter = resolve_formatter(
-        flag=output_format, active_config=None, command="functions dev status"
-    )
+    formatter = resolve_formatter(flag=output_format, active_config=None, command="functions dev status")
     executor.status_function(
         verbose=verbose,
         formatter=formatter,
     )
 
 
-@dev_app.command(
-    name="logs", help="Display logs from the local functions development server."
-)
+@dev_app.command(name="logs", help="Display logs from the local functions development server.")
 @add_verbose_option()
 def logs_function_local(
     tail: Annotated[
@@ -325,9 +308,7 @@ def logs_function_local(
     This command shows logs from your local Docker/Podman container.
     For cloud function logs, use 'ubidots functions logs <function-id>'.
     """
-    formatter = resolve_formatter(
-        flag=output_format, active_config=None, command="functions dev logs"
-    )
+    formatter = resolve_formatter(flag=output_format, active_config=None, command="functions dev logs")
     tail_count = int(tail) if tail != "all" else 0
     executor.logs_function(
         tail=tail_count,
@@ -352,9 +333,7 @@ def clean_functions(
     ] = None,
     verbose: bool = False,
 ):
-    formatter = resolve_formatter(
-        flag=output_format, active_config=None, command="functions dev clean"
-    )
+    formatter = resolve_formatter(flag=output_format, active_config=None, command="functions dev clean")
     executor.clean_functions(
         confirm=confirm,
         verbose=verbose,
@@ -381,9 +360,7 @@ def run_function(
     ] = "{}",
     profile: Annotated[
         str,
-        typer.Option(
-            help="Name of the profile to use for remote server communication."
-        ),
+        typer.Option(help="Name of the profile to use for remote server communication."),
     ] = "",
     output_format: Annotated[
         OutputFormatFieldsEnum | None,
@@ -393,9 +370,7 @@ def run_function(
 ):
     function_key = get_instance_key(id=id, label=label)
     active_config = get_configuration(profile=profile)
-    formatter = resolve_formatter(
-        flag=output_format, active_config=active_config, command="functions run"
-    )
+    formatter = resolve_formatter(flag=output_format, active_config=active_config, command="functions run")
     executor.run_function(
         function_key=function_key,
         payload=cast("dict[Any, Any]", payload),
@@ -439,9 +414,7 @@ def logs_function_remote(
 ):
     function_key = get_instance_key(id=id, label=label)
     active_config = get_configuration(profile=profile)
-    formatter = resolve_formatter(
-        flag=output_format, active_config=active_config, command="functions logs"
-    )
+    formatter = resolve_formatter(flag=output_format, active_config=active_config, command="functions logs")
     executor.logs_function(
         tail=tail,
         follow=False,
@@ -465,9 +438,7 @@ def logs_function_remote(
 def list_functions(
     profile: Annotated[
         str,
-        typer.Option(
-            help="Name of the profile to use for remote server communication."
-        ),
+        typer.Option(help="Name of the profile to use for remote server communication."),
     ] = "",
     fields: Annotated[
         str,
@@ -483,9 +454,7 @@ def list_functions(
     ] = None,
 ):
     active_config = get_configuration(profile=profile)
-    formatter = resolve_formatter(
-        flag=output_format, active_config=active_config, command="functions list"
-    )
+    formatter = resolve_formatter(flag=output_format, active_config=active_config, command="functions list")
     executor.list_functions(
         profile=profile,
         fields=fields,
@@ -504,14 +473,10 @@ def list_functions(
     rich_help_panel="Cloud Commands",
 )
 def add_function(
-    name: Annotated[
-        str, typer.Argument(help="The name of the function.", show_default=False)
-    ],
+    name: Annotated[str, typer.Argument(help="The name of the function.", show_default=False)],
     profile: Annotated[
         str,
-        typer.Option(
-            help="Name of the profile to use for remote server communication."
-        ),
+        typer.Option(help="Name of the profile to use for remote server communication."),
     ] = "",
     label: Annotated[str, typer.Option(help="The label for the function.")] = "",
     timeout: Annotated[
@@ -560,9 +525,7 @@ def add_function(
 ):
     label = label or sanitize_function_name(name)
     active_config = get_configuration(profile=profile)
-    formatter = resolve_formatter(
-        flag=output_format, active_config=active_config, command="functions add"
-    )
+    formatter = resolve_formatter(flag=output_format, active_config=active_config, command="functions add")
     executor.add_function(
         profile=profile,
         name=name,
@@ -589,9 +552,7 @@ def add_function(
 def get_function(
     profile: Annotated[
         str,
-        typer.Option(
-            help="Name of the profile to use for remote server communication."
-        ),
+        typer.Option(help="Name of the profile to use for remote server communication."),
     ] = "",
     id: str | None = None,
     label: str | None = None,
@@ -607,9 +568,7 @@ def get_function(
 ):
     function_key = get_instance_key(id=id, label=label)
     active_config = get_configuration(profile=profile)
-    formatter = resolve_formatter(
-        flag=output_format, active_config=active_config, command="functions get"
-    )
+    formatter = resolve_formatter(flag=output_format, active_config=active_config, command="functions get")
     executor.get_function(
         function_key=function_key,
         fields=fields,
@@ -620,9 +579,7 @@ def get_function(
 
 
 # CRUD: Update
-@app.command(
-    name="update", short_help="Update a function.", rich_help_panel="Cloud Commands"
-)
+@app.command(name="update", short_help="Update a function.", rich_help_panel="Cloud Commands")
 @simple_lookup_key(entity_name=EntityNameEnum.FUNCTION)
 def update_function(
     id: str | None = None,
@@ -663,9 +620,7 @@ def update_function(
     ] = "[]",
     profile: Annotated[
         str,
-        typer.Option(
-            help="Name of the profile to use for remote server communication."
-        ),
+        typer.Option(help="Name of the profile to use for remote server communication."),
     ] = "",
     methods: Annotated[
         BuiltinList[FunctionMethodEnum] | None,
@@ -680,9 +635,7 @@ def update_function(
 ):
     function_key = get_instance_key(id=id, label=label)
     active_config = get_configuration(profile=profile)
-    formatter = resolve_formatter(
-        flag=output_format, active_config=active_config, command="functions update"
-    )
+    formatter = resolve_formatter(flag=output_format, active_config=active_config, command="functions update")
     executor.update_function(
         function_key=function_key,
         profile=profile,
@@ -709,9 +662,7 @@ def update_function(
 def delete_function(
     profile: Annotated[
         str,
-        typer.Option(
-            help="Name of the profile to use for remote server communication."
-        ),
+        typer.Option(help="Name of the profile to use for remote server communication."),
     ] = "",
     id: str | None = None,
     label: str | None = None,
@@ -727,9 +678,7 @@ def delete_function(
 ):
     function_key = get_instance_key(id=id, label=label)
     active_config = get_configuration(profile=profile)
-    formatter = resolve_formatter(
-        flag=output_format, active_config=active_config, command="functions delete"
-    )
+    formatter = resolve_formatter(flag=output_format, active_config=active_config, command="functions delete")
     executor.delete_function(
         function_key=function_key,
         profile=profile,
@@ -761,9 +710,7 @@ def push_function(
     verbose: bool = False,
 ):
     active_config = get_configuration(profile=profile)
-    formatter = resolve_formatter(
-        flag=output_format, active_config=active_config, command="functions push"
-    )
+    formatter = resolve_formatter(flag=output_format, active_config=active_config, command="functions push")
     executor.push_function(
         confirm=confirm,
         profile=profile,
@@ -798,9 +745,7 @@ def pull_function(
     verbose: bool = False,
 ):
     active_config = get_configuration(profile=profile)
-    formatter = resolve_formatter(
-        flag=output_format, active_config=active_config, command="functions pull"
-    )
+    formatter = resolve_formatter(flag=output_format, active_config=active_config, command="functions pull")
     executor.pull_function(
         remote_id=remote_id,
         profile=profile,

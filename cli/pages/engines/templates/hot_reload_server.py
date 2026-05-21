@@ -7,6 +7,7 @@ Usage:
         --page-name my-page-abc12345 \
         --port 9001
 """
+
 import argparse
 import json
 import threading
@@ -117,8 +118,7 @@ class _Handler(BaseHTTPRequestHandler):
                 if len(_errors) > _MAX_ERRORS:
                     _errors.pop(0)
             print(
-                f"[browser error] {error.get('message', '')} "
-                f"({error.get('source', '')}:{error.get('line', '')})",
+                f"[browser error] {error.get('message', '')} ({error.get('source', '')}:{error.get('line', '')})",
                 flush=True,
             )
         except json.JSONDecodeError:
@@ -149,10 +149,7 @@ class _ChangeHandler(FileSystemEventHandler):
     def on_moved(self, event):
         if event.is_directory:
             return
-        if (
-            Path(event.src_path).name not in _INTERNAL_FILES
-            or Path(event.dest_path).name not in _INTERNAL_FILES
-        ):
+        if Path(event.src_path).name not in _INTERNAL_FILES or Path(event.dest_path).name not in _INTERNAL_FILES:
             self._schedule()
 
     def _schedule(self):

@@ -49,11 +49,7 @@ def merge_update_data(original_data: dict, update_data: dict) -> dict:
 
     def deep_merge(original: dict, update: dict):
         for key, value in update.items():
-            if (
-                isinstance(value, dict)
-                and key in original
-                and isinstance(original[key], dict)
-            ):
+            if isinstance(value, dict) and key in original and isinstance(original[key], dict):
                 deep_merge(original[key], value)
             elif value not in [None, "", {}, []]:
                 original[key] = value
@@ -104,9 +100,7 @@ def save_manifest_project_file(
         raise ValueError(error_msg)
 
     globals_instance = FunctionGlobalsModel(engine=engine, label=label)
-    project_instance = FunctionProjectModel(
-        language=language, runtime=runtime, name=name, createdAt=created_at
-    )
+    project_instance = FunctionProjectModel(language=language, runtime=runtime, name=name, createdAt=created_at)
     function_instance = FunctionModel(
         label=label,
         id=function_id,
@@ -132,7 +126,7 @@ def save_manifest_project_file(
         function=function_instance,
     )
     metadata_file = project_path / settings.FUNCTIONS.PROJECT_METADATA_FILE
-    with open(metadata_file, "w") as file:
+    with Path(metadata_file).open("w", encoding="utf-8") as file:
         yaml.dump(metadata.to_yaml_serializable_format(), file)
 
 
@@ -142,18 +136,15 @@ def read_manifest_project_file(project_path: Path) -> FunctionProjectMetadata:
 
     if not manifest_file_path.exists():
         error_message = (
-            "Not in a function directory. Run this command inside a function project "
-            "or use 'dev add' to create one."
+            "Not in a function directory. Run this command inside a function project or use 'dev add' to create one."
         )
         raise FileNotFoundError(error_message)
 
-    with open(manifest_file_path) as file:
+    with Path(manifest_file_path).open(encoding="utf-8") as file:
         manifest_data = yaml.safe_load(file)
 
     if manifest_data is None:
-        error_message = (
-            f"The '{manifest_file}' is empty, make sure it has the correct structure."
-        )
+        error_message = f"The '{manifest_file}' is empty, make sure it has the correct structure."
         raise ValueError(error_message)
 
     try:
@@ -165,37 +156,30 @@ def read_manifest_project_file(project_path: Path) -> FunctionProjectMetadata:
         raise ValueError(error_message) from error
 
 
-def compress_project_to_zip(
-    project_path: Path, exclude_files: list[str] | None = None
-) -> IO[bytes]:
+def compress_project_to_zip(project_path: Path, exclude_files: list[str] | None = None) -> IO[bytes]:
     exclude_files = [] if exclude_files is None else exclude_files
     zip_buffer = io.BytesIO()
     with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zipf:
         for root, _, files in os.walk(project_path):
             for file in files:
-                file_path = os.path.join(root, file)
+                file_path = Path(root) / file
                 arcname = os.path.relpath(file_path, project_path)
 
                 if not any(Path(arcname).match(pattern) for pattern in exclude_files):
                     zipf.write(file_path, arcname)
 
-            for folder in os.listdir(root):
-                folder_path = os.path.join(root, folder)
-                if os.path.isdir(folder_path):
+            for folder_path in Path(root).iterdir():
+                if folder_path.is_dir():
                     arcname = os.path.relpath(folder_path, project_path)
 
-                    if not any(
-                        Path(arcname).match(pattern) for pattern in exclude_files
-                    ):
+                    if not any(Path(arcname).match(pattern) for pattern in exclude_files):
                         zipf.write(folder_path, arcname=arcname)
     zip_buffer.seek(0)
     return zip_buffer
 
 
 def enumerate_project_files(project_path: Path) -> list[Path]:
-    return [
-        Path(root) / file for root, _, files in os.walk(project_path) for file in files
-    ]
+    return [Path(root) / file for root, _, files in os.walk(project_path) for file in files]
 
 
 def create_handler_file(project_path: Path, language: FunctionLanguageEnum):
@@ -250,9 +234,7 @@ def frie_container_manager(
 
         if container.status == ContainerStatusEnum.RUNNING:
             message = f"* The function with label '{label}' is already running.\n"
-            styled_message = typer.style(
-                message, fg=MessageColorEnum.WARNING, bold=True
-            )
+            styled_message = typer.style(message, fg=MessageColorEnum.WARNING, bold=True)
             typer.echo(styled_message)
             raise typer.Exit(1)
 
@@ -309,10 +291,7 @@ def get_argo_input_adapter(
     if has_cors:
         argo_methods.append(ArgoMethodEnum.OPTIONS)
 
-    middlewares: list[
-        ArgoAdapterMiddlewareAllowedMethodsBaseModel
-        | ArgoAdapterMiddlewareCorsBaseModel
-    ] = [
+    middlewares: list[ArgoAdapterMiddlewareAllowedMethodsBaseModel | ArgoAdapterMiddlewareCorsBaseModel] = [
         ArgoAdapterMiddlewareAllowedMethodsBaseModel(
             methods=argo_methods,
         )
@@ -327,11 +306,7 @@ def get_argo_input_adapter(
         bridge=ArgoBridgeBaseModel(
             label=frie_label,
             target=ArgoAdapterTargetBaseModel(
-                type=(
-                    TargetTypeEnum.RIE_FUNCTION_RAW
-                    if is_raw
-                    else TargetTypeEnum.RIE_FUNCTION
-                ),
+                type=(TargetTypeEnum.RIE_FUNCTION_RAW if is_raw else TargetTypeEnum.RIE_FUNCTION),
                 url=f"http://{frie_label}:{frie_port}{engine_settings.CONTAINER.FRIE.API_INVOKE_BASE_PATH}",
                 auth_token=token,
             ),

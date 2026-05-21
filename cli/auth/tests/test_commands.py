@@ -1,6 +1,7 @@
 import base64
 import json
 import os
+import pathlib
 import stat
 from unittest.mock import patch
 
@@ -39,9 +40,7 @@ def isolated_profile_dir(tmp_path, monkeypatch):
     monkeypatch.setattr(settings.CONFIG, "DIRECTORY_PATH", tmp_path)
     monkeypatch.setattr(settings.CONFIG, "PROFILES_PATH", profiles_dir)
     monkeypatch.setattr(settings.CONFIG, "FILE_PATH", tmp_path / "config.yaml")
-    (tmp_path / "config.yaml").write_text(
-        yaml.dump({"profilesPath": str(profiles_dir), "profile": "default"})
-    )
+    (tmp_path / "config.yaml").write_text(yaml.dump({"profilesPath": str(profiles_dir), "profile": "default"}))
     legacy_profile = {
         "api_domain": "https://core.test",
         "auth_method": AuthHeaderTypeEnum.TOKEN.value,
@@ -53,17 +52,13 @@ def isolated_profile_dir(tmp_path, monkeypatch):
     legacy_path = profiles_dir / "default.yaml"
     legacy_path.write_text(yaml.dump(legacy_profile))
     if os.name != "nt":
-        os.chmod(legacy_path, 0o600)
+        pathlib.Path(legacy_path).chmod(0o600)
     return profiles_dir
 
 
 def _jwt_with_email(email: str) -> str:
     header = base64.urlsafe_b64encode(b'{"alg":"none"}').rstrip(b"=").decode()
-    payload = (
-        base64.urlsafe_b64encode(json.dumps({"email": email}).encode())
-        .rstrip(b"=")
-        .decode()
-    )
+    payload = base64.urlsafe_b64encode(json.dumps({"email": email}).encode()).rstrip(b"=").decode()
     return f"{header}.{payload}.sig"
 
 
@@ -85,9 +80,7 @@ def _fake_token_set(email: str = "u@ubidots.com") -> TokenSet:
 
 class TestLoginHappyPath:
     @respx.mock
-    def test_login_persists_full_oauth_profile_yaml(
-        self, cli_runner, isolated_profile_dir
-    ):
+    def test_login_persists_full_oauth_profile_yaml(self, cli_runner, isolated_profile_dir):
         # Setup
         access_jwt = _jwt_with_email("dev@ubidots.com")
         respx.post("https://core.test/o/token/").mock(
@@ -125,13 +118,9 @@ class TestLoginHappyPath:
             ),
             patch("cli.auth.commands.generate_state", return_value="s"),
         ):
-            mock_server.return_value.wait_for_callback.return_value = LoopbackResult(
-                code="THECODE", state="s"
-            )
+            mock_server.return_value.wait_for_callback.return_value = LoopbackResult(code="THECODE", state="s")
             result = cli_runner.invoke(_login_app(), ["--client-id", "ubidots-cli"])
-        actual_yaml = yaml.safe_load(
-            (isolated_profile_dir / "default.yaml").read_text()
-        )
+        actual_yaml = yaml.safe_load((isolated_profile_dir / "default.yaml").read_text())
         actual_expires_at = actual_yaml.pop("expires_at")
         # Expected
         assert result.exit_code == 0, result.output
@@ -141,9 +130,7 @@ class TestLoginHappyPath:
 
 
 class TestLoginErrorPaths:
-    def test_state_mismatch_aborts_and_leaves_legacy_profile_intact(
-        self, cli_runner, isolated_profile_dir
-    ):
+    def test_state_mismatch_aborts_and_leaves_legacy_profile_intact(self, cli_runner, isolated_profile_dir):
         # Setup
         expected_yaml_after = {
             "api_domain": "https://core.test",
@@ -164,21 +151,15 @@ class TestLoginErrorPaths:
             ),
             patch("cli.auth.commands.generate_state", return_value="expected"),
         ):
-            mock_server.return_value.wait_for_callback.return_value = LoopbackResult(
-                code="code", state="evil"
-            )
+            mock_server.return_value.wait_for_callback.return_value = LoopbackResult(code="code", state="evil")
             result = cli_runner.invoke(_login_app(), ["--client-id", "ubidots-cli"])
-        actual_yaml = yaml.safe_load(
-            (isolated_profile_dir / "default.yaml").read_text()
-        )
+        actual_yaml = yaml.safe_load((isolated_profile_dir / "default.yaml").read_text())
         # Expected
         assert result.exit_code == 4
         assert "CSRF mismatch" in result.output
         assert actual_yaml == expected_yaml_after
 
-    def test_no_browser_prints_authorize_url_without_opening_browser(
-        self, cli_runner, isolated_profile_dir
-    ):
+    def test_no_browser_prints_authorize_url_without_opening_browser(self, cli_runner, isolated_profile_dir):
         # Setup
         # Action
         with (
@@ -195,12 +176,8 @@ class TestLoginErrorPaths:
                 return_value=_fake_token_set(),
             ),
         ):
-            mock_server.return_value.wait_for_callback.return_value = LoopbackResult(
-                code="code", state="s"
-            )
-            result = cli_runner.invoke(
-                _login_app(), ["--client-id", "ubidots-cli", "--no-browser"]
-            )
+            mock_server.return_value.wait_for_callback.return_value = LoopbackResult(code="code", state="s")
+            result = cli_runner.invoke(_login_app(), ["--client-id", "ubidots-cli", "--no-browser"])
         # Expected
         assert result.exit_code == 0
         opener.assert_not_called()
@@ -209,9 +186,7 @@ class TestLoginErrorPaths:
 
 class TestLoginFilePermissions:
     @pytest.mark.skipif(os.name == "nt", reason="POSIX-only")
-    def test_login_writes_profile_with_mode_0600(
-        self, cli_runner, isolated_profile_dir
-    ):
+    def test_login_writes_profile_with_mode_0600(self, cli_runner, isolated_profile_dir):
         # Setup
         expected_mode = 0o600
         # Action
@@ -229,21 +204,15 @@ class TestLoginFilePermissions:
                 return_value=_fake_token_set(),
             ),
         ):
-            mock_server.return_value.wait_for_callback.return_value = LoopbackResult(
-                code="code", state="s"
-            )
+            mock_server.return_value.wait_for_callback.return_value = LoopbackResult(code="code", state="s")
             cli_runner.invoke(_login_app(), ["--client-id", "ubidots-cli"])
-        actual_mode = stat.S_IMODE(
-            (isolated_profile_dir / "default.yaml").stat().st_mode
-        )
+        actual_mode = stat.S_IMODE((isolated_profile_dir / "default.yaml").stat().st_mode)
         # Expected
         assert actual_mode == expected_mode
 
 
 class TestClientIdResolution:
-    def test_no_client_id_anywhere_exits_with_hint(
-        self, cli_runner, isolated_profile_dir, monkeypatch
-    ):
+    def test_no_client_id_anywhere_exits_with_hint(self, cli_runner, isolated_profile_dir, monkeypatch):
         # Setup
         monkeypatch.delenv(CLIENT_ID_ENV_VAR, raising=False)
         monkeypatch.setattr(settings.OAUTH, "DEFAULT_CLIENT_ID", "")
@@ -277,9 +246,7 @@ class TestClientIdResolution:
                 return_value=_fake_token_set(),
             ) as mock_exchange,
         ):
-            mock_server.return_value.wait_for_callback.return_value = LoopbackResult(
-                code="code", state="s"
-            )
+            mock_server.return_value.wait_for_callback.return_value = LoopbackResult(code="code", state="s")
             result = cli_runner.invoke(_login_app(), [])
         saved_yaml = yaml.safe_load((isolated_profile_dir / "default.yaml").read_text())
         # Expected
@@ -287,9 +254,7 @@ class TestClientIdResolution:
         assert mock_exchange.call_args.kwargs["client_id"] == expected_client_id
         assert saved_yaml["oauth_client_id"] == expected_client_id
 
-    def test_flag_overrides_env_and_settings(
-        self, cli_runner, isolated_profile_dir, monkeypatch
-    ):
+    def test_flag_overrides_env_and_settings(self, cli_runner, isolated_profile_dir, monkeypatch):
         # Setup
         monkeypatch.setenv(CLIENT_ID_ENV_VAR, "from-env")
         monkeypatch.setattr(settings.OAUTH, "DEFAULT_CLIENT_ID", "from-settings")
@@ -309,17 +274,13 @@ class TestClientIdResolution:
                 return_value=_fake_token_set(),
             ) as mock_exchange,
         ):
-            mock_server.return_value.wait_for_callback.return_value = LoopbackResult(
-                code="code", state="s"
-            )
+            mock_server.return_value.wait_for_callback.return_value = LoopbackResult(code="code", state="s")
             result = cli_runner.invoke(_login_app(), ["--client-id", "from-flag"])
         # Expected
         assert result.exit_code == 0
         assert mock_exchange.call_args.kwargs["client_id"] == expected_client_id
 
-    def test_settings_default_is_used_when_no_flag_and_no_env(
-        self, cli_runner, isolated_profile_dir, monkeypatch
-    ):
+    def test_settings_default_is_used_when_no_flag_and_no_env(self, cli_runner, isolated_profile_dir, monkeypatch):
         # Setup
         monkeypatch.delenv(CLIENT_ID_ENV_VAR, raising=False)
         monkeypatch.setattr(settings.OAUTH, "DEFAULT_CLIENT_ID", "ubidots-cli")
@@ -339,17 +300,13 @@ class TestClientIdResolution:
                 return_value=_fake_token_set(),
             ) as mock_exchange,
         ):
-            mock_server.return_value.wait_for_callback.return_value = LoopbackResult(
-                code="code", state="s"
-            )
+            mock_server.return_value.wait_for_callback.return_value = LoopbackResult(code="code", state="s")
             result = cli_runner.invoke(_login_app(), [])
         # Expected
         assert result.exit_code == 0
         assert mock_exchange.call_args.kwargs["client_id"] == expected_client_id
 
-    def test_profile_oauth_client_id_used_when_no_flag_no_env(
-        self, cli_runner, tmp_path, monkeypatch
-    ):
+    def test_profile_oauth_client_id_used_when_no_flag_no_env(self, cli_runner, tmp_path, monkeypatch):
         # Setup — profile already has oauth_client_id; no flag or env override
         profiles_dir = tmp_path / "profiles"
         profiles_dir.mkdir()
@@ -358,9 +315,7 @@ class TestClientIdResolution:
         monkeypatch.setattr(settings.CONFIG, "FILE_PATH", tmp_path / "config.yaml")
         monkeypatch.setattr(settings.OAUTH, "DEFAULT_CLIENT_ID", "")
         monkeypatch.delenv(CLIENT_ID_ENV_VAR, raising=False)
-        (tmp_path / "config.yaml").write_text(
-            yaml.dump({"profilesPath": str(profiles_dir), "profile": "default"})
-        )
+        (tmp_path / "config.yaml").write_text(yaml.dump({"profilesPath": str(profiles_dir), "profile": "default"}))
         profile_with_client = {
             "api_domain": "https://core.test",
             "auth_method": AuthHeaderTypeEnum.TOKEN.value,
@@ -372,7 +327,7 @@ class TestClientIdResolution:
         }
         profile_file = profiles_dir / "default.yaml"
         profile_file.write_text(yaml.dump(profile_with_client))
-        os.chmod(profile_file, 0o600)
+        pathlib.Path(profile_file).chmod(0o600)
         expected_client_id = "from-profile"
         # Action
         with (
@@ -389,9 +344,7 @@ class TestClientIdResolution:
                 return_value=_fake_token_set(),
             ) as mock_exchange,
         ):
-            mock_server.return_value.wait_for_callback.return_value = LoopbackResult(
-                code="code", state="s"
-            )
+            mock_server.return_value.wait_for_callback.return_value = LoopbackResult(code="code", state="s")
             result = cli_runner.invoke(_login_app(), [])
         # Expected
         assert result.exit_code == 0
@@ -399,17 +352,13 @@ class TestClientIdResolution:
 
 
 class TestPortResolution:
-    def test_default_port_is_53682_when_no_flag_no_env(
-        self, cli_runner, isolated_profile_dir, monkeypatch
-    ):
+    def test_default_port_is_53682_when_no_flag_no_env(self, cli_runner, isolated_profile_dir, monkeypatch):
         # Setup
         monkeypatch.delenv(LOOPBACK_PORT_ENV_VAR, raising=False)
         expected_redirect_uri = "http://127.0.0.1:53682/callback"
         # Action
         with (
-            patch(
-                "cli.auth.commands.port_available", return_value=True
-            ) as mock_port_check,
+            patch("cli.auth.commands.port_available", return_value=True) as mock_port_check,
             patch("cli.auth.commands.webbrowser.open", return_value=True),
             patch("cli.auth.commands.LoopbackServer") as mock_server,
             patch(
@@ -422,9 +371,7 @@ class TestPortResolution:
                 return_value=_fake_token_set(),
             ) as mock_exchange,
         ):
-            mock_server.return_value.wait_for_callback.return_value = LoopbackResult(
-                code="code", state="s"
-            )
+            mock_server.return_value.wait_for_callback.return_value = LoopbackResult(code="code", state="s")
             result = cli_runner.invoke(_login_app(), ["--client-id", "ubidots-cli"])
         # Expected
         assert result.exit_code == 0
@@ -441,9 +388,7 @@ class TestPortResolution:
         expected_redirect_uri = "http://127.0.0.1:65000/callback"
         # Action
         with (
-            patch(
-                "cli.auth.commands.port_available", return_value=True
-            ) as mock_port_check,
+            patch("cli.auth.commands.port_available", return_value=True) as mock_port_check,
             patch("cli.auth.commands.webbrowser.open", return_value=True),
             patch("cli.auth.commands.LoopbackServer") as mock_server,
             patch(
@@ -456,29 +401,21 @@ class TestPortResolution:
                 return_value=_fake_token_set(),
             ) as mock_exchange,
         ):
-            mock_server.return_value.wait_for_callback.return_value = LoopbackResult(
-                code="code", state="s"
-            )
-            result = cli_runner.invoke(
-                _login_app(), ["--client-id", "ubidots-cli", "--port", "65000"]
-            )
+            mock_server.return_value.wait_for_callback.return_value = LoopbackResult(code="code", state="s")
+            result = cli_runner.invoke(_login_app(), ["--client-id", "ubidots-cli", "--port", "65000"])
         # Expected
         assert result.exit_code == 0
         assert mock_port_check.call_args.kwargs == {"port": expected_port}
         mock_server.assert_called_once_with(port=expected_port)
         assert mock_exchange.call_args.kwargs["redirect_uri"] == expected_redirect_uri
 
-    def test_env_var_supplies_port_when_flag_absent(
-        self, cli_runner, isolated_profile_dir, monkeypatch
-    ):
+    def test_env_var_supplies_port_when_flag_absent(self, cli_runner, isolated_profile_dir, monkeypatch):
         # Setup
         monkeypatch.setenv(LOOPBACK_PORT_ENV_VAR, "60000")
         expected_port = 60000
         # Action
         with (
-            patch(
-                "cli.auth.commands.port_available", return_value=True
-            ) as mock_port_check,
+            patch("cli.auth.commands.port_available", return_value=True) as mock_port_check,
             patch("cli.auth.commands.webbrowser.open", return_value=True),
             patch("cli.auth.commands.LoopbackServer") as mock_server,
             patch(
@@ -491,26 +428,20 @@ class TestPortResolution:
                 return_value=_fake_token_set(),
             ),
         ):
-            mock_server.return_value.wait_for_callback.return_value = LoopbackResult(
-                code="code", state="s"
-            )
+            mock_server.return_value.wait_for_callback.return_value = LoopbackResult(code="code", state="s")
             result = cli_runner.invoke(_login_app(), ["--client-id", "ubidots-cli"])
         # Expected
         assert result.exit_code == 0
         assert mock_port_check.call_args.kwargs == {"port": expected_port}
         mock_server.assert_called_once_with(port=expected_port)
 
-    def test_port_in_use_message_lists_diagnostic_commands(
-        self, cli_runner, isolated_profile_dir, monkeypatch
-    ):
+    def test_port_in_use_message_lists_diagnostic_commands(self, cli_runner, isolated_profile_dir, monkeypatch):
         # Setup
         monkeypatch.delenv(LOOPBACK_PORT_ENV_VAR, raising=False)
         expected_exit_code = 64
         # Action
         with patch("cli.auth.commands.port_available", return_value=False):
-            result = cli_runner.invoke(
-                _login_app(), ["--client-id", "ubidots-cli", "--port", "53682"]
-            )
+            result = cli_runner.invoke(_login_app(), ["--client-id", "ubidots-cli", "--port", "53682"])
         # Expected
         assert result.exit_code == expected_exit_code
         assert "lsof" in result.output
@@ -519,9 +450,7 @@ class TestPortResolution:
 
 
 class TestApiDomainResolution:
-    def test_flag_overrides_profile_api_domain_and_is_persisted(
-        self, cli_runner, isolated_profile_dir, monkeypatch
-    ):
+    def test_flag_overrides_profile_api_domain_and_is_persisted(self, cli_runner, isolated_profile_dir, monkeypatch):
         # Setup
         monkeypatch.delenv(API_DOMAIN_ENV_VAR, raising=False)
         expected_api_domain = "https://cs.ubidots.site"
@@ -540,9 +469,7 @@ class TestApiDomainResolution:
                 return_value=_fake_token_set(),
             ) as mock_exchange,
         ):
-            mock_server.return_value.wait_for_callback.return_value = LoopbackResult(
-                code="code", state="s"
-            )
+            mock_server.return_value.wait_for_callback.return_value = LoopbackResult(code="code", state="s")
             result = cli_runner.invoke(
                 _login_app(),
                 [
@@ -558,9 +485,7 @@ class TestApiDomainResolution:
         assert mock_exchange.call_args.kwargs["api_domain"] == expected_api_domain
         assert saved_yaml["api_domain"] == expected_api_domain
 
-    def test_env_var_supplies_api_domain_when_flag_absent(
-        self, cli_runner, isolated_profile_dir, monkeypatch
-    ):
+    def test_env_var_supplies_api_domain_when_flag_absent(self, cli_runner, isolated_profile_dir, monkeypatch):
         # Setup
         monkeypatch.setenv(API_DOMAIN_ENV_VAR, "https://cs.ubidots.site")
         expected_api_domain = "https://cs.ubidots.site"
@@ -579,17 +504,13 @@ class TestApiDomainResolution:
                 return_value=_fake_token_set(),
             ) as mock_exchange,
         ):
-            mock_server.return_value.wait_for_callback.return_value = LoopbackResult(
-                code="code", state="s"
-            )
+            mock_server.return_value.wait_for_callback.return_value = LoopbackResult(code="code", state="s")
             result = cli_runner.invoke(_login_app(), ["--client-id", "ubidots-cli"])
         # Expected
         assert result.exit_code == 0
         assert mock_exchange.call_args.kwargs["api_domain"] == expected_api_domain
 
-    def test_profile_api_domain_used_when_no_flag_no_env(
-        self, cli_runner, isolated_profile_dir, monkeypatch
-    ):
+    def test_profile_api_domain_used_when_no_flag_no_env(self, cli_runner, isolated_profile_dir, monkeypatch):
         # Setup — fixture creates legacy profile with api_domain=https://core.test
         monkeypatch.delenv(API_DOMAIN_ENV_VAR, raising=False)
         expected_api_domain = "https://core.test"
@@ -608,9 +529,7 @@ class TestApiDomainResolution:
                 return_value=_fake_token_set(),
             ) as mock_exchange,
         ):
-            mock_server.return_value.wait_for_callback.return_value = LoopbackResult(
-                code="code", state="s"
-            )
+            mock_server.return_value.wait_for_callback.return_value = LoopbackResult(code="code", state="s")
             result = cli_runner.invoke(_login_app(), ["--client-id", "ubidots-cli"])
         # Expected
         assert result.exit_code == 0
@@ -618,18 +537,14 @@ class TestApiDomainResolution:
 
 
 class TestProfileResolution:
-    def test_no_profile_flag_writes_to_active_profile_not_default(
-        self, cli_runner, tmp_path, monkeypatch
-    ):
+    def test_no_profile_flag_writes_to_active_profile_not_default(self, cli_runner, tmp_path, monkeypatch):
         # Setup: active profile is "staging", NOT "default"
         profiles_dir = tmp_path / "profiles"
         profiles_dir.mkdir()
         monkeypatch.setattr(settings.CONFIG, "DIRECTORY_PATH", tmp_path)
         monkeypatch.setattr(settings.CONFIG, "PROFILES_PATH", profiles_dir)
         monkeypatch.setattr(settings.CONFIG, "FILE_PATH", tmp_path / "config.yaml")
-        (tmp_path / "config.yaml").write_text(
-            yaml.dump({"profilesPath": str(profiles_dir), "profile": "staging"})
-        )
+        (tmp_path / "config.yaml").write_text(yaml.dump({"profilesPath": str(profiles_dir), "profile": "staging"}))
         staging_profile = {
             "api_domain": "https://staging.test",
             "auth_method": AuthHeaderTypeEnum.TOKEN.value,
@@ -641,7 +556,7 @@ class TestProfileResolution:
         staging_path = profiles_dir / "staging.yaml"
         staging_path.write_text(yaml.dump(staging_profile))
         if os.name != "nt":
-            os.chmod(staging_path, 0o600)
+            pathlib.Path(staging_path).chmod(0o600)
         # Action
         with (
             patch("cli.auth.commands.port_available", return_value=True),
@@ -657,9 +572,7 @@ class TestProfileResolution:
                 return_value=_fake_token_set(),
             ),
         ):
-            mock_server.return_value.wait_for_callback.return_value = LoopbackResult(
-                code="code", state="s"
-            )
+            mock_server.return_value.wait_for_callback.return_value = LoopbackResult(code="code", state="s")
             result = cli_runner.invoke(_login_app(), ["--client-id", "ubidots-cli"])
         # Expected — tokens persist in staging.yaml, default.yaml never created
         assert result.exit_code == 0, result.output
@@ -669,9 +582,7 @@ class TestProfileResolution:
         assert saved["refresh_token"]
         assert not (profiles_dir / "default.yaml").exists()
 
-    def test_explicit_profile_flag_creates_new_profile_if_missing(
-        self, cli_runner, isolated_profile_dir
-    ):
+    def test_explicit_profile_flag_creates_new_profile_if_missing(self, cli_runner, isolated_profile_dir):
         # Setup — fixture creates only default.yaml; "fresh" does not exist
         new_profile_path = isolated_profile_dir / "fresh.yaml"
         assert not new_profile_path.exists()
@@ -690,9 +601,7 @@ class TestProfileResolution:
                 return_value=_fake_token_set(),
             ),
         ):
-            mock_server.return_value.wait_for_callback.return_value = LoopbackResult(
-                code="code", state="s"
-            )
+            mock_server.return_value.wait_for_callback.return_value = LoopbackResult(code="code", state="s")
             result = cli_runner.invoke(
                 _login_app(),
                 ["--client-id", "ubidots-cli", "--profile", "fresh"],
@@ -704,9 +613,7 @@ class TestProfileResolution:
         saved = yaml.safe_load(new_profile_path.read_text())
         assert saved["auth_method"] == AuthHeaderTypeEnum.OAUTH2.value
 
-    def test_explicit_profile_flag_only_touches_target_profile(
-        self, cli_runner, isolated_profile_dir
-    ):
+    def test_explicit_profile_flag_only_touches_target_profile(self, cli_runner, isolated_profile_dir):
         # Setup — fixture creates default.yaml; we'll login to "other"
         default_before = (isolated_profile_dir / "default.yaml").read_text()
         # Action
@@ -724,9 +631,7 @@ class TestProfileResolution:
                 return_value=_fake_token_set(),
             ),
         ):
-            mock_server.return_value.wait_for_callback.return_value = LoopbackResult(
-                code="code", state="s"
-            )
+            mock_server.return_value.wait_for_callback.return_value = LoopbackResult(code="code", state="s")
             result = cli_runner.invoke(
                 _login_app(),
                 ["--client-id", "ubidots-cli", "--profile", "other"],
@@ -755,11 +660,9 @@ class TestActiveSessionConfirmation:
         profile_path = profiles_dir / f"{profile_name}.yaml"
         profile_path.write_text(yaml.dump(profile_data))
         if os.name != "nt":
-            os.chmod(profile_path, 0o600)
+            pathlib.Path(profile_path).chmod(0o600)
 
-    def test_active_oauth_session_prompts_for_confirmation_and_aborts_on_no(
-        self, cli_runner, isolated_profile_dir
-    ):
+    def test_active_oauth_session_prompts_for_confirmation_and_aborts_on_no(self, cli_runner, isolated_profile_dir):
         # Setup — replace default.yaml with an already-authenticated OAuth profile
         self._seed_oauth_profile(isolated_profile_dir)
         # Action — user types "n" to the prompt
@@ -767,9 +670,7 @@ class TestActiveSessionConfirmation:
             patch("cli.auth.commands.port_available", return_value=True),
             patch("cli.auth.commands.LoopbackServer"),
         ):
-            result = cli_runner.invoke(
-                _login_app(), ["--client-id", "ubidots-cli"], input="n\n"
-            )
+            result = cli_runner.invoke(_login_app(), ["--client-id", "ubidots-cli"], input="n\n")
         # Expected
         assert result.exit_code != 0
         assert "already has an active OAuth session" in result.output
@@ -794,21 +695,15 @@ class TestActiveSessionConfirmation:
                 return_value=_fake_token_set("new@ubidots.com"),
             ),
         ):
-            mock_server.return_value.wait_for_callback.return_value = LoopbackResult(
-                code="code", state="s"
-            )
-            result = cli_runner.invoke(
-                _login_app(), ["--client-id", "ubidots-cli", "--yes"]
-            )
+            mock_server.return_value.wait_for_callback.return_value = LoopbackResult(code="code", state="s")
+            result = cli_runner.invoke(_login_app(), ["--client-id", "ubidots-cli", "--yes"])
         # Expected
         assert result.exit_code == 0, result.output
         assert "new@ubidots.com" in result.output
 
 
 class TestErrorPaths:
-    def test_authorization_denied_exits_with_code_2(
-        self, cli_runner, isolated_profile_dir
-    ):
+    def test_authorization_denied_exits_with_code_2(self, cli_runner, isolated_profile_dir):
         # Setup / Action
         with (
             patch("cli.auth.commands.port_available", return_value=True),
@@ -819,9 +714,7 @@ class TestErrorPaths:
             ),
             patch("cli.auth.commands.generate_state", return_value="s"),
         ):
-            mock_server.return_value.wait_for_callback.side_effect = (
-                AuthorizationDeniedError()
-            )
+            mock_server.return_value.wait_for_callback.side_effect = AuthorizationDeniedError()
             result = cli_runner.invoke(_login_app(), ["--client-id", "ubidots-cli"])
         # Expected
         assert result.exit_code == 2
@@ -844,9 +737,7 @@ class TestErrorPaths:
         assert result.exit_code == 3
         assert "timed out" in result.output.lower()
 
-    def test_unknown_oauth_client_exits_with_code_5(
-        self, cli_runner, isolated_profile_dir
-    ):
+    def test_unknown_oauth_client_exits_with_code_5(self, cli_runner, isolated_profile_dir):
         # Setup / Action
         with (
             patch("cli.auth.commands.port_available", return_value=True),
@@ -861,17 +752,13 @@ class TestErrorPaths:
                 side_effect=UnknownOAuthClientError(),
             ),
         ):
-            mock_server.return_value.wait_for_callback.return_value = LoopbackResult(
-                code="code", state="s"
-            )
+            mock_server.return_value.wait_for_callback.return_value = LoopbackResult(code="code", state="s")
             result = cli_runner.invoke(_login_app(), ["--client-id", "ubidots-cli"])
         # Expected
         assert result.exit_code == 5
         assert "Unknown OAuth client" in result.output
 
-    def test_token_exchange_failure_exits_with_code_5(
-        self, cli_runner, isolated_profile_dir
-    ):
+    def test_token_exchange_failure_exits_with_code_5(self, cli_runner, isolated_profile_dir):
         # Setup / Action
         with (
             patch("cli.auth.commands.port_available", return_value=True),
@@ -886,18 +773,14 @@ class TestErrorPaths:
                 side_effect=TokenExchangeError(detail="server error"),
             ),
         ):
-            mock_server.return_value.wait_for_callback.return_value = LoopbackResult(
-                code="code", state="s"
-            )
+            mock_server.return_value.wait_for_callback.return_value = LoopbackResult(code="code", state="s")
             result = cli_runner.invoke(_login_app(), ["--client-id", "ubidots-cli"])
         # Expected
         assert result.exit_code == 5
 
 
 class TestRedactionAndVerbose:
-    def test_verbose_prints_redirect_uri_and_authorize_url(
-        self, cli_runner, isolated_profile_dir
-    ):
+    def test_verbose_prints_redirect_uri_and_authorize_url(self, cli_runner, isolated_profile_dir):
         # Setup / Action
         with (
             patch("cli.auth.commands.port_available", return_value=True),
@@ -912,9 +795,7 @@ class TestRedactionAndVerbose:
                 return_value=_fake_token_set(),
             ),
         ):
-            mock_server.return_value.wait_for_callback.return_value = LoopbackResult(
-                code="code", state="s"
-            )
+            mock_server.return_value.wait_for_callback.return_value = LoopbackResult(code="code", state="s")
             result = cli_runner.invoke(
                 _login_app(),
                 ["--client-id", "ubidots-cli", "--no-browser", "--verbose"],
@@ -942,17 +823,13 @@ class TestRedactionAndVerbose:
                 return_value=_fake_token_set(),
             ),
         ):
-            mock_server.return_value.wait_for_callback.return_value = LoopbackResult(
-                code="code", state="s"
-            )
+            mock_server.return_value.wait_for_callback.return_value = LoopbackResult(code="code", state="s")
             result = cli_runner.invoke(_login_app(), ["--client-id", "ubidots-cli"])
         # Expected
         assert result.exit_code == 0, result.output
         assert long_verifier not in result.output
 
-    def test_authorization_code_never_appears_in_output(
-        self, cli_runner, isolated_profile_dir
-    ):
+    def test_authorization_code_never_appears_in_output(self, cli_runner, isolated_profile_dir):
         # Setup
         distinctive_code = "AUTHCODEABCDEF123456"
         # Action
@@ -970,17 +847,13 @@ class TestRedactionAndVerbose:
                 return_value=_fake_token_set(),
             ),
         ):
-            mock_server.return_value.wait_for_callback.return_value = LoopbackResult(
-                code=distinctive_code, state="s"
-            )
+            mock_server.return_value.wait_for_callback.return_value = LoopbackResult(code=distinctive_code, state="s")
             result = cli_runner.invoke(_login_app(), ["--client-id", "ubidots-cli"])
         # Expected
         assert result.exit_code == 0, result.output
         assert distinctive_code not in result.output
 
-    def test_access_and_refresh_tokens_not_in_output(
-        self, cli_runner, isolated_profile_dir
-    ):
+    def test_access_and_refresh_tokens_not_in_output(self, cli_runner, isolated_profile_dir):
         # Setup
         token_set = _fake_token_set("clean@ubidots.com")
         # Action
@@ -998,9 +871,7 @@ class TestRedactionAndVerbose:
                 return_value=token_set,
             ),
         ):
-            mock_server.return_value.wait_for_callback.return_value = LoopbackResult(
-                code="code", state="s"
-            )
+            mock_server.return_value.wait_for_callback.return_value = LoopbackResult(code="code", state="s")
             result = cli_runner.invoke(_login_app(), ["--client-id", "ubidots-cli"])
         # Expected
         assert result.exit_code == 0, result.output
@@ -1022,12 +893,8 @@ class TestRedactionAndVerbose:
                 return_value=_fake_token_set(),
             ),
         ):
-            mock_server.return_value.wait_for_callback.return_value = LoopbackResult(
-                code="code", state="s"
-            )
-            result = cli_runner.invoke(
-                _login_app(), ["--client-id", "ubidots-cli", "--no-browser"]
-            )
+            mock_server.return_value.wait_for_callback.return_value = LoopbackResult(code="code", state="s")
+            result = cli_runner.invoke(_login_app(), ["--client-id", "ubidots-cli", "--no-browser"])
         # Expected — URL-encoded scope contains "read", "write", and "offline_access"
         assert result.exit_code == 0, result.output
         assert "read" in result.output
@@ -1049,9 +916,7 @@ class TestRedactionAndVerbose:
                 return_value=_fake_token_set(),
             ),
         ):
-            mock_server.return_value.wait_for_callback.return_value = LoopbackResult(
-                code="code", state="s"
-            )
+            mock_server.return_value.wait_for_callback.return_value = LoopbackResult(code="code", state="s")
             result = cli_runner.invoke(
                 _login_app(),
                 ["--client-id", "ubidots-cli", "--no-browser", "--scope", "read:data"],
@@ -1062,9 +927,7 @@ class TestRedactionAndVerbose:
 
 
 class TestBrowserAndServerEdgeCases:
-    def test_browser_open_fails_prints_fallback_url(
-        self, cli_runner, isolated_profile_dir
-    ):
+    def test_browser_open_fails_prints_fallback_url(self, cli_runner, isolated_profile_dir):
         # Setup / Action — webbrowser.open returns False (no browser available)
         with (
             patch("cli.auth.commands.port_available", return_value=True),
@@ -1080,17 +943,13 @@ class TestBrowserAndServerEdgeCases:
                 return_value=_fake_token_set(),
             ),
         ):
-            mock_server.return_value.wait_for_callback.return_value = LoopbackResult(
-                code="code", state="s"
-            )
+            mock_server.return_value.wait_for_callback.return_value = LoopbackResult(code="code", state="s")
             result = cli_runner.invoke(_login_app(), ["--client-id", "ubidots-cli"])
         # Expected — fallback URL is printed when browser can't open
         assert result.exit_code == 0, result.output
         assert "/o/authorize/" in result.output
 
-    def test_loopback_server_oserror_exits_with_code_64(
-        self, cli_runner, isolated_profile_dir
-    ):
+    def test_loopback_server_oserror_exits_with_code_64(self, cli_runner, isolated_profile_dir):
         # Setup / Action — LoopbackServer raises OSError on bind (port race)
         with (
             patch("cli.auth.commands.port_available", return_value=True),
@@ -1108,9 +967,7 @@ class TestBrowserAndServerEdgeCases:
         # Expected
         assert result.exit_code == 64
 
-    def test_custom_timeout_passed_to_wait_for_callback(
-        self, cli_runner, isolated_profile_dir
-    ):
+    def test_custom_timeout_passed_to_wait_for_callback(self, cli_runner, isolated_profile_dir):
         # Setup / Action
         with (
             patch("cli.auth.commands.port_available", return_value=True),
@@ -1126,23 +983,15 @@ class TestBrowserAndServerEdgeCases:
                 return_value=_fake_token_set(),
             ),
         ):
-            mock_server.return_value.wait_for_callback.return_value = LoopbackResult(
-                code="code", state="s"
-            )
-            result = cli_runner.invoke(
-                _login_app(), ["--client-id", "ubidots-cli", "--timeout", "42"]
-            )
+            mock_server.return_value.wait_for_callback.return_value = LoopbackResult(code="code", state="s")
+            result = cli_runner.invoke(_login_app(), ["--client-id", "ubidots-cli", "--timeout", "42"])
         # Expected
         assert result.exit_code == 0, result.output
-        assert (
-            mock_server.return_value.wait_for_callback.call_args.kwargs["timeout"] == 42
-        )
+        assert mock_server.return_value.wait_for_callback.call_args.kwargs["timeout"] == 42
 
 
 class TestActiveSessionExpiry:
-    def test_expired_oauth_session_does_not_prompt_for_confirmation(
-        self, cli_runner, isolated_profile_dir
-    ):
+    def test_expired_oauth_session_does_not_prompt_for_confirmation(self, cli_runner, isolated_profile_dir):
         # Setup — profile has OAuth tokens but expires_at is in the past
         expired_profile = {
             "api_domain": "https://core.test",
@@ -1173,9 +1022,7 @@ class TestActiveSessionExpiry:
                 return_value=_fake_token_set("fresh@ubidots.com"),
             ),
         ):
-            mock_server.return_value.wait_for_callback.return_value = LoopbackResult(
-                code="code", state="s"
-            )
+            mock_server.return_value.wait_for_callback.return_value = LoopbackResult(code="code", state="s")
             result = cli_runner.invoke(_login_app(), ["--client-id", "ubidots-cli"])
         # Expected — login succeeds without any confirmation prompt
         assert result.exit_code == 0, result.output

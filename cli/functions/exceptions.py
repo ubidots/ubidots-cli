@@ -5,27 +5,16 @@ class FolderAlreadyExistsError(Exception):
 
 
 class FunctionWithIdAlreadyExistsError(Exception):
-
-    def __init__(
-        self, id: str, function_path: str, alternative_command: str | None = None
-    ):
-        error_message = (
-            f"A function with ID '{id}' has already been pulled at '{function_path}'"
-            + (
-                f" Run '{alternative_command}' in that directory to update it."
-                if alternative_command
-                else ""
-            )
+    def __init__(self, id: str, function_path: str, alternative_command: str | None = None):
+        error_message = f"A function with ID '{id}' has already been pulled at '{function_path}'" + (
+            f" Run '{alternative_command}' in that directory to update it." if alternative_command else ""
         )
         super().__init__(error_message)
 
 
 class FunctionWithNameAlreadyExistsError(Exception):
-
     def __init__(self, name: str, function_path: str):
-        error_message = (
-            f"A function with name '{name}' already exists at '{function_path}'"
-        )
+        error_message = f"A function with name '{name}' already exists at '{function_path}'"
         super().__init__(error_message)
 
 

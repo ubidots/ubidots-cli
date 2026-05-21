@@ -11,9 +11,7 @@ def main(event, context):
     except (ImportError, AttributeError) as e:
         return {
             "status_code": 500,
-            "body": json.dumps(
-                {"error": "The main function could not be loaded.", "detail": str(e)}
-            ),
+            "body": json.dumps({"error": "The main function could not be loaded.", "detail": str(e)}),
         }
 
     try:

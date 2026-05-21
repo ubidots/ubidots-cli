@@ -22,6 +22,7 @@ from cli.commons.settings import HOST_BIND
 _PAUSED = "paused"
 _EXITED = "exited"
 _RUNNING = "running"
+_LOGGER = logging.getLogger(__name__)
 
 
 def is_port_available(port: int) -> bool:
@@ -45,9 +46,7 @@ def find_available_ports(
     if len(ports) > (end_range - start_range + 1):
         raise ValueError(f"Cannot find {len(ports)} ports in given range")
 
-    result: list[int | None] = [
-        port if is_port_available(port) else None for port in ports
-    ]
+    result: list[int | None] = [port if is_port_available(port) else None for port in ports]
 
     taken = {p for p in result if p is not None}
     candidate = start_range
@@ -56,17 +55,12 @@ def find_available_ports(
         if port is not None:
             continue
 
-        while candidate <= end_range and (
-            candidate in taken or not is_port_available(candidate)
-        ):
+        while candidate <= end_range and (candidate in taken or not is_port_available(candidate)):
             candidate += 1
 
         if candidate > end_range:
             missing_count = sum(1 for p in result if p is None)
-            raise RuntimeError(
-                f"Could not find {missing_count} available ports "
-                f"in range {start_range}-{end_range}"
-            )
+            raise RuntimeError(f"Could not find {missing_count} available ports in range {start_range}-{end_range}")
 
         result[i] = candidate
         taken.add(candidate)
@@ -98,7 +92,7 @@ def argo_container_manager(
             container = client.client.containers.get(ARGO_CONTAINER_NAME)
         if container is None:
             return None
-        if container.status in (_PAUSED, _EXITED):
+        if container.status in {_PAUSED, _EXITED}:
             try:
                 container.restart()
                 container.reload()
@@ -124,14 +118,12 @@ def argo_container_manager(
             except (httpx.HTTPError, ValueError) as e:
                 # Something else went wrong, but container might still be usable
                 # Log for debugging but don't fail
-                logging.debug("Argo frie_label cleanup failed (non-fatal): %s", e)
+                _LOGGER.debug("Argo frie_label cleanup failed (non-fatal): %s", e)
         return container
 
     container = _check()
     if container is None:
-        adapter_port, target_port = find_available_ports(
-            [ARGO_EXTERNAL_ADAPTER_PORT, ARGO_EXTERNAL_TARGET_PORT]
-        )
+        adapter_port, target_port = find_available_ports([ARGO_EXTERNAL_ADAPTER_PORT, ARGO_EXTERNAL_TARGET_PORT])
         container = container_manager.start(
             image_name=image_name,
             container_name=ARGO_CONTAINER_NAME,
@@ -152,9 +144,7 @@ def argo_container_manager(
             target_port = _get_external_port(container, ARGO_INTERNAL_TARGET_PORT)
         except ValueError:
             container.remove(force=True)
-            adapter_port, target_port = find_available_ports(
-                [ARGO_EXTERNAL_ADAPTER_PORT, ARGO_EXTERNAL_TARGET_PORT]
-            )
+            adapter_port, target_port = find_available_ports([ARGO_EXTERNAL_ADAPTER_PORT, ARGO_EXTERNAL_TARGET_PORT])
             container = container_manager.start(
                 image_name=image_name,
                 container_name=ARGO_CONTAINER_NAME,

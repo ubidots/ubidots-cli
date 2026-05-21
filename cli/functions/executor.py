@@ -130,9 +130,7 @@ def stop_function(
         pipelines.StopFunctionStep(),
         pipelines.PrintkeyStep(key="local_label"),
     ]
-    pipeline = Pipeline(
-        steps, success_message="Function stopped successfully.", formatter=formatter
-    )
+    pipeline = Pipeline(steps, success_message="Function stopped successfully.", formatter=formatter)
     pipeline.run(
         {
             "project_path": Path.cwd(),
@@ -153,9 +151,7 @@ def restart_function(
         pipelines.GetContainerKeyStep(),
         pipelines.RestartFunctionStep(),
     ]
-    pipeline = Pipeline(
-        steps, success_message="Function restarted successfully.", formatter=formatter
-    )
+    pipeline = Pipeline(steps, success_message="Function restarted successfully.", formatter=formatter)
     pipeline.run(
         {
             "project_path": Path.cwd(),
@@ -283,9 +279,7 @@ def push_function(
         pipelines.UploadFileStep(),
         pipelines.CheckResponseStep(response_key="response"),
     ]
-    pipeline = Pipeline(
-        steps, success_message="Function uploaded successfully.", formatter=formatter
-    )
+    pipeline = Pipeline(steps, success_message="Function uploaded successfully.", formatter=formatter)
     pipeline.run(
         {
             "project_path": Path.cwd(),
@@ -538,9 +532,7 @@ def update_function(
                     "httpHasCors": http_has_cors,
                     "schedulerCron": scheduler_cron,
                     "schedulerEnabled": (
-                        False
-                        if scheduler_cron == ""
-                        else (True if scheduler_cron is not None else None)
+                        False if scheduler_cron == "" else (True if scheduler_cron is not None else None)
                     ),
                 },
                 "environment": environment,

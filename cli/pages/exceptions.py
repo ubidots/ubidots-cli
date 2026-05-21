@@ -3,10 +3,7 @@ from pathlib import Path
 
 class CurrentPlanDoesNotIncludePagesFeature(Exception):
     def __str__(self):
-        return (
-            "The current plan does not include the 'pages' feature. "
-            "Please upgrade your plan to use this feature."
-        )
+        return "The current plan does not include the 'pages' feature. Please upgrade your plan to use this feature."
 
 
 class PageAlreadyExistsInCurrentDirectoryError(Exception):

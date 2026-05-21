@@ -25,8 +25,7 @@ class EngineNotInstalledException(EngineException):
 
     def __init__(self, engine: str):
         message = (
-            f"'{engine}' is not installed or not running. "
-            f"Please ensure '{engine}' is properly installed and running."
+            f"'{engine}' is not installed or not running. Please ensure '{engine}' is properly installed and running."
         )
 
         super().__init__(message)
@@ -60,10 +59,7 @@ class ContainerAlreadyRunningException(ContainerException):
 
 class ContainerPortInUseException(ContainerException):
     def __init__(self, port: int):
-        message = (
-            f"The port {port} is already in use. "
-            "Please consider using an alternative port."
-        )
+        message = f"The port {port} is already in use. Please consider using an alternative port."
         super().__init__(message)
 
 
@@ -81,8 +77,7 @@ class ContainerNotFoundException(ContainerException):
         ]
 
         regex_pattern = "|".join(
-            re.escape(container_key)
-            for container_key in sorted(container_keys, key=len, reverse=True)
+            re.escape(container_key) for container_key in sorted(container_keys, key=len, reverse=True)
         )
         if match := re.search(regex_pattern, label):
             extracted_label = label.rsplit(match.group(0), maxsplit=1)[-1]
