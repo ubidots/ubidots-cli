@@ -1,13 +1,27 @@
+from __future__ import annotations
+
+import base64
+import json
 import os
 import time
 import webbrowser
+from datetime import UTC
+from datetime import datetime
 from pathlib import Path
 from typing import Annotated
 
 import typer
 import yaml
+from httpx import codes
 
 from cli.auth import redaction
+from cli.auth.enums import TokenTypeEnum
+from cli.auth.exceptions import InvalidTokenSignatureError
+from cli.auth.exceptions import JwksUnavailableError
+from cli.auth.jwks_cache import JwksCachePath
+from cli.auth.jwks_cache import JwksTTLSeconds
+from cli.auth.jwks_cache import decode_jwt
+from cli.auth.jwks_cache import fetch_jwks
 from cli.auth.loopback_server import LoopbackServer
 from cli.auth.loopback_server import assert_state_matches
 from cli.auth.loopback_server import port_available
@@ -15,10 +29,13 @@ from cli.auth.oauth_client import build_authorize_url
 from cli.auth.oauth_client import exchange_code_for_tokens
 from cli.auth.oauth_client import generate_pkce_pair
 from cli.auth.oauth_client import generate_state
+from cli.auth.oauth_client import revoke_refresh_token
 from cli.commons.enums import MessageColorEnum
 from cli.commons.exceptions import AuthorizationDeniedError
 from cli.commons.exceptions import CSRFMismatchError
 from cli.commons.exceptions import LoginTimeoutError
+from cli.commons.exceptions import RevokeNetworkError
+from cli.commons.exceptions import RevokeRemoteError
 from cli.commons.exceptions import TokenExchangeError
 from cli.commons.exceptions import UnknownOAuthClientError
 from cli.config.helpers import profile_exists
@@ -119,9 +136,6 @@ def _build_redirect_uri(port: int) -> str:
 
 def _extract_user_label(jwt: str, fallback: str = "user") -> str:
     try:
-        import base64
-        import json
-
         parts = jwt.split(".")
         if len(parts) < 2:
             return fallback
@@ -336,5 +350,194 @@ def login(
         raise typer.Exit(0)
 
 
-if __name__ == "__main__":  # pragma: no cover
-    typer.run(login)
+def logout(
+    profile: Annotated[
+        str,
+        typer.Option(
+            "--profile",
+            "-p",
+            help="Profile to log out from. Defaults to the active profile.",
+        ),
+    ] = "",
+    force_remote: Annotated[
+        bool,
+        typer.Option(
+            "--force-remote",
+            help="Force revocation of the refresh token remotely even if local state looks incomplete.",
+        ),
+    ] = False,
+    api_domain: Annotated[
+        str,
+        typer.Option(
+            "--api-domain",
+            "-a",
+            help=(
+                "Override the Ubidots API domain for this logout. Defaults to the env var "
+                f"{API_DOMAIN_ENV_VAR}, then the profile's api_domain."
+            ),
+        ),
+    ] = "",
+    verbose: Annotated[
+        bool,
+        typer.Option(
+            "--verbose",
+            "-v",
+            help="Print diagnostic info.",
+        ),
+    ] = False,
+) -> None:
+    with redaction.redaction_session():
+        profile_name, current_config, _ = _resolve_active_config(profile or None)
+        resolved_api_domain = _resolve_api_domain(api_domain, current_config)
+
+        if not force_remote and (
+            current_config.auth_method != AuthHeaderTypeEnum.OAUTH2 or not current_config.refresh_token
+        ):
+            _emit("No OAuth session to log out from")
+            raise typer.Exit(0)
+
+        revoke_message = None
+        if current_config.refresh_token:
+            redaction.register_secret(current_config.refresh_token)
+        try:
+            result = revoke_refresh_token(
+                api_domain=resolved_api_domain,
+                client_id=current_config.oauth_client_id,
+                refresh_token=current_config.refresh_token or "",
+            )
+            _vecho(verbose, f"Revoke result: {result.status} (HTTP {result.http_status})")
+            if result.http_status == codes.OK:
+                revoke_message = "Logged out"
+            else:
+                revoke_message = "Logged out (refresh token was already invalid)"
+        except RevokeNetworkError:
+            revoke_message = (
+                "Could not reach core to revoke remotely. Local credentials cleared. "
+                "Run 'ubidots logout --force-remote' when network is restored."
+            )
+        except RevokeRemoteError as exc:
+            _emit_error(f"Revoke error: {exc}")
+            new_config = current_config.model_copy(
+                update={
+                    "auth_method": AuthHeaderTypeEnum.TOKEN,
+                    "access_token": "",
+                    "oauth_client_id": "",
+                    "refresh_token": "",
+                    "expires_at": 0,
+                    "scope": "",
+                    "token_type": TokenTypeEnum.BEARER,
+                }
+            )
+            save_profile_configuration(profile=profile_name, config_model=new_config)
+            raise typer.Exit(1) from exc
+
+        new_config = current_config.model_copy(
+            update={
+                "auth_method": AuthHeaderTypeEnum.TOKEN,
+                "access_token": "",
+                "oauth_client_id": "",
+                "refresh_token": "",
+                "expires_at": 0,
+                "scope": "",
+                "token_type": TokenTypeEnum.BEARER,
+            }
+        )
+        save_profile_configuration(profile=profile_name, config_model=new_config)
+
+        if revoke_message:
+            _emit(revoke_message)
+        raise typer.Exit(0)
+
+
+def whoami(
+    profile: Annotated[
+        str,
+        typer.Option(
+            "--profile",
+            "-p",
+            help="Profile to check. Defaults to the active profile.",
+        ),
+    ] = "",
+    json_output: Annotated[
+        bool,
+        typer.Option(
+            "--json",
+            help="Output as JSON instead of plain text.",
+        ),
+    ] = False,
+    api_domain: Annotated[
+        str,
+        typer.Option(
+            "--api-domain",
+            "-a",
+            help=(
+                "Override the Ubidots API domain for JWKS verification. Defaults to the env var "
+                f"{API_DOMAIN_ENV_VAR}, then the profile's api_domain."
+            ),
+        ),
+    ] = "",
+) -> None:
+    with redaction.redaction_session():
+        _profile_name, current_config, _ = _resolve_active_config(profile or None)
+        resolved_api_domain = _resolve_api_domain(api_domain, current_config)
+
+        if current_config.auth_method != AuthHeaderTypeEnum.OAUTH2 or not current_config.access_token:
+            _emit("No OAuth session. Profile is using a static API token.")
+            raise typer.Exit(0)
+
+        redaction.register_secret(current_config.access_token)
+
+        try:
+            jwks_cache_path = JwksCachePath(settings.OAUTH.JWKS_CACHE_PATH)
+            jwks_ttl = JwksTTLSeconds(settings.OAUTH.JWKS_TTL_SECONDS)
+            jwks = fetch_jwks(
+                api_domain=resolved_api_domain,
+                cache_path=jwks_cache_path,
+                ttl=jwks_ttl,
+            )
+        except JwksUnavailableError:
+            _emit_error("Could not fetch JWKS for verification. Try again later or use a different API domain.")
+            raise typer.Exit(1) from None
+
+        try:
+            claims = decode_jwt(current_config.access_token, jwks)
+        except InvalidTokenSignatureError:
+            _emit_error("Invalid token — your session may be compromised. Run 'ubidots login' again.")
+            raise typer.Exit(5) from None
+
+        now_utc = datetime.now(UTC)
+        now_seconds = int(now_utc.timestamp())
+        if claims.exp <= now_seconds:
+            _emit_error("Session expired. Run 'ubidots login' again.")
+            raise typer.Exit(3)
+
+        # Calculate expires_in (clamped to 0 if negative)
+        expires_in = max(0, claims.exp - now_seconds)
+
+        # Format expires_at as ISO8601 UTC with 'Z' suffix
+        expires_at_dt = datetime.fromtimestamp(claims.exp, tz=UTC)
+        expires_at_iso = expires_at_dt.isoformat(timespec="seconds").replace("+00:00", "Z")
+
+        if json_output:
+            output = {
+                "email": claims.email,
+                "user_type": claims.user_type,
+                "business_account": claims.business_account,
+                "scopes": claims.scope,
+                "expires_at": expires_at_iso,
+                "expires_in": expires_in,
+            }
+            typer.echo(json.dumps(output))
+        else:
+            output_lines = [
+                f"email: {claims.email}",
+                f"user_type: {claims.user_type}",
+                f"business_account: {claims.business_account}",
+                f"scopes: {claims.scope}",
+                f"expires_at: {expires_at_iso}",
+                f"expires_in: {expires_in}",
+            ]
+            for line in output_lines:
+                typer.echo(redaction.scrub(line))
+
+        raise typer.Exit(0)

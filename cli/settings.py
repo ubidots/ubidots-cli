@@ -23,6 +23,10 @@ class OAuthSettings(BaseModel):
     VERIFIER_BYTES: int = 64
     STATE_BYTES: int = 32
     DEFAULT_CLIENT_ID: str = "ubidots-cli"
+    JWKS_PATH: str = "/o/.well-known/jwks.json"
+    JWKS_TTL_SECONDS: int = 3600
+    JWKS_CACHE_PATH: Path = Path.home() / ".cache" / "ubidots-cli" / "jwks.json"
+    JWT_ALGORITHMS: tuple[str, ...] = ("RS256",)
 
     @property
     def REDIRECT_URI(self) -> str:
