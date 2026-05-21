@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING
 import httpx
 
 from cli.apps.constants import APPS_API_ROUTES
-from cli.commons.utils import build_endpoint
+from cli.commons.endpoint import build_endpoint
 
 if TYPE_CHECKING:
     from cli.apps.models import SetMenuPayload

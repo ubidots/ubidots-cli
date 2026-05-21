@@ -2,8 +2,8 @@ import pathlib
 
 import httpx
 
+from cli.commons.endpoint import build_endpoint
 from cli.commons.formatters import OutputFormatter
-from cli.commons.utils import build_endpoint
 from cli.config.models import ProfileConfigModel
 from cli.functions import FUNCTION_API_ROUTES
 from cli.functions.enums import FunctionLanguageEnum

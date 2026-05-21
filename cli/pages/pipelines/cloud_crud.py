@@ -5,9 +5,9 @@ from pathlib import Path
 import httpx
 import typer
 
+from cli.commons.endpoint import build_endpoint
 from cli.commons.enums import MessageColorEnum
 from cli.commons.pipelines import PipelineStep
-from cli.commons.utils import build_endpoint
 from cli.pages.constants import PAGE_API_ROUTES
 from cli.pages.handlers import add_page
 from cli.pages.handlers import update_page

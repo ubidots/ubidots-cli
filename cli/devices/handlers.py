@@ -1,7 +1,7 @@
 import httpx
 
+from cli.commons.endpoint import build_endpoint
 from cli.commons.formatters import OutputFormatter
-from cli.commons.utils import build_endpoint
 from cli.config.models import ProfileConfigModel
 from cli.devices.helpers import build_devices_payload
 

@@ -3,8 +3,8 @@ from pathlib import Path
 
 import httpx
 
+from cli.commons.endpoint import build_endpoint
 from cli.commons.pipelines import PipelineStep
-from cli.commons.utils import build_endpoint
 from cli.commons.utils import cleanup_directory
 from cli.config.helpers import get_configuration
 from cli.functions.exceptions import PermissionDeniedError

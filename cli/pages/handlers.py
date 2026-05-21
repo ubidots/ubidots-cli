@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING
 
 import httpx
 
-from cli.commons.utils import build_endpoint
+from cli.commons.endpoint import build_endpoint
 from cli.pages.constants import PAGE_API_ROUTES
 
 if TYPE_CHECKING:

@@ -5,7 +5,7 @@ from unittest.mock import patch
 import httpx
 import respx
 
-from cli.commons.utils import build_endpoint
+from cli.commons.endpoint import build_endpoint
 from cli.config.models import AuthHeaderTypeEnum
 from cli.config.models import ProfileConfigModel
 from cli.pages.constants import PAGE_API_ROUTES
