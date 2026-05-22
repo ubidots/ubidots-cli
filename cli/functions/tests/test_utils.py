@@ -1,3 +1,4 @@
+import pathlib
 import zipfile
 from unittest.mock import MagicMock
 from unittest.mock import patch
@@ -63,9 +64,7 @@ class TestFunctionUtils:
         # Build expected metadata (using your models)
         expected_metadata = FunctionProjectMetadata(
             globals=FunctionGlobalsModel(engine=engine, label=label),
-            project=FunctionProjectModel(
-                language=language, runtime=runtime, name=name, createdAt=created_at
-            ),
+            project=FunctionProjectModel(language=language, runtime=runtime, name=name, createdAt=created_at),
             function=FunctionModel(
                 label=label,
                 id=function_id,
@@ -111,7 +110,7 @@ class TestFunctionUtils:
 
         # Assert: Read the metadata file and compare with expected metadata.
         metadata_file = self.project_path / settings.FUNCTIONS.PROJECT_METADATA_FILE
-        with open(metadata_file) as file:
+        with pathlib.Path(metadata_file).open(encoding="utf-8") as file:
             written_metadata = yaml.safe_load(file)
 
         expected_metadata_dict = expected_metadata.to_yaml_serializable_format()
@@ -129,9 +128,7 @@ class TestFunctionUtils:
         runtime = PYTHON_3_9_FULL_RUNTIME
         created_at = "2025-02-18T00:00:00"
         metadata = FunctionProjectMetadata(
-            globals=FunctionGlobalsModel(
-                engine=FunctionEngineTypeEnum.DOCKER, label="my_function"
-            ),
+            globals=FunctionGlobalsModel(engine=FunctionEngineTypeEnum.DOCKER, label="my_function"),
             project=FunctionProjectModel(
                 name=project_path.name,
                 language=language,
@@ -159,7 +156,7 @@ class TestFunctionUtils:
             ),
         )
         metadata_file = project_path / settings.FUNCTIONS.PROJECT_METADATA_FILE
-        with open(metadata_file, "w") as file:
+        with pathlib.Path(metadata_file).open("w", encoding="utf-8") as file:
             yaml.dump(metadata.to_yaml_serializable_format(), file)
         # Action
         read_metadata = read_manifest_project_file(project_path)

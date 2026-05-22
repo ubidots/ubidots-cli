@@ -10,7 +10,6 @@ from cli.pages.engines.settings import page_engine_settings
 
 @dataclass
 class PageDockerNetworkManager(BaseDockerNetworkManager):
-
     def create(
         self,
         name: str = page_engine_settings.CONTAINER.NETWORK.NAME,

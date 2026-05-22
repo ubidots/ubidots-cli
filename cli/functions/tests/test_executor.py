@@ -4,6 +4,8 @@ from unittest.mock import ANY
 from unittest.mock import MagicMock
 from unittest.mock import patch
 
+import pytest
+
 from cli.functions.constants import PYTHON_3_9_BASE_RUNTIME
 from cli.functions.enums import FunctionLanguageEnum
 from cli.functions.enums import FunctionMethodEnum
@@ -93,8 +95,7 @@ class TestCreateFunction(TestCase):
             "project_path": Path.cwd() / name,
             "name": name,
             "label": name,
-            "template_file": settings.FUNCTIONS.TEMPLATES_PATH
-            / f"{language.value}.zip",
+            "template_file": settings.FUNCTIONS.TEMPLATES_PATH / f"{language.value}.zip",
             "language": language,
             "runtime": runtime,
             "methods": methods,
@@ -135,7 +136,7 @@ class TestCreateFunction(TestCase):
         mock_pipeline_instance.run = MagicMock()
 
         # Action & Assert: Expect ValueError when in existing function directory
-        with self.assertRaises(ValueError) as context:
+        with pytest.raises(ValueError) as context:
             create_function(
                 name="test_function",
                 language=FunctionLanguageEnum.PYTHON,
@@ -152,7 +153,7 @@ class TestCreateFunction(TestCase):
                 formatter=ANY,
             )
 
-        self.assertIn("Cannot run 'functions init'", str(context.exception))
+        self.assertIn("Cannot run 'functions init'", str(context.value))
 
 
 class TestStartFunction(TestCase):
@@ -566,9 +567,7 @@ class TestPushFunction(TestCase):
         profile = "test_profile"
 
         # Action
-        push_function(
-            confirm=confirm, profile=profile, verbose=verbose, formatter=MagicMock()
-        )
+        push_function(confirm=confirm, profile=profile, verbose=verbose, formatter=MagicMock())
 
         # Expected
         MockPipeline.assert_called_once_with(

@@ -6,6 +6,8 @@ from tempfile import TemporaryDirectory
 from unittest.mock import MagicMock
 from unittest.mock import patch
 
+import pytest
+
 from cli.pages.helpers import _TemplateLibrary
 from cli.pages.helpers import create_and_save_page_manifest
 from cli.pages.helpers import extract_port_from_container
@@ -73,7 +75,7 @@ class TestManifestHelpers(unittest.TestCase):
         with TemporaryDirectory() as temp_dir:
             project_path = Path(temp_dir)
 
-            with self.assertRaises(FileNotFoundError):
+            with pytest.raises(FileNotFoundError):
                 read_page_manifest(project_path)
 
     def test_create_and_save_page_manifest_success(self):

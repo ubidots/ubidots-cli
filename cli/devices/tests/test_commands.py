@@ -22,9 +22,7 @@ class TestDeleteCommand(TestCase):
         result = runner.invoke(device_app, ["delete", "--id", "device123"])
         self.assertEqual(result.exit_code, 0)
         mock_get_instance_key.assert_called_once_with(id="device123", label=None)
-        mock_delete_device.assert_called_once_with(
-            active_config=ANY, device_key="device_key_from_id", formatter=ANY
-        )
+        mock_delete_device.assert_called_once_with(active_config=ANY, device_key="device_key_from_id", formatter=ANY)
 
     def test_delete_device_by_label(self, mock_delete_device, mock_get_instance_key, _):
         mock_get_instance_key.return_value = "device_key_from_label"
@@ -35,24 +33,14 @@ class TestDeleteCommand(TestCase):
             active_config=ANY, device_key="device_key_from_label", formatter=ANY
         )
 
-    def test_delete_device_both_id_and_label(
-        self, mock_delete_device, mock_get_instance_key, _
-    ):
+    def test_delete_device_both_id_and_label(self, mock_delete_device, mock_get_instance_key, _):
         mock_get_instance_key.return_value = "device_key_from_id"
-        result = runner.invoke(
-            device_app, ["delete", "--id", "device123", "--label", "myDeviceLabel"]
-        )
+        result = runner.invoke(device_app, ["delete", "--id", "device123", "--label", "myDeviceLabel"])
         self.assertEqual(result.exit_code, 0)
-        mock_get_instance_key.assert_called_once_with(
-            id="device123", label="myDeviceLabel"
-        )
-        mock_delete_device.assert_called_once_with(
-            active_config=ANY, device_key="device_key_from_id", formatter=ANY
-        )
+        mock_get_instance_key.assert_called_once_with(id="device123", label="myDeviceLabel")
+        mock_delete_device.assert_called_once_with(active_config=ANY, device_key="device_key_from_id", formatter=ANY)
 
-    def test_delete_format_machine_passes_machine_formatter(
-        self, mock_delete_device, mock_get_instance_key, _
-    ):
+    def test_delete_format_machine_passes_machine_formatter(self, mock_delete_device, mock_get_instance_key, _):
         mock_get_instance_key.return_value = "k"
         runner.invoke(device_app, ["delete", "--id", "d1", "--format", "machine"])
         _, kwargs = mock_delete_device.call_args
@@ -87,17 +75,11 @@ class TestGetCommand(TestCase):
             formatter=ANY,
         )
 
-    def test_get_device_both_id_and_label(
-        self, mock_retrieve_device, mock_get_instance_key, _
-    ):
+    def test_get_device_both_id_and_label(self, mock_retrieve_device, mock_get_instance_key, _):
         mock_get_instance_key.return_value = "device_key_from_id"
-        result = runner.invoke(
-            device_app, ["get", "--id", "device123", "--label", "myDeviceLabel"]
-        )
+        result = runner.invoke(device_app, ["get", "--id", "device123", "--label", "myDeviceLabel"])
         self.assertEqual(result.exit_code, 0)
-        mock_get_instance_key.assert_called_once_with(
-            id="device123", label="myDeviceLabel"
-        )
+        mock_get_instance_key.assert_called_once_with(id="device123", label="myDeviceLabel")
         mock_retrieve_device.assert_called_once_with(
             active_config=ANY,
             device_key="device_key_from_id",
@@ -105,14 +87,10 @@ class TestGetCommand(TestCase):
             formatter=ANY,
         )
 
-    def test_get_device_with_custom_fields(
-        self, mock_retrieve_device, mock_get_instance_key, _
-    ):
+    def test_get_device_with_custom_fields(self, mock_retrieve_device, mock_get_instance_key, _):
         mock_get_instance_key.return_value = "device_key_from_id"
         custom_fields = "name,location,status"
-        result = runner.invoke(
-            device_app, ["get", "--id", "device123", "--fields", custom_fields]
-        )
+        result = runner.invoke(device_app, ["get", "--id", "device123", "--fields", custom_fields])
         self.assertEqual(result.exit_code, 0)
         mock_get_instance_key.assert_called_once_with(id="device123", label=None)
         mock_retrieve_device.assert_called_once_with(
@@ -122,9 +100,7 @@ class TestGetCommand(TestCase):
             formatter=ANY,
         )
 
-    def test_get_format_machine_passes_machine_formatter(
-        self, mock_retrieve_device, mock_get_instance_key, _
-    ):
+    def test_get_format_machine_passes_machine_formatter(self, mock_retrieve_device, mock_get_instance_key, _):
         mock_get_instance_key.return_value = "k"
         runner.invoke(device_app, ["get", "--id", "d1", "--format", "machine"])
         _, kwargs = mock_retrieve_device.call_args
@@ -285,9 +261,7 @@ class TestAddCommand(TestCase):
         )
 
     def test_add_device_with_invalid_json_properties(self, mock_add_device, _):
-        result = runner.invoke(
-            device_app, ["add", "deviceLabel", "--properties", "{key1: value1}"]
-        )
+        result = runner.invoke(device_app, ["add", "deviceLabel", "--properties", "{key1: value1}"])
         self.assertNotEqual(result.exit_code, 0)
         self.assertIn("Invalid JSON format.", result.output)
         mock_add_device.assert_not_called()
@@ -297,9 +271,7 @@ class TestAddCommand(TestCase):
 @patch("cli.devices.commands.get_instance_key")
 @patch("cli.devices.handlers.update_device")
 class TestUpdateCommand(TestCase):
-    def test_update_device_by_id_with_minimum_arguments(
-        self, mock_update_device, mock_get_instance_key, _
-    ):
+    def test_update_device_by_id_with_minimum_arguments(self, mock_update_device, mock_get_instance_key, _):
         mock_get_instance_key.return_value = "device_key_from_id"
         result = runner.invoke(device_app, ["update", "--id", "device123"])
         self.assertEqual(result.exit_code, 0)
@@ -315,9 +287,7 @@ class TestUpdateCommand(TestCase):
             properties={},
         )
 
-    def test_update_device_with_all_options(
-        self, mock_update_device, mock_get_instance_key, _
-    ):
+    def test_update_device_with_all_options(self, mock_update_device, mock_get_instance_key, _):
         mock_get_instance_key.return_value = "device_key_from_label"
         properties = '{"key1": "updatedValue", "key2": 456}'
         result = runner.invoke(
@@ -353,9 +323,7 @@ class TestUpdateCommand(TestCase):
             properties=json.loads(properties),
         )
 
-    def test_update_device_with_invalid_json_properties(
-        self, mock_update_device, mock_get_instance_key, _
-    ):
+    def test_update_device_with_invalid_json_properties(self, mock_update_device, mock_get_instance_key, _):
         mock_get_instance_key.return_value = "device_key_from_id"
         result = runner.invoke(
             device_app,
@@ -365,13 +333,9 @@ class TestUpdateCommand(TestCase):
         self.assertIn("Invalid JSON format.", result.output)
         mock_update_device.assert_not_called()
 
-    def test_update_device_with_id_and_label(
-        self, mock_update_device, mock_get_instance_key, _
-    ):
+    def test_update_device_with_id_and_label(self, mock_update_device, mock_get_instance_key, _):
         mock_get_instance_key.return_value = "device_key_from_id"
-        result = runner.invoke(
-            device_app, ["update", "--id", "device123", "--label", "deviceLabel"]
-        )
+        result = runner.invoke(device_app, ["update", "--id", "device123", "--label", "deviceLabel"])
         self.assertEqual(result.exit_code, 0)
         mock_update_device.assert_called_once_with(
             active_config=ANY,

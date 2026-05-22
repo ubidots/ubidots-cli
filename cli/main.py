@@ -14,9 +14,7 @@ install_machine_help_patch()
 app = typer.Typer()
 
 app.command(help="Configure general settings for the CLI.")(config)
-app.command(help="Authenticate with Ubidots via OAuth2 (Authorization Code + PKCE).")(
-    login
-)
+app.command(help="Authenticate with Ubidots via OAuth2 (Authorization Code + PKCE).")(login)
 app.add_typer(function_app, name="functions")
 app.add_typer(device_app, name="devices")
 app.add_typer(variable_app, name="variables")

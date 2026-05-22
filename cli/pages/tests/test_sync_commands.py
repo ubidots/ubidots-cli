@@ -11,7 +11,6 @@ from cli.pages.commands import app
 @patch("cli.pages.commands.get_configuration", return_value=MagicMock())
 @patch("cli.pages.commands.executor.push_page_to_cloud_platform")
 class TestPushCommand(unittest.TestCase):
-
     def setUp(self):
         self.runner = CliRunner()
 
@@ -52,14 +51,11 @@ class TestPushCommand(unittest.TestCase):
 @patch("cli.pages.commands.get_configuration", return_value=MagicMock())
 @patch("cli.pages.commands.executor.pull_page_from_cloud_platform")
 class TestPullCommand(unittest.TestCase):
-
     def setUp(self):
         self.runner = CliRunner()
 
     def test_pull_with_remote_id(self, mock_pull_page_cloud, mock_get_configuration):
-        result = self.runner.invoke(
-            app, ["pull", "--remote-id", "abc123def456789012345678"]
-        )
+        result = self.runner.invoke(app, ["pull", "--remote-id", "abc123def456789012345678"])
 
         self.assertEqual(result.exit_code, 0)
         mock_pull_page_cloud.assert_called_once_with(
@@ -108,7 +104,6 @@ class TestPullCommand(unittest.TestCase):
 
 
 class TestCloudCommandsIntegration(unittest.TestCase):
-
     def setUp(self):
         self.runner = CliRunner()
 

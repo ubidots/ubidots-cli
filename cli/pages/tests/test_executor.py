@@ -38,17 +38,13 @@ class TestCreatePage(unittest.TestCase):
         args, kwargs = mock_pipeline.call_args
         steps, success_message = args[0], kwargs["success_message"]
 
-        self.assertEqual(
-            len(steps), 10
-        )  # added GetWorkspaceKeyStep + CreateWorkspaceStep
+        self.assertEqual(len(steps), 10)  # added GetWorkspaceKeyStep + CreateWorkspaceStep
         self.assertIn("Page 'test_page' created", success_message)
 
         run_data = mock_pipeline_instance.run.call_args[0][0]
         self.assertEqual(run_data["page_name"], "test_page")
         self.assertEqual(run_data["page_label"], "test_page")
-        self.assertEqual(
-            run_data["project_path"], Path("/current/test_page")
-        )  # plain dir
+        self.assertEqual(run_data["project_path"], Path("/current/test_page"))  # plain dir
         self.assertNotIn("symlink_path", run_data)
         self.assertNotIn("workspace_key", run_data)
         self.assertNotIn("workspace_path", run_data)
@@ -126,9 +122,7 @@ class TestStopPage(unittest.TestCase):
         args, kwargs = mock_pipeline.call_args
         steps, success_message = args[0], kwargs["success_message"]
 
-        self.assertEqual(
-            len(steps), 13
-        )  # added GetArgoImageNameStep + ValidateArgoImageStep
+        self.assertEqual(len(steps), 13)  # added GetArgoImageNameStep + ValidateArgoImageStep
         self.assertEqual(success_message, "Page stopped successfully.")
 
         # Verify pipeline.run was called with correct data
@@ -154,9 +148,7 @@ class TestRestartPage(unittest.TestCase):
 
         args, kwargs = mock_pipeline.call_args
         steps = args[0]
-        self.assertEqual(
-            len(steps), 24
-        )  # added GetArgoImageNameStep + ValidateArgoImageStep
+        self.assertEqual(len(steps), 24)  # added GetArgoImageNameStep + ValidateArgoImageStep
         self.assertEqual(kwargs["success_message"], "Page restarted successfully.")
 
 
@@ -208,9 +200,7 @@ class TestListPages(unittest.TestCase):
         args, kwargs = mock_pipeline.call_args
         steps, success_message = args[0], kwargs["success_message"]
 
-        self.assertEqual(
-            len(steps), 8
-        )  # added GetArgoImageNameStep + ValidateArgoImageStep
+        self.assertEqual(len(steps), 8)  # added GetArgoImageNameStep + ValidateArgoImageStep
         self.assertEqual(success_message, "")  # Empty success message
 
         # Verify pipeline.run was called with correct data
@@ -248,9 +238,7 @@ class TestExecutorIntegration(unittest.TestCase):
         mock_pipeline_instance = MagicMock()
         mock_pipeline.return_value = mock_pipeline_instance
 
-        create_local_page(
-            "test", False, "default", PageTypeEnum.DASHBOARD, formatter=MagicMock()
-        )
+        create_local_page("test", False, "default", PageTypeEnum.DASHBOARD, formatter=MagicMock())
 
         # Verify all expected pipeline steps were instantiated
         for step_class in mock_step_classes:
@@ -339,9 +327,7 @@ class TestLogsPage(unittest.TestCase):
         """Test that logs_local_dev_server builds and runs a pipeline."""
         mock_pipeline = MagicMock()
         mock_pipeline_cls.return_value = mock_pipeline
-        logs_local_dev_server(
-            tail="all", follow=False, verbose=False, formatter=MagicMock()
-        )
+        logs_local_dev_server(tail="all", follow=False, verbose=False, formatter=MagicMock())
         mock_pipeline.run.assert_called_once()
         run_data = mock_pipeline.run.call_args[0][0]
         assert run_data["tail"] == "all"
@@ -352,9 +338,7 @@ class TestLogsPage(unittest.TestCase):
         """Test that tail and follow are forwarded to the pipeline data."""
         mock_pipeline = MagicMock()
         mock_pipeline_cls.return_value = mock_pipeline
-        logs_local_dev_server(
-            tail="50", follow=True, verbose=True, formatter=MagicMock()
-        )
+        logs_local_dev_server(tail="50", follow=True, verbose=True, formatter=MagicMock())
         run_data = mock_pipeline.run.call_args[0][0]
         assert run_data["tail"] == "50"
         assert run_data["follow"] is True
@@ -366,9 +350,7 @@ class TestLogsPage(unittest.TestCase):
         mock_pipeline_instance = MagicMock()
         mock_pipeline.return_value = mock_pipeline_instance
 
-        logs_local_dev_server(
-            tail="all", follow=False, verbose=False, formatter=MagicMock()
-        )
+        logs_local_dev_server(tail="all", follow=False, verbose=False, formatter=MagicMock())
 
         args, _kwargs = mock_pipeline.call_args
         steps = args[0]

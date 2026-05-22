@@ -64,9 +64,7 @@ def retrieve_variable(
         )
 
 
-def add_variable(
-    active_config: ProfileConfigModel, formatter: OutputFormatter, **kwargs
-):
+def add_variable(active_config: ProfileConfigModel, formatter: OutputFormatter, **kwargs):
     data = build_variables_payload(**kwargs)
     url, headers = build_endpoint(
         route="/api/v2.0/variables/",
@@ -118,9 +116,7 @@ def update_variable(
         )
 
 
-def delete_variable(
-    variable_key: str, active_config: ProfileConfigModel, formatter: OutputFormatter
-):
+def delete_variable(variable_key: str, active_config: ProfileConfigModel, formatter: OutputFormatter):
     url, headers = build_endpoint(
         route="/api/v2.0/variables/{variable_key}/",
         variable_key=variable_key,
@@ -128,9 +124,7 @@ def delete_variable(
     )
     response = httpx.delete(url, headers=headers)
     if response.status_code == httpx.codes.NO_CONTENT:
-        formatter.emit_success(
-            f"The variable '{variable_key}' was removed successfully."
-        )
+        formatter.emit_success(f"The variable '{variable_key}' was removed successfully.")
     else:
         formatter.emit_error(
             httpx.HTTPStatusError(

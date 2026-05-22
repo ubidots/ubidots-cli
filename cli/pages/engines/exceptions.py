@@ -24,8 +24,7 @@ class NetworkNotFoundException(Exception):
 class EngineNotInstalledException(Exception):
     def __init__(self, engine: str):
         message = (
-            f"'{engine}' is not installed or not running. "
-            f"Please ensure '{engine}' is properly installed and running."
+            f"'{engine}' is not installed or not running. Please ensure '{engine}' is properly installed and running."
         )
         super().__init__(message)
 

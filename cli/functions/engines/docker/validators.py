@@ -24,6 +24,4 @@ class FunctionDockerValidator(AbstractEngineValidator):
         try:
             self.client.images.get(image_name)
         except ImageNotFound as error:
-            raise ImageNotAvailableLocallyException(
-                engine=self.engine, image_name=image_name
-            ) from error
+            raise ImageNotAvailableLocallyException(engine=self.engine, image_name=image_name) from error

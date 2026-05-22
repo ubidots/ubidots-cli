@@ -156,9 +156,5 @@ def _safe_error_detail(response: httpx.Response) -> str:
     except ValueError:
         return f"HTTP {response.status_code}"
     if isinstance(body, dict):
-        return (
-            body.get("error_description")
-            or body.get("error")
-            or f"HTTP {response.status_code}"
-        )
+        return body.get("error_description") or body.get("error") or f"HTTP {response.status_code}"
     return f"HTTP {response.status_code}"

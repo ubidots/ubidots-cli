@@ -7,7 +7,6 @@ from cli.functions.engines.settings import engine_settings
 
 
 class FunctionDockerNetworkManager(BaseDockerNetworkManager):
-
     def create(
         self,
         name: str = engine_settings.CONTAINER.NETWORK_NAME,

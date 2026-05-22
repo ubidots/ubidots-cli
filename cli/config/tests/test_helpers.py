@@ -3,6 +3,7 @@ from unittest import TestCase
 from unittest.mock import mock_open
 from unittest.mock import patch
 
+import pytest
 import requests
 import yaml
 
@@ -50,9 +51,7 @@ class TestCLIConfiguration(TestCase):
         save_profile_configuration(profile=self.profile, config_model=config_model)
         # Expected
         with self.profile_path.open() as config_file:
-            self.assertEqual(
-                yaml.safe_load(config_file), config_model.to_yaml_serializable_format()
-            )
+            self.assertEqual(yaml.safe_load(config_file), config_model.to_yaml_serializable_format())
 
     def test_read_cli_configuration(self):
         # Setup
@@ -73,9 +72,7 @@ class TestCLIConfiguration(TestCase):
         self.assertEqual(config_model.auth_method, AuthHeaderTypeEnum.TOKEN)
         self.assertEqual(config_model.access_token, config_data["access_token"])
         self.assertEqual(config_model.runtimes, config_data["runtimes"])
-        self.assertEqual(
-            config_model.containerRepositoryBase, config_data["containerRepositoryBase"]
-        )
+        self.assertEqual(config_model.containerRepositoryBase, config_data["containerRepositoryBase"])
 
     def test_mask_token_with_default_visible_chars(self):
         # Setup
@@ -157,9 +154,7 @@ class TestCLIHelperFunctions(TestCase):
         "cli.config.helpers.validate_profile_config",
         return_value=ProfileConfigModel(api_domain="https://api.example.com"),
     )
-    def test_get_profile_configuration(
-        self, mock_validate, mock_load_yaml, mock_exists
-    ):
+    def test_get_profile_configuration(self, mock_validate, mock_load_yaml, mock_exists):
         profile = "test-profile"
         config = get_profile_configuration(profile)
         self.assertIsInstance(config, ProfileConfigModel)
@@ -173,9 +168,7 @@ class TestCLIHelperFunctions(TestCase):
         "cli.config.helpers.validate_profile_config",
         return_value=ProfileConfigModel(api_domain="https://api.example.com"),
     )
-    def test_get_active_profile_configuration(
-        self, mock_validate, mock_extract, mock_load_yaml
-    ):
+    def test_get_active_profile_configuration(self, mock_validate, mock_extract, mock_load_yaml):
         config = get_active_profile_configuration()
         self.assertIsInstance(config, ProfileConfigModel)
 
@@ -191,12 +184,12 @@ class TestCLIHelperFunctions(TestCase):
 
     def test_extract_profile_paths_missing(self):
         config = {"profilesPath": "profiles"}
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             extract_profile_paths(config, Path("config.yaml"))
 
     def test_validate_profile_config_missing_fields(self):
         profile_config = {"api_domain": "https://api.example.com"}
-        with self.assertRaises(ProfileConfigMissingFieldsError):
+        with pytest.raises(ProfileConfigMissingFieldsError):
             validate_profile_config(profile_config, Path("test.yaml"))
 
     def test_validate_profile_config_empty_fields(self):
@@ -208,7 +201,7 @@ class TestCLIHelperFunctions(TestCase):
             "containerRepositoryBase": "",
             "output_format": "machine",
         }
-        with self.assertRaises(ProfileConfigEmptyFieldsError):
+        with pytest.raises(ProfileConfigEmptyFieldsError):
             validate_profile_config(profile_config, Path("test.yaml"))
 
     def test_validate_profile_config_empty_runtimes_list_is_valid(self):
@@ -236,7 +229,7 @@ class TestCLIHelperFunctions(TestCase):
         mock_response.status_code = 402
         mock_get.return_value = mock_response
 
-        with self.assertRaises(CurrentPlanDoesNotIncludeRuntimes):
+        with pytest.raises(CurrentPlanDoesNotIncludeRuntimes):
             get_runtimes_from_api("invalid_token")
 
     @patch("cli.config.helpers.exit_with_error_message")

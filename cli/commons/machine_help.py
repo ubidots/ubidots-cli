@@ -11,9 +11,7 @@ def _resolve_panel(obj: object) -> str | None:
     return val
 
 
-def _format_options_with_panels(
-    cmd: click.Command, ctx: click.Context, formatter: click.HelpFormatter
-) -> None:
+def _format_options_with_panels(cmd: click.Command, ctx: click.Context, formatter: click.HelpFormatter) -> None:
     """Write options grouped by rich_help_panel as plain-text sections."""
     args: list[tuple[str, str]] = []
     panels: dict[str | None, list[tuple[str, str]]] = {}
@@ -42,9 +40,7 @@ def _format_options_with_panels(
                 formatter.write_dl(opts)
 
 
-def _format_commands_with_panels(
-    cmd: click.MultiCommand, ctx: click.Context, formatter: click.HelpFormatter
-) -> None:
+def _format_commands_with_panels(cmd: click.MultiCommand, ctx: click.Context, formatter: click.HelpFormatter) -> None:
     """Write subcommands grouped by rich_help_panel as plain-text sections."""
     panels: dict[str | None, list[tuple[str, str]]] = {}
 

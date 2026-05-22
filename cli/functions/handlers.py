@@ -1,3 +1,5 @@
+import pathlib
+
 import httpx
 
 from cli.commons.formatters import OutputFormatter
@@ -82,8 +84,7 @@ def add_function(active_config: ProfileConfigModel, **kwargs):
     zip_path = settings.FUNCTIONS.TEMPLATES_PATH / f"{language}.zip"
 
     try:
-        with open(zip_path, "rb") as zip_ref:
-            zip_file = zip_ref.read()
+        zip_file = pathlib.Path(zip_path).read_bytes()
     except FileNotFoundError as e:
         return {"success": False, "error": e}
 
@@ -102,10 +103,7 @@ def add_function(active_config: ProfileConfigModel, **kwargs):
 
     response = client.post(url=url, headers=headers, files=files)
 
-    if (
-        response.status_code != httpx.codes.OK
-        and response.status_code != httpx.codes.ACCEPTED
-    ):
+    if response.status_code not in {httpx.codes.OK, httpx.codes.ACCEPTED}:
         return {
             "success": False,
             "error": httpx.HTTPStatusError(

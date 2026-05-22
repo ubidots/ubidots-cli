@@ -50,12 +50,10 @@ simplification = ["simplification"]
 
 [tool.poetry.group.dev.dependencies]
 ipdb = "^0.13.13"
-black = "^24.1.0"
 pep8 = "^1.7.1"
 pytest = "^7.4.4"
 pytest-mock = "^3.12.0"
 autoflake = "^2.2.1"
-isort = "^5.13.2"
 ruff = "^0.15.5"
 tox = "^4.18"
 mypy = "^1.11.1"
@@ -63,60 +61,73 @@ types-PyYAML = "^6.0.12.20240808"
 types-requests = "^2.32.0.20241016"
 respx = "^0.22.0"
 
-[tool.isort]
-force_single_line = true
-line_length = 123
-skip_glob = [".venv*"]
-
 [tool.ruff]
 target-version = "py313"
-line-length = 123
-
-[tool.ruff.lint]
-ignore = [
+line-length = 119
+lint.select = ["ALL"]
+lint.ignore = [
+  # ── Inherited from core (cross-repo standard) ────────────────────────────
+  "A",
+  "ANN",
+  "BLE",
+  "C",
+  "COM812",
+  "CPY",
+  "D",
+  "DOC",
+  "ERA",
+  "FBT",
+  "FIX",
+  "N",
+  "PLC1901",
+  "PLC2701",
+  "PLR0904",
+  "PLR0913",
+  "PLR0917",
+  "PLR6301",
   "RUF001",
   "RUF012",
-  "PLC1901",
-  "COM812",
+  "S101",
+  "S103",
+  "S105",
+  "S106",
+  "S108",
+  "S301",
+  "S324",
+  "S403",
+  "S405",
+  "S603",
+  "S608",
+  "S611",
+  "SLF",
+  "T",
+  "TD",
+  "TC",
+  # ── CLI-specific: pre-existing patterns / intentional constructs ──────────
   "PLC0415",  # conditional imports inside try/except blocks (valid pattern)
   "EM101",    # exception string literals (pre-existing style)
   "EM102",    # exception f-string literals (pre-existing style)
   "INP001",   # implicit namespace packages (pre-existing structure)
-  "TC001",    # move import into TYPE_CHECKING block (pre-existing)
-  "TC003",    # move stdlib import into TYPE_CHECKING block (cosmetic only)
-  "UP036",    # version block check in compat.py is intentional (supports Python 3.9+)
+  "UP036",    # version block in compat.py is intentional (supports Python 3.9+)
   "UP042",    # StrEnum backport in compat.py is intentional (supports Python 3.9/3.10)
+  # ── Test style: project uses unittest assertions and fixture patterns ─────
+  "PT009",    # unittest-style assertEqual/assertIn (entire test suite uses this)
+  "PT019",    # fixture _ without value — unittest mock injection pattern
+  "ARG002",   # unused method argument — legitimate in test stubs/mocks
+  # ── Refactor-class: require structural changes, deferred ─────────────────
+  "PLR2004",  # magic value comparisons
+  "PLR0912",  # too many branches
+  "PLR0914",  # too many local variables
+  "PLR0915",  # too many statements
+  "PLR1702",  # too many nested blocks
+  "TRY003",   # long raise messages outside exception class
+  "TRY300",   # consider else block instead of try
+  "TRY301",   # raise inside try block
+  "TRY004",   # prefer TypeError for type checks
+  "S110",     # try-except-pass (intentional in hot-path error suppression)
+  "PT011",    # pytest.raises too broad — needs match= parameter
+  "ARG001",   # unused function argument
+  "DTZ007",   # naive datetime from strptime in test assertions
 ]
-select = [
-  "E",
-  "F",
-  "W",
-  "C4",
-  "RUF",
-  "UP",
-  "B",
-  "EM",
-  "RET",
-  "FLY",
-  "SIM",
-  "PERF",
-  "ICN",
-  "YTT",
-  "ASYNC",
-  "TID",
-  "Q",
-  "PYI",
-  "FA",
-  "T10",
-  "PLC",
-  "PLE",
-  "ISC",
-  "G",
-  "INP",
-  "PIE",
-  "RSE",
-  "TCH",
-  "INT",
-  "COM",
-  "SLOT",
-]
+lint.isort.force-single-line = true
+lint.isort.case-sensitive = true

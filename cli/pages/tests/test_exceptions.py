@@ -18,8 +18,7 @@ class TestCurrentPlanDoesNotIncludePagesFeature(unittest.TestCase):
         """Test that the exception returns the correct string message."""
         exception = CurrentPlanDoesNotIncludePagesFeature()
         expected_message = (
-            "The current plan does not include the 'pages' feature. "
-            "Please upgrade your plan to use this feature."
+            "The current plan does not include the 'pages' feature. Please upgrade your plan to use this feature."
         )
         self.assertEqual(str(exception), expected_message)
 
@@ -71,9 +70,7 @@ class TestTemplateNotFoundError(unittest.TestCase):
         self.assertEqual(exception.template_file, template_file)
         self.assertEqual(exception.page_type, page_type)
 
-        expected_message = (
-            f"Template for page type '{page_type}' not found at '{template_file}'"
-        )
+        expected_message = f"Template for page type '{page_type}' not found at '{template_file}'"
         self.assertEqual(str(exception), expected_message)
 
     def test_exception_with_different_values(self):
@@ -82,9 +79,7 @@ class TestTemplateNotFoundError(unittest.TestCase):
         page_type = "custom_type"
         exception = TemplateNotFoundError(template_file, page_type)
 
-        expected_message = (
-            f"Template for page type '{page_type}' not found at '{template_file}'"
-        )
+        expected_message = f"Template for page type '{page_type}' not found at '{template_file}'"
         self.assertEqual(str(exception), expected_message)
 
 

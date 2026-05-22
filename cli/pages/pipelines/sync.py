@@ -44,7 +44,7 @@ class ValidateRemotePageExistStep(PipelineStep):
         except httpx.HTTPStatusError as error:
             if error.response.status_code == httpx.codes.NOT_FOUND:
                 return data
-            raise error
+            raise
         data["needs_update"] = True
         data["remote_id"] = remote_id
         return data
@@ -56,9 +56,7 @@ class CreatePageIfNeededStep(PipelineStep):
             return data
 
         confirm = data.get("confirm", False)
-        message = (
-            "This page is not created. Would you like to create a new page and push it?"
-        )
+        message = "This page is not created. Would you like to create a new page and push it?"
         if not confirm and not typer.confirm(message):
             error_message = "Operation cancelled: Page pushing was aborted by the user."
             raise typer.Abort(error_message)
@@ -74,7 +72,7 @@ class CreatePageIfNeededStep(PipelineStep):
             label=label,
         )
 
-        if response.status_code not in (httpx.codes.OK, httpx.codes.CREATED):
+        if response.status_code not in {httpx.codes.OK, httpx.codes.CREATED}:
             msg = f"Failed to create page: {response.text}"
             raise RuntimeError(msg)
 
@@ -110,9 +108,7 @@ class ConfirmOverwritePushPageStep(PipelineStep):
 
         message = "This page has already been pushed. Would you like to overwrite the remote page?"
         if not confirm and not typer.confirm(message):
-            error_message = (
-                "Operation cancelled: The pushing process was aborted by the user."
-            )
+            error_message = "Operation cancelled: The pushing process was aborted by the user."
             raise typer.Abort(error_message)
         return data
 
@@ -143,9 +139,7 @@ class UploadPageCodeStep(PipelineStep):
         zip_file = data["zip_file"]
 
         page_name = (
-            data["project_metadata"].project.name
-            if "project_metadata" in data
-            else data.get("page_name", "page")
+            data["project_metadata"].project.name if "project_metadata" in data else data.get("page_name", "page")
         )
 
         response = upload_page_code(
@@ -208,9 +202,7 @@ class CheckRemotePageIdRequirementStep(PipelineStep):
             f"\n> [WARNING]: Ignoring provided remote ID '{remote_id}'. "
             f"Using page ID from local metadata '{page_id}' instead.\n"
         )
-        typer.echo(
-            typer.style(text=warning_message, fg=MessageColorEnum.WARNING, bold=True)
-        )
+        typer.echo(typer.style(text=warning_message, fg=MessageColorEnum.WARNING, bold=True))
 
 
 class GetRemotePageDetailStep(PipelineStep):
@@ -263,9 +255,7 @@ class GetRemotePageLocalMetadataStep(PipelineStep):
         project_path = data["project_path"]
         remote_page_name = data["remote_page_detail"]["name"]
         page_path = Path(project_path / remote_page_name)
-        page_metadata_file = Path(
-            project_path / remote_page_name / settings.PAGES.PROJECT_METADATA_FILE
-        )
+        page_metadata_file = Path(project_path / remote_page_name / settings.PAGES.PROJECT_METADATA_FILE)
         if page_metadata_file.exists():
             data["existing_project_metadata"] = read_page_manifest(page_path)
         return data
@@ -301,9 +291,7 @@ class ConfirmOverwritePullPageStep(PipelineStep):
             return data
         message = "This page has already been pulled. Would you like to overwrite it?"
         if not confirm and not typer.confirm(message):
-            error_message = (
-                "Operation cancelled: The overwrite process was aborted by the user."
-            )
+            error_message = "Operation cancelled: The overwrite process was aborted by the user."
             raise typer.Abort(error_message)
         return data
 

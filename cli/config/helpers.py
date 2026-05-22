@@ -75,7 +75,7 @@ def exists_default_profile() -> bool:
 def create_default_profile() -> None:
     file_path: Path = Path(settings.CONFIG.PROFILES_PATH / "default.yaml")
     file_path.parent.mkdir(parents=True, exist_ok=True)
-    with file_path.open("w") as config_file:
+    with file_path.open("w", encoding="utf-8") as config_file:
         yaml.dump(ProfileConfigModel().to_yaml_serializable_format(), config_file)
 
 
@@ -91,7 +91,7 @@ def create_config_file() -> None:
         "profile": str(settings.CONFIG.DEFAULT_PROFILE),
         "ignoreFunctionsFile": str(settings.CONFIG.IGNORE_FUNCTIONS_FILE),
     }
-    with file_path.open("w") as config_file:
+    with file_path.open("w", encoding="utf-8") as config_file:
         yaml.dump(config_data, config_file)
 
 
@@ -105,17 +105,17 @@ def validate_profile(profile: str):
 
 def overwrite_default_profile(profile: str) -> None:
     file_path = Path(settings.CONFIG.FILE_PATH)
-    with file_path.open("r") as config_file:
+    with file_path.open("r", encoding="utf-8") as config_file:
         config_data = yaml.safe_load(config_file)
     config_data["profile"] = profile
-    with file_path.open("w") as config_file:
+    with file_path.open("w", encoding="utf-8") as config_file:
         yaml.safe_dump(config_data, config_file)
 
 
 def read_cli_configuration(profile: str) -> ProfileConfigModel:
     file_path = Path(settings.CONFIG.PROFILES_PATH / f"{profile}.yaml")
     _warn_if_permissive(file_path)
-    with file_path.open() as config_file:
+    with file_path.open(encoding="utf-8") as config_file:
         config_data = yaml.safe_load(config_file)
     return ProfileConfigModel(**config_data)
 
@@ -143,10 +143,7 @@ def get_configuration(profile: str | None = None) -> ProfileConfigModel:
         exit_with_error_message(
             exception=e,
             message=str(e),
-            hint=(
-                "Run 'ubidots config' to set up your profile, "
-                "or use '--profile <name>' to specify one explicitly."
-            ),
+            hint=("Run 'ubidots config' to set up your profile, or use '--profile <name>' to specify one explicitly."),
         )
 
 
@@ -168,7 +165,7 @@ def get_runtimes_from_api(access_token: str) -> list[dict]:
     )
 
     try:
-        response = requests.get(settings.CONFIG.RUNTIMES_URL, headers=headers)
+        response = requests.get(settings.CONFIG.RUNTIMES_URL, headers=headers, timeout=30)
         response.raise_for_status()
         runtimes = response.json()
 
@@ -202,30 +199,20 @@ def extract_profile_paths(config: dict, config_file: Path) -> tuple[str, str]:
     return profiles_path, profile
 
 
-def validate_profile_config(
-    profile_config: dict, profile_file: Path
-) -> ProfileConfigModel:
+def validate_profile_config(profile_config: dict, profile_file: Path) -> ProfileConfigModel:
 
-    required_fields = (
-        set(ProfileConfigModel.model_fields.keys()) - _OAUTH_OPTIONAL_FIELDS
-    )
+    required_fields = set(ProfileConfigModel.model_fields.keys()) - _OAUTH_OPTIONAL_FIELDS
     missing_fields = required_fields - profile_config.keys()
     if missing_fields:
-        raise ProfileConfigMissingFieldsError(
-            missing_fields=missing_fields, profile_file=profile_file
-        )
+        raise ProfileConfigMissingFieldsError(missing_fields=missing_fields, profile_file=profile_file)
 
     empty_fields = {
         field
         for field in required_fields
-        if field in profile_config
-        and not isinstance(profile_config[field], list)
-        and not profile_config[field]
+        if field in profile_config and not isinstance(profile_config[field], list) and not profile_config[field]
     }
     if empty_fields:
-        raise ProfileConfigEmptyFieldsError(
-            empty_fields=empty_fields, profile_file=profile_file
-        )
+        raise ProfileConfigEmptyFieldsError(empty_fields=empty_fields, profile_file=profile_file)
 
     _warn_if_permissive(profile_file)
     try:

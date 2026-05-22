@@ -16,12 +16,7 @@ def create_local_page(
     formatter: OutputFormatter,
 ):
     name_path = Path(name)
-    if (
-        not name
-        or name in {".", ".."}
-        or name_path.is_absolute()
-        or name_path.name != name
-    ):
+    if not name or name in {".", ".."} or name_path.is_absolute() or name_path.name != name:
         raise ValueError(f"Page name must be a single safe path segment, got: {name}")
     label = sanitize_function_name(name)
     project_path = Path.cwd() / name  # plain directory, no workspace at add time
@@ -82,9 +77,7 @@ def start_local_dev_server(verbose: bool, formatter: OutputFormatter):
         pipelines.StoreHotReloadPortStep(),
         pipelines.PrintPageUrlStep(),
     ]
-    pipeline = Pipeline(
-        steps, success_message="Page started successfully.", formatter=formatter
-    )
+    pipeline = Pipeline(steps, success_message="Page started successfully.", formatter=formatter)
     pipeline.run(
         {
             "project_path": Path.cwd(),
@@ -113,9 +106,7 @@ def stop_local_dev_server(verbose: bool, formatter: OutputFormatter):
         pipelines.StopCopyWatcherStep(),
         pipelines.StopHotReloadSubprocessStep(),
     ]
-    pipeline = Pipeline(
-        steps, success_message="Page stopped successfully.", formatter=formatter
-    )
+    pipeline = Pipeline(steps, success_message="Page stopped successfully.", formatter=formatter)
     pipeline.run(
         {
             "project_path": Path.cwd(),
@@ -315,9 +306,7 @@ def push_page_to_cloud_platform(
         pipelines.UploadPageCodeStep(),
         pipelines.CheckPageResponseStep("response"),
     ]
-    pipeline = Pipeline(
-        steps, success_message="Page uploaded successfully.", formatter=formatter
-    )
+    pipeline = Pipeline(steps, success_message="Page uploaded successfully.", formatter=formatter)
     pipeline.run(
         {
             "project_path": Path.cwd(),
@@ -421,9 +410,7 @@ def restart_local_dev_server(verbose: bool, formatter: OutputFormatter):
         pipelines.StoreHotReloadPortStep(),
         pipelines.PrintPageUrlStep(),
     ]
-    pipeline = Pipeline(
-        steps, success_message="Page restarted successfully.", formatter=formatter
-    )
+    pipeline = Pipeline(steps, success_message="Page restarted successfully.", formatter=formatter)
     pipeline.run(
         {
             "project_path": Path.cwd(),
@@ -433,9 +420,7 @@ def restart_local_dev_server(verbose: bool, formatter: OutputFormatter):
     )
 
 
-def logs_local_dev_server(
-    tail: str, follow: bool, verbose: bool, formatter: OutputFormatter
-):
+def logs_local_dev_server(tail: str, follow: bool, verbose: bool, formatter: OutputFormatter):
     steps = [
         pipelines.ValidatePageDirectoryStep(),
         pipelines.ReadPageMetadataStep(),

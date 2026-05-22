@@ -26,9 +26,7 @@ class TestGeneratePKCEPair(TestCase):
         # Action
         pair = generate_pkce_pair()
         expected_challenge = (
-            base64.urlsafe_b64encode(
-                hashlib.sha256(pair.verifier.encode("ascii")).digest()
-            )
+            base64.urlsafe_b64encode(hashlib.sha256(pair.verifier.encode("ascii")).digest())
             .rstrip(b"=")
             .decode("ascii")
         )
@@ -130,9 +128,7 @@ class TestExchangeCodeForTokens:
             "expires_in": 900,
             "scope": "read write",
         }
-        respx.post("https://core.test/o/token/").mock(
-            return_value=httpx.Response(200, json=response_body)
-        )
+        respx.post("https://core.test/o/token/").mock(return_value=httpx.Response(200, json=response_body))
         # Action
         actual_tokens = exchange_code_for_tokens(
             api_domain="https://core.test",

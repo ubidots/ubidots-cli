@@ -40,9 +40,7 @@ def make_data(**kwargs):
 
 
 def test_find_hot_reload_port_finds_free_port():
-    with patch(
-        "cli.pages.pipelines.dev_engine.find_available_ports", return_value=[9001]
-    ) as mock:
+    with patch("cli.pages.pipelines.dev_engine.find_available_ports", return_value=[9001]) as mock:
         data = FindHotReloadPortStep().execute(make_data())
     mock.assert_called_once_with([9000], start_range=9001)
     assert data["hot_reload_port"] == 9001
@@ -126,12 +124,8 @@ def test_start_hot_reload_step_uses_workspace_for_log_and_arg(tmp_path):
     mock_proc = MagicMock()
     mock_proc.pid = 12345
 
-    data = make_data(
-        project_path=source, workspace_path=workspace, hot_reload_port=9001
-    )
-    with patch(
-        "cli.pages.pipelines.dev_engine.subprocess.Popen", return_value=mock_proc
-    ) as mock_popen:
+    data = make_data(project_path=source, workspace_path=workspace, hot_reload_port=9001)
+    with patch("cli.pages.pipelines.dev_engine.subprocess.Popen", return_value=mock_proc) as mock_popen:
         StartHotReloadSubprocessStep().execute(data)
 
     # .hot_reload.log goes to workspace, not source
@@ -202,9 +196,7 @@ def test_start_copy_watcher_step_writes_watcher_pid(tmp_path):
     mock_proc.pid = 55555
 
     data = make_data(project_path=source, workspace_path=workspace)
-    with patch(
-        "cli.pages.pipelines.dev_engine.subprocess.Popen", return_value=mock_proc
-    ):
+    with patch("cli.pages.pipelines.dev_engine.subprocess.Popen", return_value=mock_proc):
         StartCopyWatcherStep().execute(data)
 
     watcher_pid = source / ".watcher.pid"
@@ -248,9 +240,7 @@ def test_validate_page_not_running_raises_when_pid_exists(tmp_path):
     workspace = tmp_path / "my-page-abc12345"
     workspace.mkdir()
     (workspace / ".pid").write_text("12345")
-    with patch("os.kill"), pytest.raises(
-        PageIsAlreadyRunningError
-    ):  # don't actually kill anything
+    with patch("os.kill"), pytest.raises(PageIsAlreadyRunningError):  # don't actually kill anything
         ValidatePageNotRunningStep().execute(make_data(project_path=workspace))
 
 
@@ -283,9 +273,7 @@ def test_get_workspace_key_step_sets_workspace_path_not_project_path(tmp_path):
         "page_name": "my-page",
         "verbose": False,
     }
-    with patch(
-        "cli.pages.pipelines.dev_engine.get_pages_workspace", return_value=tmp_path
-    ):
+    with patch("cli.pages.pipelines.dev_engine.get_pages_workspace", return_value=tmp_path):
         result = GetWorkspaceKeyStep().execute(data)
 
     assert result["project_path"] == source  # unchanged
@@ -297,9 +285,7 @@ def test_get_workspace_key_step_key_is_deterministic(tmp_path):
     source = tmp_path / "my-page"
     source.mkdir()
     data = {"project_path": source, "page_name": "my-page", "verbose": False}
-    with patch(
-        "cli.pages.pipelines.dev_engine.get_pages_workspace", return_value=tmp_path
-    ):
+    with patch("cli.pages.pipelines.dev_engine.get_pages_workspace", return_value=tmp_path):
         r1 = GetWorkspaceKeyStep().execute(data.copy())
         r2 = GetWorkspaceKeyStep().execute(data.copy())
     assert r1["workspace_key"] == r2["workspace_key"]
@@ -344,9 +330,7 @@ def test_create_workspace_step_ok_if_exists(tmp_path):
     source.mkdir()
     workspace = tmp_path / "my-page-abc12345"
     workspace.mkdir()
-    CreateWorkspaceStep().execute(
-        make_data(project_path=source, workspace_path=workspace)
-    )  # no error
+    CreateWorkspaceStep().execute(make_data(project_path=source, workspace_path=workspace))  # no error
 
 
 # ── CopyTrackedFilesStep ────────────────────────────────────────────────────────
@@ -358,9 +342,7 @@ def test_copy_tracked_files_step_copies_body_html(tmp_path):
     source.mkdir()
     workspace.mkdir()
     (source / "body.html").write_text("<p>hello</p>")
-    (source / "manifest.toml").write_text(
-        '[page]\nname = "p"\n[page.js_libraries]\n[page.css_libraries]\n'
-    )
+    (source / "manifest.toml").write_text('[page]\nname = "p"\n[page.js_libraries]\n[page.css_libraries]\n')
 
     data = make_data(project_path=source, workspace_path=workspace)
     CopyTrackedFilesStep().execute(data)
@@ -375,12 +357,8 @@ def test_copy_tracked_files_step_skips_index_html(tmp_path):
     workspace.mkdir()
     (source / "body.html").write_text("")
     (source / "index.html").write_text("generated")
-    (source / "manifest.toml").write_text(
-        '[page]\nname = "p"\n[page.js_libraries]\n[page.css_libraries]\n'
-    )
+    (source / "manifest.toml").write_text('[page]\nname = "p"\n[page.js_libraries]\n[page.css_libraries]\n')
 
-    CopyTrackedFilesStep().execute(
-        make_data(project_path=source, workspace_path=workspace)
-    )
+    CopyTrackedFilesStep().execute(make_data(project_path=source, workspace_path=workspace))
 
     assert not (workspace / "index.html").exists()

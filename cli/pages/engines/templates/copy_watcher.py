@@ -7,6 +7,7 @@ to workspace_dir. Re-renders index.html on body.html or manifest.toml changes.
 Usage:
     python copy_watcher.py --source-dir /path/to/source --workspace-dir /path/to/workspace
 """
+
 import argparse
 import logging
 import shutil
@@ -16,6 +17,8 @@ from pathlib import Path
 
 _DEBOUNCE_SECS = 0.2
 _POLL_INTERVAL = 0.3
+
+_LOGGER = logging.getLogger(__name__)
 
 
 def _setup_logging(workspace_dir: Path) -> None:
@@ -39,9 +42,9 @@ def _copy_file(src: Path, source_dir: Path, workspace_dir: Path) -> None:
         dst = workspace_dir / rel
         dst.parent.mkdir(parents=True, exist_ok=True)
         shutil.copy2(src, dst)
-        logging.info("Copied %s", rel)
-    except Exception as exc:
-        logging.error("Failed to copy %s: %s", src, exc)
+        _LOGGER.info("Copied %s", rel)
+    except Exception:
+        _LOGGER.exception("Failed to copy %s", src)
 
 
 def _render(source_dir: Path, workspace_dir: Path) -> None:
@@ -50,13 +53,13 @@ def _render(source_dir: Path, workspace_dir: Path) -> None:
 
         hr_port_file = source_dir / ".hot_reload_port"
         if not hr_port_file.exists():
-            logging.warning("No .hot_reload_port file; skipping index.html render")
+            _LOGGER.warning("No .hot_reload_port file; skipping index.html render")
             return
         hot_reload_port = int(hr_port_file.read_text().strip())
         render_index_html(source_dir, workspace_dir, hot_reload_port)
-        logging.info("Rendered index.html")
-    except Exception as exc:
-        logging.error("Failed to render index.html: %s", exc)
+        _LOGGER.info("Rendered index.html")
+    except Exception:
+        _LOGGER.exception("Failed to render index.html")
 
 
 def _copy_all(
@@ -79,25 +82,19 @@ def _copy_all(
             dst = workspace_dir / rel
             if dst.exists():
                 dst.unlink()
-                logging.info("Removed stale file %s", rel)
+                _LOGGER.info("Removed stale file %s", rel)
 
     return tracked
 
 
-def _run_watchdog(
-    source_dir: Path, workspace_dir: Path, skip_initial_copy: bool = False
-) -> None:
+def _run_watchdog(source_dir: Path, workspace_dir: Path, skip_initial_copy: bool = False) -> None:
     from watchdog.events import FileSystemEventHandler
     from watchdog.observers import Observer
 
     pending: dict[str, float] = {}
     lock = threading.Lock()
 
-    tracked = (
-        _get_tracked(source_dir)
-        if skip_initial_copy
-        else _copy_all(source_dir, workspace_dir)
-    )
+    tracked = _get_tracked(source_dir) if skip_initial_copy else _copy_all(source_dir, workspace_dir)
     if not skip_initial_copy:
         _render(source_dir, workspace_dir)
     tracked_set = {str(f) for f in tracked}
@@ -131,16 +128,14 @@ def _run_watchdog(
             for path_str in ready:
                 path = Path(path_str)
                 if path == source_dir / "manifest.toml":
-                    logging.info("manifest.toml changed — re-syncing all files")
+                    _LOGGER.info("manifest.toml changed — re-syncing all files")
                     try:
-                        new_tracked = _copy_all(
-                            source_dir, workspace_dir, previous_tracked=tracked_set
-                        )
+                        new_tracked = _copy_all(source_dir, workspace_dir, previous_tracked=tracked_set)
                         tracked_set.clear()
                         tracked_set.update(str(f) for f in new_tracked)
                         _render(source_dir, workspace_dir)
-                    except Exception as exc:
-                        logging.error("manifest.toml re-sync failed: %s", exc)
+                    except Exception:
+                        _LOGGER.exception("manifest.toml re-sync failed")
                 elif path_str in tracked_set:
                     if not path.is_file():
                         tracked_set.discard(path_str)
@@ -149,9 +144,9 @@ def _run_watchdog(
                             dst = workspace_dir / rel
                             if dst.exists():
                                 dst.unlink()
-                                logging.info("Removed deleted file %s", rel)
-                        except Exception as exc:
-                            logging.error("Failed to remove %s: %s", path, exc)
+                                _LOGGER.info("Removed deleted file %s", rel)
+                        except Exception:
+                            _LOGGER.exception("Failed to remove %s", path)
                     else:
                         _copy_file(path, source_dir, workspace_dir)
                         if path.name == "body.html":
@@ -163,27 +158,19 @@ def _run_watchdog(
                         if path_str in new_set:
                             tracked_set.update(new_set)
                             _copy_file(path, source_dir, workspace_dir)
-                    except Exception as exc:
-                        logging.error("Failed to handle new file %s: %s", path, exc)
+                    except Exception:
+                        _LOGGER.exception("Failed to handle new file %s", path)
     finally:
         observer.stop()
         observer.join()
 
 
-def _run_polling(
-    source_dir: Path, workspace_dir: Path, skip_initial_copy: bool = False
-) -> None:
+def _run_polling(source_dir: Path, workspace_dir: Path, skip_initial_copy: bool = False) -> None:
     """Fallback: poll st_mtime at _POLL_INTERVAL seconds."""
-    tracked = (
-        _get_tracked(source_dir)
-        if skip_initial_copy
-        else _copy_all(source_dir, workspace_dir)
-    )
+    tracked = _get_tracked(source_dir) if skip_initial_copy else _copy_all(source_dir, workspace_dir)
     if not skip_initial_copy:
         _render(source_dir, workspace_dir)
-    mtimes: dict[str, float] = {
-        str(f): f.stat().st_mtime for f in tracked if f.exists()
-    }
+    mtimes: dict[str, float] = {str(f): f.stat().st_mtime for f in tracked if f.exists()}
 
     while True:
         time.sleep(_POLL_INTERVAL)
@@ -203,7 +190,7 @@ def _run_polling(
             dst = workspace_dir / rel
             if dst.exists():
                 dst.unlink()
-                logging.info("Removed deleted file %s", rel)
+                _LOGGER.info("Removed deleted file %s", rel)
             mtimes.pop(old_key, None)
 
         changed: list[Path] = []
@@ -216,9 +203,9 @@ def _run_polling(
                     dst = workspace_dir / rel
                     if dst.exists():
                         dst.unlink()
-                        logging.info("Removed deleted file %s", rel)
-                except Exception as exc:
-                    logging.error("Failed to remove %s: %s", key, exc)
+                        _LOGGER.info("Removed deleted file %s", rel)
+                except Exception:
+                    _LOGGER.exception("Failed to remove %s", key)
         for f in new_tracked:
             if not f.exists():
                 continue
@@ -230,13 +217,11 @@ def _run_polling(
 
         if any(f == source_dir / "manifest.toml" for f in changed):
             try:
-                tracked = _copy_all(
-                    source_dir, workspace_dir, previous_tracked=set(mtimes.keys())
-                )
+                tracked = _copy_all(source_dir, workspace_dir, previous_tracked=set(mtimes.keys()))
                 mtimes = {str(f): f.stat().st_mtime for f in tracked if f.exists()}
                 _render(source_dir, workspace_dir)
-            except Exception as exc:
-                logging.error("manifest.toml re-parse failed (poll): %s", exc)
+            except Exception:
+                _LOGGER.exception("manifest.toml re-parse failed (poll)")
         else:
             for f in changed:
                 _copy_file(f, source_dir, workspace_dir)
@@ -264,22 +249,16 @@ def main() -> None:
     workspace_dir = args.workspace_dir.resolve()
     workspace_dir.mkdir(parents=True, exist_ok=True)
     _setup_logging(workspace_dir)
-    logging.info("Copy-watcher started: %s → %s", source_dir, workspace_dir)
+    _LOGGER.info("Copy-watcher started: %s → %s", source_dir, workspace_dir)
 
     if args.use_polling:
-        _run_polling(
-            source_dir, workspace_dir, skip_initial_copy=args.skip_initial_copy
-        )
+        _run_polling(source_dir, workspace_dir, skip_initial_copy=args.skip_initial_copy)
     else:
         try:
-            _run_watchdog(
-                source_dir, workspace_dir, skip_initial_copy=args.skip_initial_copy
-            )
+            _run_watchdog(source_dir, workspace_dir, skip_initial_copy=args.skip_initial_copy)
         except ImportError:
-            logging.warning("watchdog unavailable, falling back to polling")
-            _run_polling(
-                source_dir, workspace_dir, skip_initial_copy=args.skip_initial_copy
-            )
+            _LOGGER.warning("watchdog unavailable, falling back to polling")
+            _run_polling(source_dir, workspace_dir, skip_initial_copy=args.skip_initial_copy)
 
 
 if __name__ == "__main__":

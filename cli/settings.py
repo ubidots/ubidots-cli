@@ -37,9 +37,7 @@ class ConfigSettings(BaseModel):
     FILE_PATH: Path = DIRECTORY_PATH / "config.yaml"
     VISIBLE_SECRET_CHARS: int = 4
     FIXED_LENGTH: int = 10
-    DEFAULT_OUTPUT_FORMAT: OutputFormatFieldsEnum = (
-        OutputFormatFieldsEnum.get_default_format()
-    )
+    DEFAULT_OUTPUT_FORMAT: OutputFormatFieldsEnum = OutputFormatFieldsEnum.get_default_format()
     DEFAULT_PROFILE: str = "default"
     DEFAULT_INTERACTIVE: bool = True
     IGNORE_FUNCTIONS_FILE: Path = DIRECTORY_PATH / "functions.ignore"
@@ -110,9 +108,7 @@ class PagesSettings(BaseModel):
     ]
     HOT_RELOAD_DEBOUNCE_MS: int = 1000  # Debounce in milliseconds
 
-    TEMPLATES_DIR: Path = (
-        Path(__file__).resolve().parent.parent / "cli" / "pages" / "templates"
-    )
+    TEMPLATES_DIR: Path = Path(__file__).resolve().parent.parent / "cli" / "pages" / "templates"
     UBIDOTS_PAGE_LAYOUT_ZIP: dict[str, Path] = {
         "dashboard": TEMPLATES_DIR / "default-page.zip",
     }

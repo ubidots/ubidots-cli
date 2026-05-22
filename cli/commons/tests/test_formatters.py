@@ -53,9 +53,7 @@ def test_machine_emit_success_message_only(capsys):
 def test_machine_emit_success_with_data(capsys):
     fmt = MachineOutputFormatter(command="functions dev start")
     with pytest.raises(typer.Exit):
-        fmt.emit_success(
-            "Started.", data={"label": "my_fn", "url": "http://localhost:5678"}
-        )
+        fmt.emit_success("Started.", data={"label": "my_fn", "url": "http://localhost:5678"})
     out = json.loads(capsys.readouterr().out)
     assert out["data"]["label"] == "my_fn"
     assert out["data"]["url"] == "http://localhost:5678"
@@ -146,9 +144,7 @@ def test_resolve_formatter_env_var_beats_profile(monkeypatch):
     monkeypatch.setenv("UBIDOTS_OUTPUT_FORMAT", "machine")
     mock_config = MagicMock()
     mock_config.output_format = OutputFormatFieldsEnum.TABLE
-    result = resolve_formatter(
-        flag=None, active_config=mock_config, command="devices list"
-    )
+    result = resolve_formatter(flag=None, active_config=mock_config, command="devices list")
     assert isinstance(result, MachineOutputFormatter)
 
 
@@ -156,9 +152,7 @@ def test_resolve_formatter_profile_used_when_no_flag_no_env(monkeypatch):
     monkeypatch.delenv("UBIDOTS_OUTPUT_FORMAT", raising=False)
     mock_config = MagicMock()
     mock_config.output_format = OutputFormatFieldsEnum.TABLE
-    result = resolve_formatter(
-        flag=None, active_config=mock_config, command="devices list"
-    )
+    result = resolve_formatter(flag=None, active_config=mock_config, command="devices list")
     assert isinstance(result, HumanOutputFormatter)
     assert result.raw_json is False
 
@@ -167,9 +161,7 @@ def test_resolve_formatter_json_flag_gives_human_raw(monkeypatch):
     monkeypatch.delenv("UBIDOTS_OUTPUT_FORMAT", raising=False)
     mock_config = MagicMock()
     mock_config.output_format = OutputFormatFieldsEnum.TABLE
-    result = resolve_formatter(
-        flag=OutputFormatFieldsEnum.JSON, active_config=mock_config, command="x"
-    )
+    result = resolve_formatter(flag=OutputFormatFieldsEnum.JSON, active_config=mock_config, command="x")
     assert isinstance(result, HumanOutputFormatter)
     assert result.raw_json is True
 

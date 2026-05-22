@@ -1,4 +1,3 @@
-import os
 import stat
 import sys
 from pathlib import Path
@@ -170,9 +169,7 @@ class TestProfileConfigSerialization:
         # Expected
         assert actual_yaml == expected_yaml
 
-    def test_oauth_profile_round_trips_through_yaml_with_all_fields(
-        self, isolated_profiles
-    ):
+    def test_oauth_profile_round_trips_through_yaml_with_all_fields(self, isolated_profiles):
         # Setup
         original_model = ProfileConfigModel(
             api_domain="https://core.test",
@@ -195,9 +192,7 @@ class TestProfileFilePermissions:
     @pytest.mark.skipif(sys.platform == "win32", reason="POSIX-only")
     def test_saved_profile_file_has_mode_0600(self, isolated_profiles):
         # Setup
-        model = ProfileConfigModel(
-            auth_method=AuthHeaderTypeEnum.TOKEN, access_token="x"
-        )
+        model = ProfileConfigModel(auth_method=AuthHeaderTypeEnum.TOKEN, access_token="x")
         expected_mode = 0o600
         # Action
         save_profile_configuration(profile="modes", config_model=model)
@@ -221,17 +216,14 @@ class TestProfileFilePermissions:
                 }
             )
         )
-        os.chmod(profile_path, 0o644)
+        Path(profile_path).chmod(0o644)
         expected_mode = 0o600
         # Action
         validate_profile_config(yaml.safe_load(profile_path.read_text()), profile_path)
         actual_mode = stat.S_IMODE(profile_path.stat().st_mode)
         # Expected
         assert actual_mode == expected_mode
-        assert any(
-            "tightening" in str(w.message) or "0o644" in str(w.message)
-            for w in recwarn.list
-        )
+        assert any("tightening" in str(w.message) or "0o644" in str(w.message) for w in recwarn.list)
 
 
 class TestValidateProfileConfigBackwardCompat:

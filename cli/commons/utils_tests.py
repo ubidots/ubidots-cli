@@ -18,17 +18,13 @@ def override_settings(**settings_overrides):
                     if "__" in setting:
                         # Handle nested settings
                         nested_setting, nested_value = setting.split("__", 1)
-                        nested_settings_object = getattr(
-                            settings_object, nested_setting
-                        )
+                        nested_settings_object = getattr(settings_object, nested_setting)
                         apply_overrides(nested_settings_object, {nested_value: value})
                     else:
                         setattr(settings_object, setting, value)
 
             # Apply overrides to the nested settings object, not the top-level settings object
-            nested_settings_object = getattr(
-                settings, settings_overrides.pop("obj", None)
-            )
+            nested_settings_object = getattr(settings, settings_overrides.pop("obj", None))
             apply_overrides(nested_settings_object, settings_overrides)
 
             try:

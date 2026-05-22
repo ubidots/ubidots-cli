@@ -23,9 +23,7 @@ def add_page(active_config: ProfileConfigModel, name: str, label: str):
     return client.post(url, headers=headers, json=data)
 
 
-def update_page(
-    active_config: ProfileConfigModel, page_key: str, name: str = "", label: str = ""
-):
+def update_page(active_config: ProfileConfigModel, page_key: str, name: str = "", label: str = ""):
     data: UpdatePagePayload = {}
     if name:
         data["name"] = name

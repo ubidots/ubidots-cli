@@ -22,9 +22,7 @@ def build_endpoint(
     url = f"{active_config.api_domain}{route.format(**kwargs)}"
     if query_params:
         filter_string = query_params.pop("filter", None)
-        query_string = "&".join(
-            f"{key}={value}" for key, value in query_params.items() if value is not None
-        )
+        query_string = "&".join(f"{key}={value}" for key, value in query_params.items() if value is not None)
         url += f"?{query_string}"
 
         if filter_string:
@@ -35,14 +33,10 @@ def build_endpoint(
 
 
 def check_response_status(response: httpx.Response, custom_message: str | None = None):
-    if response.status_code not in [httpx.codes.OK, httpx.codes.ACCEPTED]:
+    if response.status_code not in {httpx.codes.OK, httpx.codes.ACCEPTED}:
         response_json = response.json()
-        error_message = response_json.get("detail") or response_json.get(
-            "message", "Unknown error"
-        )
-        raise httpx.RequestError(
-            f"{error_message} {custom_message}" if custom_message else error_message
-        )
+        error_message = response_json.get("detail") or response_json.get("message", "Unknown error")
+        raise httpx.RequestError(f"{error_message} {custom_message}" if custom_message else error_message)
 
 
 def get_instance_key(id: str | None = None, label: str | None = None) -> str:
@@ -57,10 +51,8 @@ def get_instance_key(id: str | None = None, label: str | None = None) -> str:
     raise typer.BadParameter(error_message)
 
 
-def exit_with_error_message(
-    exception: Exception, message: str = "", hint: str = ""
-) -> NoReturn:
-    message = message if message else str(exception)
+def exit_with_error_message(exception: Exception, message: str = "", hint: str = "") -> NoReturn:
+    message = message or str(exception)
     typer.echo(
         typer.style(
             text=f"\n> [ERROR]: {message}\n",
@@ -111,25 +103,24 @@ def load_yaml(file_path: str | Path) -> dict:
                 message=error_message,
             )
 
-        with file_path.open("r") as f:
-            content = f.read().strip()
-            if not content:
-                error_message = f"File {file_path} is empty or not valid YAML"
-                exit_with_error_message(
-                    exception=ValueError(error_message),
-                    message=error_message,
-                )
+        content = file_path.read_text(encoding="utf-8").strip()
+        if not content:
+            error_message = f"File {file_path} is empty or not valid YAML"
+            exit_with_error_message(
+                exception=ValueError(error_message),
+                message=error_message,
+            )
 
-            parsed_data = yaml.safe_load(content)
+        parsed_data = yaml.safe_load(content)
 
-            if not isinstance(parsed_data, dict):
-                error_message = f"Invalid YAML format in {file_path}"
-                exit_with_error_message(
-                    exception=ValueError(error_message),
-                    message=error_message,
-                )
+        if not isinstance(parsed_data, dict):
+            error_message = f"Invalid YAML format in {file_path}"
+            exit_with_error_message(
+                exception=ValueError(error_message),
+                message=error_message,
+            )
 
-            return parsed_data
+        return parsed_data
 
     except yaml.YAMLError as e:
         error_message = f"Error parsing YAML file {file_path}: {e}"

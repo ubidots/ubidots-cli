@@ -48,7 +48,6 @@ class _CallbackHandler(BaseHTTPRequestHandler):
 
     def log_message[P](self, format_: str, *args: P) -> None:
         del self, format_, args
-        return
 
     def do_GET(self) -> None:
         parsed = urlparse(self.path)
@@ -82,11 +81,7 @@ class _CallbackHandler(BaseHTTPRequestHandler):
 
     @staticmethod
     def _denied_status(error_code: str) -> int:
-        return (
-            HTTPStatus.OK
-            if error_code == _ACCESS_DENIED_ERROR
-            else HTTPStatus.BAD_REQUEST
-        )
+        return HTTPStatus.OK if error_code == _ACCESS_DENIED_ERROR else HTTPStatus.BAD_REQUEST
 
 
 class LoopbackServer(HTTPServer):

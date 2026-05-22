@@ -17,11 +17,7 @@ def simple_lookup_key(entity_name: str):
             if entity_name != EntityNameEnum.VARIABLE
             else ""
         )
-        label_help_suffix = (
-            "Ignored if id is provided."
-            if entity_name != EntityNameEnum.VARIABLE
-            else ""
-        )
+        label_help_suffix = "Ignored if id is provided." if entity_name != EntityNameEnum.VARIABLE else ""
 
         id_help = f"Unique **identifier** for the {entity_name}. {id_help_suffix}"
         label_help = f"Descriptive label **identifier** for the {entity_name}. {label_help_suffix}"
@@ -92,9 +88,7 @@ def add_sort_by_option():
 
         wrapper.__annotations__["sort_by"] = Annotated[
             str,
-            typer.Option(
-                help="Attribute to sort the result set by.", show_default=False
-            ),
+            typer.Option(help="Attribute to sort the result set by.", show_default=False),
         ]
         return wrapper
 

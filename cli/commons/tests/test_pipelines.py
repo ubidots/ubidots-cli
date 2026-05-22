@@ -56,9 +56,7 @@ def test_pipeline_success_with_formatter_and_success_message():
     )
     with pytest.raises(typer.Exit):
         pipeline.run({})
-    mock_fmt.emit_success.assert_called_once_with(
-        "Started.", data={"label": "my_fn", "url": "http://localhost:5678"}
-    )
+    mock_fmt.emit_success.assert_called_once_with("Started.", data={"label": "my_fn", "url": "http://localhost:5678"})
 
 
 def test_pipeline_success_with_formatter_empty_success_message_does_not_emit():

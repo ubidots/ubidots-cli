@@ -21,10 +21,7 @@ class InvalidOptionError(Exception):
 
     def __str__(self):
         valid_options_str = ", ".join(self.valid_options)
-        return (
-            f"'{self.invalid_option}' is not a valid {self.option_name}. "
-            f"Valid options are: {valid_options_str}."
-        )
+        return f"'{self.invalid_option}' is not a valid {self.option_name}. Valid options are: {valid_options_str}."
 
 
 class NoProfileError(Exception):
@@ -70,8 +67,7 @@ class ProfileConfigEmptyFieldsError(Exception):
 class CurrentPlanDoesNotIncludeRuntimes(Exception):
     def __str__(self):
         return (
-            "The current plan does not include the 'runtimes' feature. "
-            "Please upgrade your plan to use this feature."
+            "The current plan does not include the 'runtimes' feature. Please upgrade your plan to use this feature."
         )
 
 
