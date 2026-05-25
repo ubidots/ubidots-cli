@@ -1,6 +1,7 @@
 import typer
 
 from cli.apps.commands import app as apps_app
+from cli.organizations.commands import app as organizations_app
 from cli.auth.commands import login
 from cli.commons.machine_help import install_machine_help_patch
 from cli.config.commands import config
@@ -20,6 +21,7 @@ app.add_typer(device_app, name="devices")
 app.add_typer(variable_app, name="variables")
 app.add_typer(page_app, name="pages")
 app.add_typer(apps_app, name="apps")
+app.add_typer(organizations_app, name="organizations")
 
 if __name__ == "__main__":
     app()
