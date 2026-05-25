@@ -5,14 +5,12 @@ from typing import no_type_check
 import typer
 
 from cli.commons.decorators import add_pagination_options
-from cli.commons.decorators import add_sort_by_option
 from cli.commons.enums import OutputFormatFieldsEnum
 from cli.commons.formatters import resolve_formatter
 from cli.config.helpers import get_configuration
 from cli.organizations import handlers
 from cli.organizations.constants import FIELDS_ORG_HELP_TEXT
 from cli.organizations.constants import FIELDS_ORG_LIST_DEFAULT
-from cli.organizations.constants import FIELDS_ORG_USERS_HELP_TEXT
 
 app = typer.Typer(help="Organization management and operations.")
 users_app = typer.Typer(help="Manage users within an organization.")
