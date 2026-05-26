@@ -8,7 +8,7 @@ from cli.devices.helpers import build_devices_payload
 
 def list_devices(
     fields: str,
-    filter: str | None,
+    filter_by: str | None,
     sort_by: str | None,
     page_size: int | None,
     page: int | None,
@@ -19,7 +19,7 @@ def list_devices(
         route="/api/v2.0/devices/",
         query_params={
             "fields": fields,
-            "filter": filter,
+            "filter": filter_by,
             "sort_by": sort_by,
             "page_size": page_size,
             "page": page,

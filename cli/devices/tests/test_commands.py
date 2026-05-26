@@ -116,7 +116,7 @@ class TestListCommand(TestCase):
         mock_list_devices.assert_called_once_with(
             active_config=ANY,
             fields=DefaultInstanceFieldEnum.get_default_fields(),
-            filter=None,
+            filter_by=None,
             sort_by=None,
             page_size=None,
             page=None,
@@ -130,7 +130,7 @@ class TestListCommand(TestCase):
         mock_list_devices.assert_called_once_with(
             active_config=ANY,
             fields=custom_fields,
-            filter=None,
+            filter_by=None,
             sort_by=None,
             page_size=None,
             page=None,
@@ -144,7 +144,7 @@ class TestListCommand(TestCase):
         mock_list_devices.assert_called_once_with(
             active_config=ANY,
             fields=DefaultInstanceFieldEnum.get_default_fields(),
-            filter=filter_value,
+            filter_by=filter_value,
             sort_by=None,
             page_size=None,
             page=None,
@@ -158,7 +158,7 @@ class TestListCommand(TestCase):
         mock_list_devices.assert_called_once_with(
             active_config=ANY,
             fields=DefaultInstanceFieldEnum.get_default_fields(),
-            filter=None,
+            filter_by=None,
             sort_by=sort_by_value,
             page_size=None,
             page=None,
@@ -171,7 +171,7 @@ class TestListCommand(TestCase):
         mock_list_devices.assert_called_once_with(
             active_config=ANY,
             fields=DefaultInstanceFieldEnum.get_default_fields(),
-            filter=None,
+            filter_by=None,
             sort_by=None,
             page_size=10,
             page=2,
@@ -199,7 +199,7 @@ class TestListCommand(TestCase):
         mock_list_devices.assert_called_once_with(
             active_config=ANY,
             fields="name,location,status",
-            filter="isActive=true",
+            filter_by="isActive=true",
             sort_by="created_at",
             page_size=20,
             page=1,

@@ -104,7 +104,7 @@ def list(
     formatter = resolve_formatter(flag=output_format, active_config=active_config, command="devices list")
     handlers.list_devices(
         fields=fields,
-        filter=filter,
+        filter_by=filter,
         sort_by=sort_by,
         page_size=page_size,
         page=page,
