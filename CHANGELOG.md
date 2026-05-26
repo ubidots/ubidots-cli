@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+### ✨ Added
+
+- `ubidots login`, `ubidots logout`, `ubidots whoami` commands for OAuth2 (PKCE +
+  loopback callback + transparent token refresh + JWKS JWT decode). Closes SC-1701.
+
 ## [2.0.0] - 2026-05-04
 
 ### 🔄 Breaking Changes

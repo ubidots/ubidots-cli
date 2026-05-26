@@ -266,7 +266,7 @@ def revoke_refresh_token(
     if response.status_code == codes.OK:
         return RevokeResult(status="ok", http_status=response.status_code)
 
-    if response.status_code in (codes.UNAUTHORIZED, codes.NOT_FOUND):
+    if response.status_code in {codes.UNAUTHORIZED, codes.NOT_FOUND}:
         return RevokeResult(status="already_invalid", http_status=response.status_code)
 
     raise RevokeRemoteError(status=response.status_code, body=response.text)

@@ -42,7 +42,18 @@ ubidots --help
 
 ## Authentication
 
-All commands that talk to Ubidots require a profile. Create one with your API token:
+All commands that talk to Ubidots require a profile. There are two ways to
+create one:
+
+- **OAuth2 (interactive):** `ubidots login` opens a browser, completes the
+  OAuth2 flow, and writes a profile automatically.
+- **API token:** `ubidots config` creates or updates a profile with an existing
+  API token — useful in scripts or CI where a browser is unavailable.
+
+See [docs/authentication.md](docs/authentication.md) for details on when to use
+each flow.
+
+Example: create a profile with an API token:
 
 ```bash
 # Interactive setup
