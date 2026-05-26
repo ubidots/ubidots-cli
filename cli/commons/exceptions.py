@@ -150,3 +150,29 @@ class RevokeRemoteError(Exception):
         if self.status is not None:
             return f"Failed to revoke token remotely (HTTP {self.status})."
         return "Failed to revoke token remotely."
+
+
+class RefreshTokenInvalidGrantError(Exception):
+    def __str__(self):
+        return "Your session has expired. Please run 'ubidots login' again."
+
+
+class RefreshTokenRemoteError(Exception):
+    def __init__(self, detail: str):
+        self.detail = detail
+
+    def __str__(self):
+        return f"Could not refresh session: {self.detail}"
+
+
+class RefreshTokenNetworkError(Exception):
+    def __init__(self, api_domain: str):
+        self.api_domain = api_domain
+
+    def __str__(self):
+        return f"Cannot reach Ubidots core at {self.api_domain}. Check your network."
+
+
+class RefreshLockTimeoutError(Exception):
+    def __str__(self):
+        return "Another ubidots command is currently refreshing the session, please retry."

@@ -11,6 +11,7 @@ from pathlib import Path
 import httpx
 import typer
 
+from cli.commons.endpoint import build_endpoint
 from cli.commons.enums import MessageColorEnum
 from cli.commons.pipelines import PipelineStep
 from cli.commons.settings import ARGO_IMAGE_NAME
@@ -18,7 +19,6 @@ from cli.commons.settings import ARGO_LABEL_KEY
 from cli.commons.settings import HOST_BIND
 from cli.commons.settings import HUB_USERNAME
 from cli.commons.styles import print_colored_table
-from cli.commons.utils import build_endpoint
 from cli.commons.utils import check_response_status
 from cli.config.helpers import get_configuration
 from cli.functions import FUNCTION_API_ROUTES

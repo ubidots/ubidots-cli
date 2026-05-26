@@ -15,6 +15,9 @@ from cli.auth.enums import CodeChallengeMethodEnum
 from cli.auth.enums import GrantTypeEnum
 from cli.auth.enums import ResponseTypeEnum
 from cli.auth.enums import TokenTypeEnum
+from cli.commons.exceptions import RefreshTokenInvalidGrantError
+from cli.commons.exceptions import RefreshTokenNetworkError
+from cli.commons.exceptions import RefreshTokenRemoteError
 from cli.commons.exceptions import RevokeNetworkError
 from cli.commons.exceptions import RevokeRemoteError
 from cli.commons.exceptions import TokenExchangeError
@@ -63,6 +66,16 @@ class TokenRequestPayload:
             object.__setattr__(self, "redirect_uri", settings.OAUTH.REDIRECT_URI)
 
     def to_dict[T](self) -> dict[str, T]:
+        return asdict(self)
+
+
+@dataclass(frozen=True, slots=True)
+class RefreshTokenPayload:
+    refresh_token: str
+    client_id: str
+    grant_type: GrantTypeEnum = GrantTypeEnum.REFRESH_TOKEN
+
+    def to_dict(self) -> dict[str, str]:
         return asdict(self)
 
 
@@ -155,6 +168,58 @@ def exchange_code_for_tokens(
     )
 
 
+def refresh_access_token(
+    api_domain: str,
+    client_id: str,
+    refresh_token: str,
+    http_client: httpx.Client | None = None,
+) -> TokenSet:
+    url = f"{api_domain.rstrip('/')}{settings.OAUTH.TOKEN_PATH}"
+    payload = RefreshTokenPayload(
+        refresh_token=refresh_token,
+        client_id=client_id,
+    )
+
+    client = http_client or httpx.Client(timeout=10.0)
+    owns_client = http_client is None
+    try:
+        try:
+            response = client.post(
+                url,
+                data=payload.to_dict(),
+                headers={"Content-Type": "application/x-www-form-urlencoded"},
+            )
+        except httpx.HTTPError as e:
+            raise RefreshTokenNetworkError(api_domain=api_domain) from e
+    finally:
+        if owns_client:
+            client.close()
+
+    if response.status_code != httpx.codes.OK:
+        detail = _safe_error_detail(response)
+        if response.status_code >= 400 and response.status_code < 500:
+            try:
+                body = response.json()
+            except ValueError:
+                body = {}
+            if isinstance(body, dict) and body.get("error") == "invalid_grant":
+                raise RefreshTokenInvalidGrantError
+        raise RefreshTokenRemoteError(detail=detail)
+
+    data = response.json()
+    access_token = data.get("access_token")
+    if not access_token:
+        raise RefreshTokenRemoteError(detail="token response missing access_token")
+    expires_in = int(data.get("expires_in", 0))
+    return TokenSet(
+        access_token=access_token,
+        refresh_token=data.get("refresh_token") or refresh_token,
+        token_type=data.get("token_type", TokenTypeEnum.BEARER),
+        expires_at=int(time.time()) + expires_in,
+        scope=data.get("scope", ""),
+    )
+
+
 @dataclass(frozen=True, slots=True)
 class RevokeTokenPayload:
     token: str
@@ -198,16 +263,13 @@ def revoke_refresh_token(
         if owns_client:
             client.close()
 
-    if response.status_code in {codes.BAD_REQUEST, codes.UNAUTHORIZED, codes.FORBIDDEN, codes.NOT_FOUND}:
-        return RevokeResult(status="already_invalid", http_status=response.status_code)
-
     if response.status_code == codes.OK:
         return RevokeResult(status="ok", http_status=response.status_code)
 
-    raise RevokeRemoteError(
-        status=response.status_code,
-        body=response.text,
-    )
+    if response.status_code in (codes.UNAUTHORIZED, codes.NOT_FOUND):
+        return RevokeResult(status="already_invalid", http_status=response.status_code)
+
+    raise RevokeRemoteError(status=response.status_code, body=response.text)
 
 
 def _safe_error_detail(response: httpx.Response) -> str:

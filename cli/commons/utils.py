@@ -8,28 +8,7 @@ import typer
 import yaml
 
 from cli.commons.enums import MessageColorEnum
-from cli.commons.http_auth import get_auth_headers
 from cli.commons.validators import is_valid_object_id
-from cli.config.models import ProfileConfigModel
-
-
-def build_endpoint(
-    route: str,
-    active_config: ProfileConfigModel,
-    query_params: dict | None = None,
-    **kwargs,
-) -> tuple[str, dict]:
-    url = f"{active_config.api_domain}{route.format(**kwargs)}"
-    if query_params:
-        filter_string = query_params.pop("filter", None)
-        query_string = "&".join(f"{key}={value}" for key, value in query_params.items() if value is not None)
-        url += f"?{query_string}"
-
-        if filter_string:
-            url += f"&{filter_string}"
-
-    headers = get_auth_headers(active_config)
-    return url, headers
 
 
 def check_response_status(response: httpx.Response, custom_message: str | None = None):

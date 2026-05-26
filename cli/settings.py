@@ -27,6 +27,9 @@ class OAuthSettings(BaseModel):
     JWKS_TTL_SECONDS: int = 3600
     JWKS_CACHE_PATH: Path = Path.home() / ".cache" / "ubidots-cli" / "jwks.json"
     JWT_ALGORITHMS: tuple[str, ...] = ("RS256",)
+    REFRESH_LEEWAY_SECONDS: int = 30
+    REFRESH_LOCK_TIMEOUT_SECONDS: int = 10
+    REFRESH_HTTP_TIMEOUT_SECONDS: float = 10.0
 
     @property
     def REDIRECT_URI(self) -> str:
