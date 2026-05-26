@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import base64
 import hashlib
 import secrets
@@ -7,11 +9,14 @@ from dataclasses import dataclass
 from urllib.parse import urlencode
 
 import httpx
+from httpx import codes
 
 from cli.auth.enums import CodeChallengeMethodEnum
 from cli.auth.enums import GrantTypeEnum
 from cli.auth.enums import ResponseTypeEnum
 from cli.auth.enums import TokenTypeEnum
+from cli.commons.exceptions import RevokeNetworkError
+from cli.commons.exceptions import RevokeRemoteError
 from cli.commons.exceptions import TokenExchangeError
 from cli.commons.exceptions import UnknownOAuthClientError
 from cli.settings import settings
@@ -127,10 +132,10 @@ def exchange_code_for_tokens(
         if owns_client:
             client.close()
 
-    if response.status_code == httpx.codes.UNAUTHORIZED:
+    if response.status_code == codes.UNAUTHORIZED:
         raise UnknownOAuthClientError
 
-    if response.status_code != httpx.codes.OK:
+    if response.status_code != codes.OK:
         detail = _safe_error_detail(response)
         if "invalid_client" in detail:
             raise UnknownOAuthClientError
@@ -147,6 +152,61 @@ def exchange_code_for_tokens(
         token_type=data.get("token_type", TokenTypeEnum.BEARER),
         expires_at=int(time.time()) + expires_in,
         scope=data.get("scope", ""),
+    )
+
+
+@dataclass(frozen=True, slots=True)
+class RevokeTokenPayload:
+    token: str
+    client_id: str
+    token_type_hint: str = "refresh_token"
+
+    def to_dict(self) -> dict[str, str]:
+        return asdict(self)
+
+
+@dataclass(frozen=True, slots=True)
+class RevokeResult:
+    status: str
+    http_status: int
+
+
+def revoke_refresh_token(
+    api_domain: str,
+    client_id: str,
+    refresh_token: str,
+    http_client: httpx.Client | None = None,
+) -> RevokeResult:
+    url = f"{api_domain.rstrip('/')}{settings.OAUTH.REVOKE_PATH}"
+    payload = RevokeTokenPayload(
+        token=refresh_token,
+        client_id=client_id,
+    )
+
+    client = http_client or httpx.Client(timeout=10.0)
+    owns_client = http_client is None
+    try:
+        try:
+            response = client.post(
+                url,
+                data=payload.to_dict(),
+                headers={"Content-Type": "application/x-www-form-urlencoded"},
+            )
+        except httpx.HTTPError as error:
+            raise RevokeNetworkError from error
+    finally:
+        if owns_client:
+            client.close()
+
+    if response.status_code in {codes.BAD_REQUEST, codes.UNAUTHORIZED, codes.FORBIDDEN, codes.NOT_FOUND}:
+        return RevokeResult(status="already_invalid", http_status=response.status_code)
+
+    if response.status_code == codes.OK:
+        return RevokeResult(status="ok", http_status=response.status_code)
+
+    raise RevokeRemoteError(
+        status=response.status_code,
+        body=response.text,
     )
 
 

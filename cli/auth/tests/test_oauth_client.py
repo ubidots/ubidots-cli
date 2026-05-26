@@ -10,10 +10,15 @@ import respx
 
 from cli.auth.enums import TokenTypeEnum
 from cli.auth.oauth_client import PKCEPair
+from cli.auth.oauth_client import RevokeResult
+from cli.auth.oauth_client import RevokeTokenPayload
 from cli.auth.oauth_client import build_authorize_url
 from cli.auth.oauth_client import exchange_code_for_tokens
 from cli.auth.oauth_client import generate_pkce_pair
 from cli.auth.oauth_client import generate_state
+from cli.auth.oauth_client import revoke_refresh_token
+from cli.commons.exceptions import RevokeNetworkError
+from cli.commons.exceptions import RevokeRemoteError
 from cli.commons.exceptions import TokenExchangeError
 from cli.commons.exceptions import UnknownOAuthClientError
 from cli.settings import settings
@@ -231,3 +236,64 @@ class TestExchangeCodeForTokens:
         actual_pairs = {k: v[0] for k, v in parse_qs(sent_body).items()}
         # Expected
         assert actual_pairs == expected_pairs
+
+
+class TestRevokeTokenPayloadToDict(TestCase):
+    def test_serializes_all_required_revocation_fields(self):
+        payload = RevokeTokenPayload(token="tok", client_id="cli-id")
+        self.assertEqual(
+            payload.to_dict(),
+            {"token": "tok", "client_id": "cli-id", "token_type_hint": "refresh_token"},
+        )
+
+    def test_accepts_custom_token_type_hint(self):
+        payload = RevokeTokenPayload(token="tok", client_id="cli-id", token_type_hint="access_token")
+        self.assertEqual(payload.to_dict()["token_type_hint"], "access_token")
+
+
+class TestRevokeRefreshToken:
+    @respx.mock
+    def test_successful_revocation_returns_ok(self):
+        respx.post("https://core.test/o/revoke_token/").mock(return_value=httpx.Response(200))
+        result = revoke_refresh_token(api_domain="https://core.test", client_id="ubidots-cli", refresh_token="rt")
+        assert result == RevokeResult(status="ok", http_status=200)
+
+    @pytest.mark.parametrize("status_code", [400, 401, 403, 404])
+    @respx.mock
+    def test_rejected_token_treated_as_already_revoked(self, status_code):
+        respx.post("https://core.test/o/revoke_token/").mock(return_value=httpx.Response(status_code))
+        result = revoke_refresh_token(api_domain="https://core.test", client_id="ubidots-cli", refresh_token="rt")
+        assert result == RevokeResult(status="already_invalid", http_status=status_code)
+
+    @respx.mock
+    def test_server_error_propagates_as_remote_error(self):
+        respx.post("https://core.test/o/revoke_token/").mock(return_value=httpx.Response(500))
+        with pytest.raises(RevokeRemoteError):
+            revoke_refresh_token(api_domain="https://core.test", client_id="ubidots-cli", refresh_token="rt")
+
+    @respx.mock
+    def test_unreachable_server_propagates_as_network_error(self):
+        respx.post("https://core.test/o/revoke_token/").mock(side_effect=httpx.ConnectError("connection refused"))
+        with pytest.raises(RevokeNetworkError):
+            revoke_refresh_token(api_domain="https://core.test", client_id="ubidots-cli", refresh_token="rt")
+
+    @respx.mock
+    def test_request_uses_oauth2_revocation_protocol_format(self):
+        route = respx.post("https://core.test/o/revoke_token/").mock(return_value=httpx.Response(200))
+        revoke_refresh_token(api_domain="https://core.test", client_id="ubidots-cli", refresh_token="my-rt")
+        request = route.calls[0].request
+        assert request.headers["content-type"] == "application/x-www-form-urlencoded"
+        body = request.content.decode()
+        assert "token=my-rt" in body
+        assert "client_id=ubidots-cli" in body
+
+
+class TestRevokeExceptionsStr(TestCase):
+    def test_network_error_message_mentions_remote_revocation(self):
+        self.assertIn("Could not reach core to revoke remotely", str(RevokeNetworkError()))
+
+    def test_remote_error_has_non_empty_default_message(self):
+        self.assertNotEqual(str(RevokeRemoteError()), "")
+
+    def test_remote_error_includes_provided_detail(self):
+        self.assertIn("something went wrong", str(RevokeRemoteError(detail="something went wrong")))

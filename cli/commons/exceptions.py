@@ -119,8 +119,6 @@ class TokenExchangeError(Exception):
 
 
 class ContainerNotFoundError(Exception):
-    """Raised by base Docker classes when a container cannot be found by label."""
-
     def __init__(self, label: str):
         super().__init__(f"Container '{label}' not found")
 
@@ -133,3 +131,22 @@ class ContainerAlreadyRunningException(Exception):
 class ContainerExecutionException(Exception):
     def __init__(self, message: str = "Container execution failed"):
         super().__init__(message)
+
+
+class RevokeNetworkError(Exception):
+    def __str__(self):
+        return "Could not reach core to revoke remotely."
+
+
+class RevokeRemoteError(Exception):
+    def __init__(self, detail: str = "", status: int | None = None, body: str = ""):
+        self.detail = detail
+        self.status = status
+        self.body = body
+
+    def __str__(self):
+        if self.detail:
+            return self.detail
+        if self.status is not None:
+            return f"Failed to revoke token remotely (HTTP {self.status})."
+        return "Failed to revoke token remotely."

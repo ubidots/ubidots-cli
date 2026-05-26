@@ -2,6 +2,8 @@ import typer
 
 from cli.apps.commands import app as apps_app
 from cli.auth.commands import login
+from cli.auth.commands import logout
+from cli.auth.commands import whoami
 from cli.commons.machine_help import install_machine_help_patch
 from cli.config.commands import config
 from cli.devices.commands import app as device_app
@@ -15,6 +17,8 @@ app = typer.Typer()
 
 app.command(help="Configure general settings for the CLI.")(config)
 app.command(help="Authenticate with Ubidots via OAuth2 (Authorization Code + PKCE).")(login)
+app.command(help="Revoke the active OAuth refresh token and clear local OAuth credentials.")(logout)
+app.command(help="Show the current OAuth session (email, scopes, expiry) by decoding the local JWT.")(whoami)
 app.add_typer(function_app, name="functions")
 app.add_typer(device_app, name="devices")
 app.add_typer(variable_app, name="variables")

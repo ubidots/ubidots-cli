@@ -1,6 +1,12 @@
 from enum import StrEnum
 
 
+class AlgorithmEnum(StrEnum):
+    HS256 = "HS256"
+    RS256 = "RS256"
+    NONE = ""
+
+
 class CodeChallengeMethodEnum(StrEnum):
     S256 = "S256"
     PLAIN = "plain"
