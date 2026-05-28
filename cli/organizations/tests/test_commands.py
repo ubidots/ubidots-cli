@@ -1,3 +1,4 @@
+from io import BytesIO
 from unittest import TestCase
 from unittest.mock import ANY
 from unittest.mock import MagicMock
@@ -7,12 +8,13 @@ from typer.testing import CliRunner
 
 from cli.organizations.commands import app as organizations_app
 
+
+class TTYBytesIO(BytesIO):
+    def isatty(self):
+        return True
+
+
 runner = CliRunner()
-
-
-# ---------------------------------------------------------------------------
-# organizations list
-# ---------------------------------------------------------------------------
 
 
 @patch("cli.organizations.commands.get_configuration", return_value=MagicMock())
@@ -62,11 +64,6 @@ class TestListCommand(TestCase):
         )
 
 
-# ---------------------------------------------------------------------------
-# organizations get
-# ---------------------------------------------------------------------------
-
-
 @patch("cli.organizations.commands.get_configuration", return_value=MagicMock())
 @patch("cli.organizations.handlers.get_organization")
 class TestGetCommand(TestCase):
@@ -100,11 +97,6 @@ class TestGetCommand(TestCase):
         mock_get.assert_not_called()
 
 
-# ---------------------------------------------------------------------------
-# organizations create
-# ---------------------------------------------------------------------------
-
-
 @patch("cli.organizations.commands.get_configuration", return_value=MagicMock())
 @patch("cli.organizations.handlers.create_organization")
 class TestCreateCommand(TestCase):
@@ -122,11 +114,6 @@ class TestCreateCommand(TestCase):
         self.assertEqual(result.exit_code, 1)
         self.assertIn("--name is required", result.output)
         mock_create.assert_not_called()
-
-
-# ---------------------------------------------------------------------------
-# organizations update
-# ---------------------------------------------------------------------------
 
 
 @patch("cli.organizations.commands.get_configuration", return_value=MagicMock())
@@ -149,11 +136,6 @@ class TestUpdateCommand(TestCase):
         mock_update.assert_not_called()
 
 
-# ---------------------------------------------------------------------------
-# organizations delete
-# ---------------------------------------------------------------------------
-
-
 @patch("cli.organizations.commands.get_configuration", return_value=MagicMock())
 @patch("cli.organizations.handlers.delete_organization")
 class TestDeleteCommand(TestCase):
@@ -167,16 +149,12 @@ class TestDeleteCommand(TestCase):
         )
 
     def test_delete_interactive_confirm_yes(self, mock_delete, _):
-        with patch("cli.organizations.commands.sys") as mock_sys:
-            mock_sys.stdin.isatty.return_value = True
-            result = runner.invoke(organizations_app, ["delete", "--id", "org123"], input="y\n")
+        result = runner.invoke(organizations_app, ["delete", "--id", "org123"], input=TTYBytesIO(b"y\n"))
         self.assertEqual(result.exit_code, 0, result.output)
         mock_delete.assert_called_once()
 
     def test_delete_interactive_confirm_no(self, mock_delete, _):
-        with patch("cli.organizations.commands.sys") as mock_sys:
-            mock_sys.stdin.isatty.return_value = True
-            result = runner.invoke(organizations_app, ["delete", "--id", "org123"], input="n\n")
+        result = runner.invoke(organizations_app, ["delete", "--id", "org123"], input=TTYBytesIO(b"n\n"))
         self.assertEqual(result.exit_code, 0)
         mock_delete.assert_not_called()
 
@@ -185,11 +163,6 @@ class TestDeleteCommand(TestCase):
         result = runner.invoke(organizations_app, ["delete", "--id", "org123"])
         self.assertEqual(result.exit_code, 1)
         mock_delete.assert_not_called()
-
-
-# ---------------------------------------------------------------------------
-# organizations users list
-# ---------------------------------------------------------------------------
 
 
 @patch("cli.organizations.commands.get_configuration", return_value=MagicMock())
@@ -210,18 +183,11 @@ class TestUsersListCommand(TestCase):
         mock_list_users.assert_called_once()
 
 
-# ---------------------------------------------------------------------------
-# organizations users add
-# ---------------------------------------------------------------------------
-
-
 @patch("cli.organizations.commands.get_configuration", return_value=MagicMock())
 @patch("cli.organizations.handlers.add_organization_user")
 class TestUsersAddCommand(TestCase):
     def test_users_add(self, mock_add_user, _):
-        result = runner.invoke(
-            organizations_app, ["users", "add", "--id", "org123", "--user", "user456"]
-        )
+        result = runner.invoke(organizations_app, ["users", "add", "--id", "org123", "--user", "user456"])
         self.assertEqual(result.exit_code, 0, result.output)
         mock_add_user.assert_called_once_with(
             org_id="org123",

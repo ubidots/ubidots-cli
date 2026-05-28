@@ -8,8 +8,3 @@ FIELDS_ORG_HELP_TEXT = (
 )
 
 FIELDS_ORG_LIST_DEFAULT = "id,name,label,createdAt"
-
-FIELDS_ORG_USERS_HELP_TEXT = (
-    "Comma-separated fields to process * e.g. field1,field2,field3. "
-    "* Available fields: (user_id, username, email, role)."
-)

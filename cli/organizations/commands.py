@@ -16,9 +16,8 @@ app = typer.Typer(help="Organization management and operations.")
 users_app = typer.Typer(help="Manage users within an organization.")
 
 
-# ---------------------------------------------------------------------------
-# organizations list
-# ---------------------------------------------------------------------------
+def _org_key(org_id: str | None, label: str | None) -> str:
+    return org_id if org_id is not None else f"~{label}"
 
 
 @app.command(name="list", short_help="Lists all available organizations.")
@@ -51,17 +50,12 @@ def list_organizations(
     )
 
 
-# ---------------------------------------------------------------------------
-# organizations get
-# ---------------------------------------------------------------------------
-
-
 @app.command(name="get", short_help="Retrieves a specific organization by id or label.")
 @no_type_check
 def get_organization(
-    id: Annotated[
+    org_id: Annotated[
         str | None,
-        typer.Option(help="Unique identifier for the organization.", show_default=False),
+        typer.Option("--id", help="Unique identifier for the organization.", show_default=False),
     ] = None,
     label: Annotated[
         str | None,
@@ -76,14 +70,14 @@ def get_organization(
         typer.Option("--format"),
     ] = None,
 ):
-    if id is not None and label is not None:
+    if org_id is not None and label is not None:
         typer.echo("Error: flags --id and --label are mutually exclusive.", err=True)
         raise typer.Exit(1)
-    if id is None and label is None:
+    if org_id is None and label is None:
         typer.echo("Error: provide --id or --label.", err=True)
         raise typer.Exit(1)
 
-    org_key = id if id is not None else f"~{label}"
+    org_key = _org_key(org_id, label)
     active_config = get_configuration(profile=profile)
     formatter = resolve_formatter(flag=output_format, active_config=active_config, command="organizations get")
     handlers.get_organization(
@@ -91,11 +85,6 @@ def get_organization(
         active_config=active_config,
         formatter=formatter,
     )
-
-
-# ---------------------------------------------------------------------------
-# organizations create
-# ---------------------------------------------------------------------------
 
 
 @app.command(name="create", short_help="Creates a new organization.")
@@ -126,16 +115,11 @@ def create_organization(
     )
 
 
-# ---------------------------------------------------------------------------
-# organizations update
-# ---------------------------------------------------------------------------
-
-
 @app.command(name="update", short_help="Updates an existing organization.")
 def update_organization(
-    id: Annotated[
+    org_id: Annotated[
         str,
-        typer.Option(help="Unique identifier for the organization.", show_default=False),
+        typer.Option("--id", help="Unique identifier for the organization.", show_default=False),
     ],
     name: Annotated[
         str | None,
@@ -157,23 +141,18 @@ def update_organization(
     active_config = get_configuration(profile=profile)
     formatter = resolve_formatter(flag=output_format, active_config=active_config, command="organizations update")
     handlers.update_organization(
-        org_id=id,
+        org_id=org_id,
         name=name,
         active_config=active_config,
         formatter=formatter,
     )
 
 
-# ---------------------------------------------------------------------------
-# organizations delete
-# ---------------------------------------------------------------------------
-
-
 @app.command(name="delete", short_help="Deletes an organization.")
 def delete_organization(
-    id: Annotated[
+    org_id: Annotated[
         str,
-        typer.Option(help="Unique identifier for the organization.", show_default=False),
+        typer.Option("--id", help="Unique identifier for the organization.", show_default=False),
     ],
     yes: Annotated[
         bool,
@@ -192,7 +171,7 @@ def delete_organization(
         if not sys.stdin.isatty():
             typer.echo("Error: Use --yes to confirm deletion in non-interactive mode.", err=True)
             raise typer.Exit(1)
-        confirmed = typer.confirm(f"Delete organization {id}?", default=False)
+        confirmed = typer.confirm(f"Delete organization {org_id}?", default=False)
         if not confirmed:
             typer.echo("Aborted.")
             raise typer.Exit(0)
@@ -200,22 +179,17 @@ def delete_organization(
     active_config = get_configuration(profile=profile)
     formatter = resolve_formatter(flag=output_format, active_config=active_config, command="organizations delete")
     handlers.delete_organization(
-        org_id=id,
+        org_id=org_id,
         active_config=active_config,
         formatter=formatter,
     )
 
 
-# ---------------------------------------------------------------------------
-# organizations users list
-# ---------------------------------------------------------------------------
-
-
 @users_app.command(name="list", short_help="Lists users in an organization.")
 def list_users(
-    id: Annotated[
+    org_id: Annotated[
         str,
-        typer.Option(help="Organization id.", show_default=False),
+        typer.Option("--id", help="Organization id.", show_default=False),
     ],
     profile: Annotated[
         str,
@@ -227,26 +201,19 @@ def list_users(
     ] = None,
 ):
     active_config = get_configuration(profile=profile)
-    formatter = resolve_formatter(
-        flag=output_format, active_config=active_config, command="organizations users list"
-    )
+    formatter = resolve_formatter(flag=output_format, active_config=active_config, command="organizations users list")
     handlers.list_organization_users(
-        org_id=id,
+        org_id=org_id,
         active_config=active_config,
         formatter=formatter,
     )
 
 
-# ---------------------------------------------------------------------------
-# organizations users add
-# ---------------------------------------------------------------------------
-
-
 @users_app.command(name="add", short_help="Adds a user to an organization.")
 def add_user(
-    id: Annotated[
+    org_id: Annotated[
         str,
-        typer.Option(help="Organization id.", show_default=False),
+        typer.Option("--id", help="Organization id.", show_default=False),
     ],
     user: Annotated[
         str,
@@ -262,11 +229,9 @@ def add_user(
     ] = None,
 ):
     active_config = get_configuration(profile=profile)
-    formatter = resolve_formatter(
-        flag=output_format, active_config=active_config, command="organizations users add"
-    )
+    formatter = resolve_formatter(flag=output_format, active_config=active_config, command="organizations users add")
     handlers.add_organization_user(
-        org_id=id,
+        org_id=org_id,
         user_id=user,
         active_config=active_config,
         formatter=formatter,
