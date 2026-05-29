@@ -31,7 +31,7 @@ app = typer.Typer(help="Variable management and operations.")
 @app.command(short_help="Deletes a specific variable using its id")
 @simple_lookup_key(entity_name=EntityNameEnum.VARIABLE)
 def delete(
-    id: str,
+    id: str | None = None,
     profile: Annotated[
         str,
         typer.Option(help="Name of the profile to use for remote server communication."),
@@ -51,7 +51,7 @@ def delete(
 @simple_lookup_key(entity_name=EntityNameEnum.VARIABLE)
 @no_type_check
 def get(
-    id: str,
+    id: str | None = None,
     profile: Annotated[
         str,
         typer.Option(help="Name of the profile to use for remote server communication."),
@@ -199,7 +199,7 @@ def add(
 @app.command(short_help="Update a variable.")
 @simple_lookup_key(entity_name=EntityNameEnum.VARIABLE)
 def update(
-    id: str,
+    id: str | None = None,
     new_label: Annotated[str, typer.Option(help="The label for the variable.")] = "",
     new_name: Annotated[str, typer.Option(help="The name of the variable.")] = "",
     description: Annotated[str, typer.Option(help="A brief description of the variable.")] = "",
