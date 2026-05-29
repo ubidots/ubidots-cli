@@ -1,8 +1,8 @@
 import httpx
 import typer
 
+from cli.commons.endpoint import build_endpoint
 from cli.commons.formatters import OutputFormatter
-from cli.commons.utils import build_endpoint
 from cli.config.models import ProfileConfigModel
 from cli.organizations.constants import ORG_DETAIL_ROUTE
 from cli.organizations.constants import ORG_LIST_ROUTE
