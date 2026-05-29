@@ -67,7 +67,7 @@ class TestAuthHeaderDispatch(unittest.TestCase):
             formatter = MagicMock()
             list_devices(
                 fields="id,label",
-                filter=None,
+                filter_by=None,
                 sort_by=None,
                 page_size=None,
                 page=None,

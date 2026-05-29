@@ -1,3 +1,6 @@
+from urllib.parse import quote_plus
+from urllib.parse import urlencode
+
 import yaml
 
 from cli.auth.token_refresh import ensure_fresh_token
@@ -31,27 +34,27 @@ def build_endpoint(
     query_params: dict | None = None,
     **kwargs,
 ) -> tuple[str, dict]:
-    profile_name = _get_active_profile_name()
     try:
+        profile_name = _get_active_profile_name()
         refreshed_config = ensure_fresh_token(profile=profile_name, config=active_config)
     except (
         RefreshTokenInvalidGrantError,
         RefreshTokenRemoteError,
         RefreshTokenNetworkError,
         RefreshLockTimeoutError,
+        RuntimeError,
     ) as error:
         exit_with_error_message(error)
 
     url = f"{refreshed_config.api_domain}{route.format(**kwargs)}"
     if query_params:
         filter_string = query_params.get("filter")
-        query_string = "&".join(
-            f"{key}={value}" for key, value in query_params.items() if key != "filter" and value is not None
-        )
-        url += f"?{query_string}"
-
+        non_filter = {k: v for k, v in query_params.items() if k != "filter" and v is not None}
+        query_string = urlencode(non_filter, doseq=True)
+        if query_string:
+            url += f"?{query_string}"
         if filter_string:
-            url += f"&{filter_string}"
+            url += ("&" if query_string else "?") + quote_plus(filter_string, safe="=")
 
     headers = get_auth_headers(refreshed_config)
     return url, headers

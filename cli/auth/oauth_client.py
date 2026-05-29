@@ -133,7 +133,7 @@ def exchange_code_for_tokens(
         redirect_uri=redirect_uri,
     )
 
-    client = http_client or httpx.Client(timeout=10.0)
+    client = http_client or httpx.Client(timeout=settings.OAUTH.REFRESH_HTTP_TIMEOUT_SECONDS)
     owns_client = http_client is None
     try:
         response = client.post(
@@ -180,7 +180,7 @@ def refresh_access_token(
         client_id=client_id,
     )
 
-    client = http_client or httpx.Client(timeout=10.0)
+    client = http_client or httpx.Client(timeout=settings.OAUTH.REFRESH_HTTP_TIMEOUT_SECONDS)
     owns_client = http_client is None
     try:
         try:
@@ -248,7 +248,7 @@ def revoke_refresh_token(
         client_id=client_id,
     )
 
-    client = http_client or httpx.Client(timeout=10.0)
+    client = http_client or httpx.Client(timeout=settings.OAUTH.REFRESH_HTTP_TIMEOUT_SECONDS)
     owns_client = http_client is None
     try:
         try:
