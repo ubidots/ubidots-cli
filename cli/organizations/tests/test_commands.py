@@ -125,9 +125,116 @@ class TestUpdateCommand(TestCase):
         mock_update.assert_called_once_with(
             org_id="org123",
             name="New Name",
+            label=None,
+            description=None,
+            is_active=None,
+            app_key=None,
+            properties=None,
             active_config=ANY,
             formatter=ANY,
         )
+
+    def test_update_with_label(self, mock_update, _):
+        result = runner.invoke(organizations_app, ["update", "--id", "org123", "--label", "new-label"])
+        self.assertEqual(result.exit_code, 0, result.output)
+        mock_update.assert_called_once_with(
+            org_id="org123",
+            name=None,
+            label="new-label",
+            description=None,
+            is_active=None,
+            app_key=None,
+            properties=None,
+            active_config=ANY,
+            formatter=ANY,
+        )
+
+    def test_update_with_description(self, mock_update, _):
+        result = runner.invoke(organizations_app, ["update", "--id", "org123", "--description", "A description"])
+        self.assertEqual(result.exit_code, 0, result.output)
+        mock_update.assert_called_once_with(
+            org_id="org123",
+            name=None,
+            label=None,
+            description="A description",
+            is_active=None,
+            app_key=None,
+            properties=None,
+            active_config=ANY,
+            formatter=ANY,
+        )
+
+    def test_update_with_is_active(self, mock_update, _):
+        result = runner.invoke(organizations_app, ["update", "--id", "org123", "--is-active"])
+        self.assertEqual(result.exit_code, 0, result.output)
+        mock_update.assert_called_once_with(
+            org_id="org123",
+            name=None,
+            label=None,
+            description=None,
+            is_active=True,
+            app_key=None,
+            properties=None,
+            active_config=ANY,
+            formatter=ANY,
+        )
+
+    def test_update_with_no_is_active(self, mock_update, _):
+        result = runner.invoke(organizations_app, ["update", "--id", "org123", "--no-is-active"])
+        self.assertEqual(result.exit_code, 0, result.output)
+        mock_update.assert_called_once_with(
+            org_id="org123",
+            name=None,
+            label=None,
+            description=None,
+            is_active=False,
+            app_key=None,
+            properties=None,
+            active_config=ANY,
+            formatter=ANY,
+        )
+
+    def test_update_with_app_key(self, mock_update, _):
+        result = runner.invoke(organizations_app, ["update", "--id", "org123", "--app-key", "my-app"])
+        self.assertEqual(result.exit_code, 0, result.output)
+        mock_update.assert_called_once_with(
+            org_id="org123",
+            name=None,
+            label=None,
+            description=None,
+            is_active=None,
+            app_key="my-app",
+            properties=None,
+            active_config=ANY,
+            formatter=ANY,
+        )
+
+    def test_update_with_properties(self, mock_update, _):
+        result = runner.invoke(organizations_app, ["update", "--id", "org123", "--properties", '{"key": "value"}'])
+        self.assertEqual(result.exit_code, 0, result.output)
+        mock_update.assert_called_once_with(
+            org_id="org123",
+            name=None,
+            label=None,
+            description=None,
+            is_active=None,
+            app_key=None,
+            properties={"key": "value"},
+            active_config=ANY,
+            formatter=ANY,
+        )
+
+    def test_update_with_invalid_properties_json_is_error(self, mock_update, _):
+        result = runner.invoke(organizations_app, ["update", "--id", "org123", "--properties", "not-json"])
+        self.assertEqual(result.exit_code, 1)
+        self.assertIn("valid JSON object", result.output)
+        mock_update.assert_not_called()
+
+    def test_update_with_properties_non_object_is_error(self, mock_update, _):
+        result = runner.invoke(organizations_app, ["update", "--id", "org123", "--properties", '"string"'])
+        self.assertEqual(result.exit_code, 1)
+        self.assertIn("valid JSON object", result.output)
+        mock_update.assert_not_called()
 
     def test_update_without_fields_is_error(self, mock_update, _):
         result = runner.invoke(organizations_app, ["update", "--id", "org123"])
@@ -163,35 +270,3 @@ class TestDeleteCommand(TestCase):
         result = runner.invoke(organizations_app, ["delete", "--id", "org123"])
         self.assertEqual(result.exit_code, 1)
         mock_delete.assert_not_called()
-
-
-@patch("cli.organizations.commands.get_configuration", return_value=MagicMock())
-@patch("cli.organizations.handlers.list_organization_users")
-class TestUsersListCommand(TestCase):
-    def test_users_list(self, mock_list_users, _):
-        result = runner.invoke(organizations_app, ["users", "list", "--id", "org123"])
-        self.assertEqual(result.exit_code, 0, result.output)
-        mock_list_users.assert_called_once_with(
-            org_id="org123",
-            active_config=ANY,
-            formatter=ANY,
-        )
-
-    def test_users_list_with_format_json(self, mock_list_users, _):
-        result = runner.invoke(organizations_app, ["users", "list", "--id", "org123", "--format", "json"])
-        self.assertEqual(result.exit_code, 0, result.output)
-        mock_list_users.assert_called_once()
-
-
-@patch("cli.organizations.commands.get_configuration", return_value=MagicMock())
-@patch("cli.organizations.handlers.add_organization_user")
-class TestUsersAddCommand(TestCase):
-    def test_users_add(self, mock_add_user, _):
-        result = runner.invoke(organizations_app, ["users", "add", "--id", "org123", "--user", "user456"])
-        self.assertEqual(result.exit_code, 0, result.output)
-        mock_add_user.assert_called_once_with(
-            org_id="org123",
-            user_id="user456",
-            active_config=ANY,
-            formatter=ANY,
-        )

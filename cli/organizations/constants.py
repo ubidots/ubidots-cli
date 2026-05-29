@@ -1,6 +1,5 @@
 ORG_LIST_ROUTE = "/api/v2.0/organizations/"
 ORG_DETAIL_ROUTE = "/api/v2.0/organizations/{org_id}/"
-ORG_USERS_ROUTE = "/api/v2.0/organizations/{org_id}/users/"
 
 FIELDS_ORG_HELP_TEXT = (
     "Comma-separated fields to process * e.g. field1,field2,field3. "

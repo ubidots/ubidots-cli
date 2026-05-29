@@ -1,3 +1,4 @@
+import json
 import sys
 from typing import Annotated
 from typing import no_type_check
@@ -13,7 +14,6 @@ from cli.organizations.constants import FIELDS_ORG_HELP_TEXT
 from cli.organizations.constants import FIELDS_ORG_LIST_DEFAULT
 
 app = typer.Typer(help="Organization management and operations.")
-users_app = typer.Typer(help="Manage users within an organization.")
 
 
 def _org_key(org_id: str | None, label: str | None) -> str:
@@ -125,6 +125,30 @@ def update_organization(
         str | None,
         typer.Option(help="New name for the organization.", show_default=False),
     ] = None,
+    label: Annotated[
+        str | None,
+        typer.Option(help="New API label for the organization.", show_default=False),
+    ] = None,
+    description: Annotated[
+        str | None,
+        typer.Option(help="New description for the organization.", show_default=False),
+    ] = None,
+    is_active: Annotated[
+        bool | None,
+        typer.Option("--is-active/--no-is-active", help="Set the organization active status.", show_default=False),
+    ] = None,
+    app_key: Annotated[
+        str | None,
+        typer.Option(
+            "--app-key", help="Key of the app to associate with the organization (id or label).", show_default=False
+        ),
+    ] = None,
+    properties: Annotated[
+        str | None,
+        typer.Option(
+            help='JSON object of arbitrary key-value properties, e.g. \'{"key": "value"}\'.', show_default=False
+        ),
+    ] = None,
     profile: Annotated[
         str,
         typer.Option(help="Name of the profile to use for remote server communication."),
@@ -134,15 +158,30 @@ def update_organization(
         typer.Option("--format"),
     ] = None,
 ):
-    if name is None:
+    if all(v is None for v in [name, label, description, is_active, app_key, properties]):
         typer.echo("Error: at least one field to update must be provided.", err=True)
         raise typer.Exit(1)
+
+    parsed_properties: dict | None = None
+    if properties is not None:
+        try:
+            parsed_properties = json.loads(properties)
+            if not isinstance(parsed_properties, dict):
+                raise ValueError
+        except (json.JSONDecodeError, ValueError):
+            typer.echo("Error: --properties must be a valid JSON object.", err=True)
+            raise typer.Exit(1) from None
 
     active_config = get_configuration(profile=profile)
     formatter = resolve_formatter(flag=output_format, active_config=active_config, command="organizations update")
     handlers.update_organization(
         org_id=org_id,
         name=name,
+        label=label,
+        description=description,
+        is_active=is_active,
+        app_key=app_key,
+        properties=parsed_properties,
         active_config=active_config,
         formatter=formatter,
     )
@@ -183,59 +222,3 @@ def delete_organization(
         active_config=active_config,
         formatter=formatter,
     )
-
-
-@users_app.command(name="list", short_help="Lists users in an organization.")
-def list_users(
-    org_id: Annotated[
-        str,
-        typer.Option("--id", help="Organization id.", show_default=False),
-    ],
-    profile: Annotated[
-        str,
-        typer.Option(help="Name of the profile to use for remote server communication."),
-    ] = "",
-    output_format: Annotated[
-        OutputFormatFieldsEnum | None,
-        typer.Option("--format"),
-    ] = None,
-):
-    active_config = get_configuration(profile=profile)
-    formatter = resolve_formatter(flag=output_format, active_config=active_config, command="organizations users list")
-    handlers.list_organization_users(
-        org_id=org_id,
-        active_config=active_config,
-        formatter=formatter,
-    )
-
-
-@users_app.command(name="add", short_help="Adds a user to an organization.")
-def add_user(
-    org_id: Annotated[
-        str,
-        typer.Option("--id", help="Organization id.", show_default=False),
-    ],
-    user: Annotated[
-        str,
-        typer.Option(help="User id to add.", show_default=False),
-    ],
-    profile: Annotated[
-        str,
-        typer.Option(help="Name of the profile to use for remote server communication."),
-    ] = "",
-    output_format: Annotated[
-        OutputFormatFieldsEnum | None,
-        typer.Option("--format"),
-    ] = None,
-):
-    active_config = get_configuration(profile=profile)
-    formatter = resolve_formatter(flag=output_format, active_config=active_config, command="organizations users add")
-    handlers.add_organization_user(
-        org_id=org_id,
-        user_id=user,
-        active_config=active_config,
-        formatter=formatter,
-    )
-
-
-app.add_typer(users_app, name="users")

@@ -1,3 +1,5 @@
+import shutil
+import tempfile
 from pathlib import Path
 from unittest import TestCase
 from unittest.mock import mock_open
@@ -35,8 +37,16 @@ from cli.settings import settings
 class TestCLIConfiguration(TestCase):
     def setUp(self):
         self.profile = "test-profile"
-        self.config_directory = Path(settings.CONFIG.DIRECTORY_PATH)
-        self.profile_path = self.config_directory / "profiles" / f"{self.profile}.yaml"
+        self._tmp_dir = Path(tempfile.mkdtemp())
+        self._profiles_dir = self._tmp_dir / "profiles"
+        self._profiles_dir.mkdir()
+        self._patcher = patch.object(settings.CONFIG, "PROFILES_PATH", self._profiles_dir)
+        self._patcher.start()
+        self.profile_path = self._profiles_dir / f"{self.profile}.yaml"
+
+    def tearDown(self):
+        self._patcher.stop()
+        shutil.rmtree(self._tmp_dir)
 
     def test_save_cli_configuration(self):
         # Setup
