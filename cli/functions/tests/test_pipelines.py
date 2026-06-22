@@ -7,6 +7,7 @@ from unittest.mock import patch
 
 import httpx
 import pytest
+import respx
 
 from cli.config.models import ProfileConfigModel
 from cli.functions import pipelines
@@ -1039,6 +1040,50 @@ class TestPrintActivationLogsStep:
         calls = [c.args[0] for c in mock_echo.call_args_list]
         assert "\n--- Activation: act-1 ---" in calls
         assert "Error: Failed to fetch log detail" in calls
+
+
+class TestUploadFileStep:
+    @respx.mock
+    def test_does_not_send_json_content_type(self):
+        url = "https://api.example.com/functions/abc123/zip-file/"
+        route = respx.post(url).mock(return_value=httpx.Response(200))
+        project_metadata = MagicMock()
+        project_metadata.project.name = "my-func"
+
+        step = pipelines.UploadFileStep()
+        step.execute(
+            {
+                "url": url,
+                "headers": {"X-Auth-Token": "token", "Content-Type": "application/json"},
+                "zip_file": b"PK\x03\x04",
+                "project_metadata": project_metadata,
+            }
+        )
+
+        assert route.called
+        content_type = route.calls.last.request.headers.get("content-type", "")
+        assert "multipart/form-data" in content_type
+        assert "application/json" not in content_type
+
+    @respx.mock
+    def test_preserves_auth_header(self):
+        url = "https://api.example.com/functions/abc123/zip-file/"
+        route = respx.post(url).mock(return_value=httpx.Response(200))
+        project_metadata = MagicMock()
+        project_metadata.project.name = "my-func"
+
+        step = pipelines.UploadFileStep()
+        step.execute(
+            {
+                "url": url,
+                "headers": {"X-Auth-Token": "my-token", "Content-Type": "application/json"},
+                "zip_file": b"PK\x03\x04",
+                "project_metadata": project_metadata,
+            }
+        )
+
+        assert route.called
+        assert route.calls.last.request.headers.get("x-auth-token") == "my-token"
 
 
 class TestValidateAllowedRuntimeStep:

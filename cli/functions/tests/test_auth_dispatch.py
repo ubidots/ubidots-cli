@@ -178,6 +178,9 @@ class TestAuthHeaderDispatch(unittest.TestCase):
             self.assertTrue(zip_route.called, "add_function: HTTP POST to zip-file was not called")
             _assert_auth_headers(self, post_route.calls.last.request, profile)
             _assert_auth_headers(self, zip_route.calls.last.request, profile)
+            zip_content_type = zip_route.calls.last.request.headers.get("content-type", "")
+            self.assertIn("multipart/form-data", zip_content_type, "zip upload must use multipart/form-data")
+            self.assertNotIn("application/json", zip_content_type, "zip upload must not send Content-Type: application/json")
 
     def test_add_function_token(self):
         self._run_add_function(_TOKEN_PROFILE)
