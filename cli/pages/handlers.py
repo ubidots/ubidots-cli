@@ -49,4 +49,5 @@ def upload_page_code(url: str, headers: dict, zip_file: bytes, page_name: str):
         )
     }
     client = httpx.Client(follow_redirects=True)
-    return client.post(url=url, headers=headers, files=files)
+    upload_headers = {k: v for k, v in headers.items() if k.lower() != "content-type"}
+    return client.post(url=url, headers=upload_headers, files=files)
