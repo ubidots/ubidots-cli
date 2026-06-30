@@ -648,7 +648,8 @@ class UploadFileStep(PipelineStep):
             )
         }
         client = httpx.Client(follow_redirects=True)
-        response = client.post(url=url, headers=headers, files=files)
+        upload_headers = {k: v for k, v in headers.items() if k.lower() != "content-type"}
+        response = client.post(url=url, headers=upload_headers, files=files)
         data["response"] = response
         return data
 

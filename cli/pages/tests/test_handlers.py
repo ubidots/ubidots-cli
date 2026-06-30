@@ -224,3 +224,15 @@ class TestUploadPageCode(unittest.TestCase):
         request_content = route.calls.last.request.content.decode()
         self.assertIn("my_page.zip", request_content)
         self.assertIn("application/zip", request_content)
+
+    @respx.mock
+    def test_does_not_send_json_content_type(self):
+        route = respx.post("http://api/pages/abc123/code").mock(return_value=httpx.Response(200))
+
+        headers = {"X-Auth-Token": "token", "Content-Type": "application/json"}
+        upload_page_code("http://api/pages/abc123/code", headers, b"zipdata", "my_page")
+
+        self.assertTrue(route.called)
+        content_type = route.calls.last.request.headers.get("content-type", "")
+        self.assertIn("multipart/form-data", content_type, "upload must use multipart/form-data")
+        self.assertNotIn("application/json", content_type, "upload must not send Content-Type: application/json")

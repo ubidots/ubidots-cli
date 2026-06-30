@@ -101,7 +101,8 @@ def add_function(active_config: ProfileConfigModel, **kwargs):
         )
     }
 
-    response = client.post(url=url, headers=headers, files=files)
+    upload_headers = {k: v for k, v in headers.items() if k.lower() != "content-type"}
+    response = client.post(url=url, headers=upload_headers, files=files)
 
     if response.status_code not in {httpx.codes.OK, httpx.codes.ACCEPTED}:
         return {
