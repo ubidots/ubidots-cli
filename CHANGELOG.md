@@ -7,6 +7,12 @@
 - `ubidots login`, `ubidots logout`, `ubidots whoami` commands for OAuth2 (PKCE +
   loopback callback + transparent token refresh + JWKS JWT decode). Closes SC-1701.
 
+### 🐛 Bug Fixes
+
+- `ubidots functions push --yes` / `-y` no longer asks for overwrite confirmation when the
+  function already exists remotely, so non-interactive runs (CI, scripts) no longer abort.
+  Closes SC-7390.
+
 ## [2.0.0] - 2026-05-04
 
 ### 🔄 Breaking Changes
