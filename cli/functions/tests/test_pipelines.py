@@ -544,6 +544,19 @@ class TestConfirmOverwritePushFunctionStep:
             step.execute(data)
         mock_confirm.assert_called_once()
 
+    @patch("typer.confirm", return_value=True)
+    def test_execute_prompts_when_overwrite_key_is_missing(self, mock_confirm):
+        # Setup
+        step = pipelines.ConfirmOverwritePushFunctionStep()
+        data = {"needs_update": True}
+
+        # Action
+        result = step.execute(data)
+
+        # Assert
+        assert result == data
+        mock_confirm.assert_called_once()
+
 
 class TestValidateNotInExistingFunctionDirectoryStep:
     @patch("pathlib.Path.cwd")
