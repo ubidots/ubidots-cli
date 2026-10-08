@@ -246,7 +246,7 @@ class GetFunctionParametersStep(PipelineStep):
 class ConfirmOverwritePushFunctionStep(PipelineStep):
     def execute(self, data):
         needs_update = data["needs_update"]
-        confirm = data.get("confirm", False)
+        confirm = data.get("overwrite", {}).get("confirm", False)
 
         if not needs_update:
             return data

@@ -8,6 +8,7 @@ from unittest.mock import patch
 import httpx
 import pytest
 import respx
+import typer
 
 from cli.config.models import ProfileConfigModel
 from cli.functions import pipelines
@@ -490,6 +491,71 @@ class TestExtractProjectStep:
         # Assert
         assert "File not found" in str(exc_info.value)
         mock_zip_init.assert_called_once_with(ANY, "r")
+
+
+class TestConfirmOverwritePushFunctionStep:
+    @patch("typer.confirm")
+    def test_execute_skips_prompt_when_no_update_needed(self, mock_confirm):
+        # Setup
+        step = pipelines.ConfirmOverwritePushFunctionStep()
+        data = {"needs_update": False, "overwrite": {"confirm": False}}
+
+        # Action
+        result = step.execute(data)
+
+        # Assert
+        assert result == data
+        mock_confirm.assert_not_called()
+
+    @patch("typer.confirm")
+    def test_execute_skips_prompt_when_confirm_flag_is_set(self, mock_confirm):
+        # Setup
+        step = pipelines.ConfirmOverwritePushFunctionStep()
+        data = {"needs_update": True, "overwrite": {"confirm": True}}
+
+        # Action
+        result = step.execute(data)
+
+        # Assert
+        assert result == data
+        mock_confirm.assert_not_called()
+
+    @patch("typer.confirm", return_value=True)
+    def test_execute_prompts_and_continues_when_user_accepts(self, mock_confirm):
+        # Setup
+        step = pipelines.ConfirmOverwritePushFunctionStep()
+        data = {"needs_update": True, "overwrite": {"confirm": False}}
+
+        # Action
+        result = step.execute(data)
+
+        # Assert
+        assert result == data
+        mock_confirm.assert_called_once()
+
+    @patch("typer.confirm", return_value=False)
+    def test_execute_aborts_when_user_declines(self, mock_confirm):
+        # Setup
+        step = pipelines.ConfirmOverwritePushFunctionStep()
+        data = {"needs_update": True, "overwrite": {"confirm": False}}
+
+        # Action & Assert
+        with pytest.raises(typer.Abort):
+            step.execute(data)
+        mock_confirm.assert_called_once()
+
+    @patch("typer.confirm", return_value=True)
+    def test_execute_prompts_when_overwrite_key_is_missing(self, mock_confirm):
+        # Setup
+        step = pipelines.ConfirmOverwritePushFunctionStep()
+        data = {"needs_update": True}
+
+        # Action
+        result = step.execute(data)
+
+        # Assert
+        assert result == data
+        mock_confirm.assert_called_once()
 
 
 class TestValidateNotInExistingFunctionDirectoryStep:
